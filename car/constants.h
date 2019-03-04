@@ -13,6 +13,7 @@ int RGHT_SPED = D5;
 const char* NET_NAME = "TYT 1";
 const char* NET_PASS = "tyt@1111";
 const int PORT = 12345;
+const char* MSG_ACK = "ACK";
 
 // Serial
 const int BAUD_RATE = 115200;
@@ -26,3 +27,23 @@ enum MSG {
     LEFT = 3,
     RIGHT = 4
 };
+
+// Sensors
+const int MPU_ADDRESS = 0x68;
+const int I2C_SCL = D6;
+const int I2C_SDA = D7;
+const int ACCEL_SCALE_FACTOR = 16384;
+const int GYRO_SCALE_FACTOR = 131;
+const int MPU_REG_SMPLRT_DIV   =  0x19;
+const int MPU_REG_USER_CTRL    =  0x6A;
+const int MPU_REG_PWR_MGMT_1   =  0x6B;
+const int MPU_REG_PWR_MGMT_2   =  0x6C;
+const int MPU_REG_CONFIG       =  0x1A;
+const int MPU_REG_GYRO_CONFIG  =  0x1B;
+const int MPU_REG_ACCEL_CONFIG =  0x1C;
+const int MPU_REG_FIFO_EN      =  0x23;
+const int MPU_REG_INT_ENABLE   =  0x38;
+const int MPU_REG_ACCEL_XOUT_H =  0x3B;
+const int MPU_REG_SIGNAL_PATH_RESET  = 0x68;
+
+// General

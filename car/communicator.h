@@ -2,11 +2,13 @@
 
 #include <ESP8266WiFi.h>
 #include <WiFiUDP.h>
+#include <string.h>
 
 #include "constants.h"
 
 class Communicator {
 public:
+
     boolean setup() {
         wifiConnected = connectWifi();
     
@@ -23,7 +25,7 @@ public:
         
         if(packetSize)
         {
-            Serial.print("Received packet of size " + packetSize + " From ");
+            Serial.print("Received packet of size " + (String) packetSize + " From ");
             
             IPAddress remote = UDP.remoteIP();
             for (int i = 0; i < 4; i++)
@@ -59,11 +61,15 @@ public:
     }
 
     void sendACK() {
-        UDP.beginPacket(UDP.remoteIP(), UDP.remotePort());
-        UDP.write(replyBuffer);
-        UDP.endPacket();
+        send(MSG_ACK);
     }
 
+    void send(const char* buf) {
+        UDP.beginPacket(UDP.remoteIP(), UDP.remotePort());
+        UDP.write(buf);
+        UDP.endPacket();
+    }
+    
 private: 
     boolean wifiConnected = false;
  
@@ -71,8 +77,7 @@ private:
     WiFiUDP UDP;
     boolean udpConnected = false;
     char packetBuffer[UDP_TX_PACKET_MAX_SIZE]; // Buffer to hold incoming packet.
-    const char* replyBuffer = "ACK";
-    
+        
     boolean connectUDP() {
         boolean state = false;
     
@@ -111,7 +116,8 @@ private:
 
         Serial.println("");
         if (state) {
-            Serial.println("Connected to " + NET_NAME + "IP address: " + WiFi.localIP());
+            Serial.print("Connected to " + (String) NET_NAME + "IP address: ");
+            Serial.println(WiFi.localIP());
         } else {
             Serial.println("Connection failed.");
         }
