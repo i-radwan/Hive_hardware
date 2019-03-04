@@ -2,7 +2,7 @@
 
 #include <Wire.h>
 
-#include "constants.h"
+#include "../utils/constants.h"
 
 class MPUSensor {
 public:

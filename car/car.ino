@@ -1,7 +1,7 @@
-#include "constants.h"
+#include "utils/constants.h"
 #include "communicator.h"
 #include "navigator.h"
-#include "sensor_mpu.h"
+#include "sensors/mpu.h"
 
 Communicator comm;
 Navigator nav;
