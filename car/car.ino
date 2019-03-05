@@ -17,59 +17,61 @@ void setup() {
     setupState = comm.setup();
 
     // Initialize motors
-    nav.setup();    
+    nav.setup();
 
     // Initialize sensors
     mpu.setup();
 }
 
 void loop() {
-    if(setupState) {
+    if(!setupState)
+        return;
 
-        //
-        // Server commands
-        //
-        int msg = comm.receive();
+    //
+    // Server commands
+    //
+    int msg = comm.receive();
 
-        switch (msg) {
-            case STOP:
-                nav.stop();
-            break;
+    switch (msg) {
+        case STOP:
+            nav.stop();
+        break;
 
-            case FORWARD:
-                nav.forward();
-            break;
+        case FORWARD:
+            nav.forward();
+        break;
 
-            case BACKWARD:
-                nav.backward();
-            break;
+        case BACKWARD:
+            nav.backward();
+        break;
 
-            case LEFT:    
-                nav.left();
-            break;
+        case LEFT:
+            nav.left();
+        break;
 
-            case RIGHT:
-                nav.right();      
-            break;
-        }
-
-        //
-        // Local logic
-        //
-
-        // Read sensors
-        double ax, ay, az, gx, gy, gz;        
-        mpu.read(ax, ay, az, gx, gy, gz);
-
-        Serial.println("Reading Sensors...");
-        Serial.print("Ax: " + (String) ax); 
-//        Serial.print(" Ay: "); Serial.print(Ay);
-//        Serial.print(" Az: "); Serial.print(Az);
-//        Serial.print(" T: "); Serial.print(T);
-//        Serial.print(" Gx: "); Serial.print(Gx);
-//        Serial.print(" Gy: "); Serial.print(Gy);
-//        Serial.print(" Gz: "); Serial.println(Gz);
+        case RIGHT:
+            nav.right();
+        break;
     }
-     
+
+    //
+    // Local logic
+    //
+
+    // Read sensors
+    double ax, ay, az, gx, gy, gz;
+    mpu.read(ax, ay, az, gx, gy, gz);
+
+    // Serial.println("Reading Sensors...");
+    // Serial.print("Ax: " + (String) ax);
+    // Serial.print("Ay: " + (String) ay);
+    // Serial.print("Az: " + (String) az);
+    // Serial.print("Gx: " + (String) gx);
+    // Serial.print("Gy: " + (String) gy);
+    // Serial.print("Gz: " + (String) gz);
+
+    // Navigation
+    nav.move(0);
+
     delay(10);
 }

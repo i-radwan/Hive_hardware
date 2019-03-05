@@ -6,8 +6,9 @@
 
 class MPUSensor {
 public:
+    
     void setup() {
-        Wire.begin(I2C_SDA, I2C_SCL);
+        Wire.begin(MPU_I2C_SDA, MPU_I2C_SCL);
         
         delay(150);
         
@@ -29,12 +30,12 @@ public:
         Wire.endTransmission();
         
         Wire.requestFrom(MPU_ADDRESS, (int) 14);
-        ax = (((int) Wire.read() << 8) | Wire.read()) / ACCEL_SCALE_FACTOR;
-        ay = (((int) Wire.read() << 8) | Wire.read()) / ACCEL_SCALE_FACTOR;
-        az = (((int) Wire.read() << 8) | Wire.read()) / ACCEL_SCALE_FACTOR;
-        gx = (((int) Wire.read() << 8) | Wire.read()) / GYRO_SCALE_FACTOR;
-        gy = (((int) Wire.read() << 8) | Wire.read()) / GYRO_SCALE_FACTOR;
-        gz = (((int) Wire.read() << 8) | Wire.read()) / GYRO_SCALE_FACTOR;
+        ax = (((int) Wire.read() << 8) | Wire.read()) / MPU_ACCEL_SCALE_FACTOR;
+        ay = (((int) Wire.read() << 8) | Wire.read()) / MPU_ACCEL_SCALE_FACTOR;
+        az = (((int) Wire.read() << 8) | Wire.read()) / MPU_ACCEL_SCALE_FACTOR;
+        gx = (((int) Wire.read() << 8) | Wire.read()) / MPU_GYRO_SCALE_FACTOR;
+        gy = (((int) Wire.read() << 8) | Wire.read()) / MPU_GYRO_SCALE_FACTOR;
+        gz = (((int) Wire.read() << 8) | Wire.read()) / MPU_GYRO_SCALE_FACTOR;
     }
 
 private:

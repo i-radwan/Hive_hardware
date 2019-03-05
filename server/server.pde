@@ -7,7 +7,7 @@ import hypermedia.net.*;
 
 UDP udp; // define the UDP object
 
-String ip = "192.168.0.85"; // the remote IP address
+String ip = "192.168.1.10"; // the remote IP address
 int port = 12345; // the destination port
 
 long previousMillis = 0;

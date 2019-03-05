@@ -36,8 +36,6 @@ public:
                     Serial.print(".");
                 }
             }
-            
-            Serial.println(", port " + UDP.remotePort());
 
             // Read the packet into packetBufffer
             UDP.read(packetBuffer,UDP_TX_PACKET_MAX_SIZE);

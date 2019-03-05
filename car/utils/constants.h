@@ -10,8 +10,8 @@ int RGHT_DIR2 = D4;
 int RGHT_SPED = D5;
 
 // WIFI
-const char* NET_NAME = "TYT 1";
-const char* NET_PASS = "tyt@1111";
+const char* NET_NAME = "Radwan";
+const char* NET_PASS = "9992009a";
 const int PORT = 12345;
 const char* MSG_ACK = "ACK";
 
@@ -30,10 +30,10 @@ enum MSG {
 
 // Sensors
 const int MPU_ADDRESS = 0x68;
-const int I2C_SCL = D6;
-const int I2C_SDA = D7;
-const int ACCEL_SCALE_FACTOR = 16384;
-const int GYRO_SCALE_FACTOR = 131;
+const int MPU_I2C_SCL = D6;
+const int MPU_I2C_SDA = D7;
+const int MPU_ACCEL_SCALE_FACTOR = 16384;
+const int MPU_GYRO_SCALE_FACTOR = 131;
 const int MPU_REG_SMPLRT_DIV   =  0x19;
 const int MPU_REG_USER_CTRL    =  0x6A;
 const int MPU_REG_PWR_MGMT_1   =  0x6B;
@@ -47,3 +47,5 @@ const int MPU_REG_ACCEL_XOUT_H =  0x3B;
 const int MPU_REG_SIGNAL_PATH_RESET  = 0x68;
 
 // General
+const double EPS = 1e-6;
+const double MAX_ROTATION_ANGLE = 90.0;
