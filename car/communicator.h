@@ -9,7 +9,7 @@
 class Communicator {
 public:
 
-    boolean setup() {
+    bool setup() {
         wifiConnected = connectWifi();
     
         // Only proceed if wifi connection successful
@@ -23,8 +23,7 @@ public:
     MSG receive() {
         int packetSize = UDP.parsePacket();
         
-        if(packetSize)
-        {
+        if(packetSize) {
             Serial.print("Received packet of size " + (String) packetSize + " From ");
             
             IPAddress remote = UDP.remoteIP();
@@ -60,22 +59,22 @@ public:
         send(MSG_ACK);
     }
 
-    void send(const char* buf) {
+    void send(String str) {
         UDP.beginPacket(UDP.remoteIP(), UDP.remotePort());
-        UDP.write(buf);
+        UDP.write(str.c_str());
         UDP.endPacket();
     }
     
 private: 
-    boolean wifiConnected = false;
+    bool wifiConnected = false;
  
     // UDP variables
     WiFiUDP UDP;
-    boolean udpConnected = false;
+    bool udpConnected = false;
     char packetBuffer[UDP_TX_PACKET_MAX_SIZE]; // Buffer to hold incoming packet.
         
-    boolean connectUDP() {
-        boolean state = false;
+    bool connectUDP() {
+        bool state = false;
     
         Serial.println("");
         Serial.println("Connecting to UDP");
@@ -90,13 +89,13 @@ private:
         return state;
     }
 
-    boolean connectWifi() {
+    bool connectWifi() {
         WiFi.begin(NET_NAME, NET_PASS);
         
         Serial.println("");
         Serial.print("Connecting to WiFi ");
     
-        boolean state = true;
+        bool state = true;
         int i = 0;
         while (WiFi.status() != WL_CONNECTED) {
             delay(500);

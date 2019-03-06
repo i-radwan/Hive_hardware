@@ -9,7 +9,7 @@ Navigator nav;
 MPUSensor mpu;
 OTAHandler ota;
 
-boolean setupState = false;
+bool setupState = false;
 
 void setup() {
     // Initialize Serial connection
@@ -37,7 +37,7 @@ void loop() {
     // Read sensors
     double y, p, r;
     if (mpu.read(y, p, r)) {
-        comm.send(((String) y + " - " + (String) nav.getReferenceAngle()).c_str());
+        // comm.send(((String) y + " - " + (String) nav.getReferenceAngle()).c_str());
     }
 
     // Server commands
@@ -57,11 +57,11 @@ void loop() {
         break;
 
         case LEFT:
-            nav.left();
+            nav.left(y);
         break;
 
         case RIGHT:
-            nav.right();
+            nav.right(y);
         break;
     }
 

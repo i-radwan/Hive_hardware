@@ -5,7 +5,7 @@
 class Navigator {
 public:
 
-    void setup() {      
+    void setup() {
         // Motor pins
         pinMode(LEFT_DIR1, OUTPUT);
         pinMode(LEFT_DIR2, OUTPUT);
@@ -13,16 +13,18 @@ public:
         pinMode(RGHT_DIR1, OUTPUT);
         pinMode(RGHT_DIR2, OUTPUT);
         pinMode(RGHT_SPED, OUTPUT);
-    
-        // Enable the two motors
-        adjustMotors(PWMRANGE, PWMRANGE, LOW, LOW, LOW, LOW);
     }
 
     void move(double currentAngle) {
-        if (rotating) {
-            rotating = !rotate(currentAngle);
+        if (rotatingLeft) {
+            rotatingLeft = !rotate(currentAngle, true, false);
             
-            if (!rotating)
+            if (!rotatingLeft)
+                stop();
+        } else if (rotatingRight) {
+            rotatingRight = !rotate(currentAngle, false, true);
+            
+            if (!rotatingRight)
                 stop();
         } else if (movingForward || movingBackward) {
             align(currentAngle);
@@ -32,36 +34,44 @@ public:
     void stop() {
         Serial.println("Stopping...");
         movingForward = movingBackward = false;
-        rotating = false;
+        rotatingLeft = rotatingRight = false;
         adjustMotors(LOW, LOW, LOW, LOW, LOW, LOW);
     }
     
     void forward(double currentAngle) {
-        Serial.println("Forward...");
+        time = millis();
         movingForward = true;
         referenceAngle = currentAngle;
         adjustMotors(PWMRANGE, PWMRANGE, HIGH, LOW, HIGH, LOW);
     }
 
     void backward(double currentAngle) {
-        Serial.println("Backward...");
+        time = millis();
         movingBackward = true;
         referenceAngle = currentAngle;
         adjustMotors(PWMRANGE, PWMRANGE, LOW, HIGH, LOW, HIGH);
     }
 
-    void left() {
-        Serial.println("Left...");
+    void left(double currentAngle) {
         movingForward = movingBackward = false;
-        rotating = true;
-        adjustReferenceAngle(-90);
+        rotatingLeft = true;
+
+        referenceAngle = prevRotationAngle = currentAngle - 90;
+
+        if (referenceAngle < -180) {
+            referenceAngle +=  360;
+        }
     }
 
-    void right() {
-        Serial.println("Right...");
+    void right(double currentAngle) {
         movingForward = movingBackward = false;
-        rotating = true;
-        adjustReferenceAngle(90);
+        rotatingRight = true;
+        
+        referenceAngle = prevRotationAngle = currentAngle + 90;
+
+        if (referenceAngle > 180) {
+            referenceAngle -= 360;
+        }
     }
 
     double getReferenceAngle() {
@@ -69,49 +79,67 @@ public:
     }
 
 private:
-    double referenceAngle = 0;
-    bool rotating = false, movingForward = false, movingBackward = false;
+    double time = 0;
+    double prevDiff = 0;
+    double pid = 0, pidP = 0, pidI = 0, pidD = 0;
 
-    bool rotate(double currentAngle) {
+    double referenceAngle = 0;
+    double prevRotationAngle = 0;
+    bool rotatingLeft = false, rotatingRight = false, movingForward = false, movingBackward = false;
+
+    bool rotate(double currentAngle, bool left, bool right) {
         double diff = currentAngle - referenceAngle;
 
-        Serial.println(diff);
-
-        if (abs(diff) < EPS) {
+        if ((left && prevRotationAngle > referenceAngle && currentAngle < referenceAngle) ||
+            (right && prevRotationAngle < referenceAngle && currentAngle > referenceAngle)) {
             return true;
         }
 
-        if (currentAngle > referenceAngle) {
+        if (left) {
             adjustMotors(LOW, PWMRANGE, LOW, LOW, HIGH, LOW);
-        } else {
+        } else if (right) {
             adjustMotors(PWMRANGE, LOW, HIGH, LOW, LOW, LOW);
         }
+
+        prevRotationAngle = currentAngle;
 
         return false;
     }
     
     void align(double currentAngle) {
+        // Update timers
+        double current = millis();
+        double elapsedTime = (current - time) / 1000.0;
+        time = current;
+
+        // PID calculations
         double diff = currentAngle - referenceAngle;
+        
+        pidP = KP * diff;
+        pidI += (diff < I_LIMIT && diff > -I_LIMIT) ? (KI * diff) : 0;
+        pidD = KD * ((diff - prevDiff) / elapsedTime);
+        pid = pidP + pidI + pidD;
 
-        if (abs(diff) < EPS) {
-            return;
-        }
+        const double throttle = PWMRANGE;
+        
+        // Apply limits        
+        pid = max(pid, -PWMRANGE * 1.0);
+        pid = min(pid, PWMRANGE * 1.0);
 
-        if (currentAngle > referenceAngle) {
-            if (movingForward)
-                adjustMotors(((MAX_ROTATION_ANGLE - diff) / MAX_ROTATION_ANGLE) * PWMRANGE, PWMRANGE, HIGH, LOW, HIGH, LOW);
-            else if (movingBackward)
-                adjustMotors(((MAX_ROTATION_ANGLE - diff) / MAX_ROTATION_ANGLE) * PWMRANGE, PWMRANGE, LOW, HIGH, LOW, HIGH);
-        } else {
-            if (movingForward)
-                adjustMotors(PWMRANGE, ((MAX_ROTATION_ANGLE - -diff) / MAX_ROTATION_ANGLE) * PWMRANGE, HIGH, LOW, HIGH, LOW);
-            else if (movingBackward)
-                adjustMotors(PWMRANGE, ((MAX_ROTATION_ANGLE - -diff) / MAX_ROTATION_ANGLE) * PWMRANGE, LOW, HIGH, LOW, HIGH);
-        }
-    }
+        double leftPWM = (throttle - pid) * LF, rightPWM = (throttle + pid) * RF;
 
-    void adjustReferenceAngle(double angle) {
-        referenceAngle += angle;
+        // Apply limits
+        leftPWM = max(leftPWM, 0.0);
+        leftPWM = min(leftPWM, PWMRANGE * 1.0);
+        rightPWM = max(rightPWM, 0.0);
+        rightPWM = min(rightPWM, PWMRANGE * 1.0);
+
+        prevDiff = diff;
+
+        if (movingForward)
+            adjustMotors(leftPWM, rightPWM, HIGH, LOW, HIGH, LOW);
+        else if (movingBackward)
+            adjustMotors(rightPWM, leftPWM, LOW, HIGH, LOW, HIGH);
     }
 
     void adjustMotors(int lSpeed, int rSpeed, int lDir1, int lDir2, int rDir1, int rDir2) {

@@ -1,14 +1,5 @@
 #pragma once
 
-// Motor pins
-int LEFT_DIR1 = D0;
-int LEFT_DIR2 = D1;
-int LEFT_SPED = D2;
-
-int RGHT_DIR1 = D3;
-int RGHT_DIR2 = D4;
-int RGHT_SPED = D5;
-
 // WIFI
 const char* NET_NAME = "Radwan";
 const char* NET_PASS = "9992009a";
@@ -28,6 +19,23 @@ enum MSG {
     RIGHT = 4
 };
 
+// Motors pins
+int RGHT_DIR1 = D0;
+int RGHT_DIR2 = D1;
+int RGHT_SPED = D2;
+
+int LEFT_DIR1 = D3;
+int LEFT_DIR2 = D4;
+int LEFT_SPED = D5;
+
+// Motors PID 
+const double KP = 50;
+const double KI = 0.1;
+const double KD = 10;
+const double LF = 1; // Left motor factor
+const double RF = 0.8; // Right motor factor
+const double I_LIMIT = 10;
+
 // Sensors
 const int MPU_ADDRESS = 0x68;
 const int MPU_I2C_SCL = D6;
@@ -41,5 +49,5 @@ const double MPU_GYRO_Y_OFF = -391 / 4.05;
 const double MPU_GYRO_Z_OFF = -185 / 3.5;
 
 // General
-const double EPS = 0.01;
+const double EPS = 0.1;
 const double MAX_ROTATION_ANGLE = 90.0;
