@@ -32,20 +32,14 @@ enum MSG {
 const int MPU_ADDRESS = 0x68;
 const int MPU_I2C_SCL = D6;
 const int MPU_I2C_SDA = D7;
-const int MPU_ACCEL_SCALE_FACTOR = 16384;
-const int MPU_GYRO_SCALE_FACTOR = 131;
-const int MPU_REG_SMPLRT_DIV   =  0x19;
-const int MPU_REG_USER_CTRL    =  0x6A;
-const int MPU_REG_PWR_MGMT_1   =  0x6B;
-const int MPU_REG_PWR_MGMT_2   =  0x6C;
-const int MPU_REG_CONFIG       =  0x1A;
-const int MPU_REG_GYRO_CONFIG  =  0x1B;
-const int MPU_REG_ACCEL_CONFIG =  0x1C;
-const int MPU_REG_FIFO_EN      =  0x23;
-const int MPU_REG_INT_ENABLE   =  0x38;
-const int MPU_REG_ACCEL_XOUT_H =  0x3B;
-const int MPU_REG_SIGNAL_PATH_RESET  = 0x68;
+const int MPU_INTR = D8;
+const double MPU_ACCEL_X_OFF = -24280 / 8.8;
+const double MPU_ACCEL_Y_OFF = -1100 / 6.3;
+const double MPU_ACCEL_Z_OFF = 7000 / 6.9;
+const double MPU_GYRO_X_OFF = -78 / 3.5;
+const double MPU_GYRO_Y_OFF = -391 / 4.05;
+const double MPU_GYRO_Z_OFF = -185 / 3.5;
 
 // General
-const double EPS = 1e-6;
+const double EPS = 0.01;
 const double MAX_ROTATION_ANGLE = 90.0;

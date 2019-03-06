@@ -24,47 +24,53 @@ public:
             
             if (!rotating)
                 stop();
-        } else if (moving) {
+        } else if (movingForward || movingBackward) {
             align(currentAngle);
         }
     }
     
     void stop() {
         Serial.println("Stopping...");
-        moving = false;
+        movingForward = movingBackward = false;
         rotating = false;
         adjustMotors(LOW, LOW, LOW, LOW, LOW, LOW);
     }
     
-    void forward() {
+    void forward(double currentAngle) {
         Serial.println("Forward...");
-        moving = true;
+        movingForward = true;
+        referenceAngle = currentAngle;
         adjustMotors(PWMRANGE, PWMRANGE, HIGH, LOW, HIGH, LOW);
     }
 
-    void backward() {
+    void backward(double currentAngle) {
         Serial.println("Backward...");
-        moving = true;
+        movingBackward = true;
+        referenceAngle = currentAngle;
         adjustMotors(PWMRANGE, PWMRANGE, LOW, HIGH, LOW, HIGH);
     }
 
     void left() {
         Serial.println("Left...");
-        moving = false;
+        movingForward = movingBackward = false;
         rotating = true;
         adjustReferenceAngle(-90);
     }
 
     void right() {
         Serial.println("Right...");
-        moving = false;
+        movingForward = movingBackward = false;
         rotating = true;
         adjustReferenceAngle(90);
     }
 
+    double getReferenceAngle() {
+        return referenceAngle;
+    }
+
 private:
     double referenceAngle = 0;
-    bool rotating = false, moving = false;
+    bool rotating = false, movingForward = false, movingBackward = false;
 
     bool rotate(double currentAngle) {
         double diff = currentAngle - referenceAngle;
@@ -92,9 +98,15 @@ private:
         }
 
         if (currentAngle > referenceAngle) {
-            adjustMotors((diff / MAX_ROTATION_ANGLE) * PWMRANGE, PWMRANGE, HIGH, LOW, HIGH, LOW);
+            if (movingForward)
+                adjustMotors(((MAX_ROTATION_ANGLE - diff) / MAX_ROTATION_ANGLE) * PWMRANGE, PWMRANGE, HIGH, LOW, HIGH, LOW);
+            else if (movingBackward)
+                adjustMotors(((MAX_ROTATION_ANGLE - diff) / MAX_ROTATION_ANGLE) * PWMRANGE, PWMRANGE, LOW, HIGH, LOW, HIGH);
         } else {
-            adjustMotors(PWMRANGE, (-diff / MAX_ROTATION_ANGLE) * PWMRANGE, HIGH, LOW, HIGH, LOW);
+            if (movingForward)
+                adjustMotors(PWMRANGE, ((MAX_ROTATION_ANGLE - -diff) / MAX_ROTATION_ANGLE) * PWMRANGE, HIGH, LOW, HIGH, LOW);
+            else if (movingBackward)
+                adjustMotors(PWMRANGE, ((MAX_ROTATION_ANGLE - -diff) / MAX_ROTATION_ANGLE) * PWMRANGE, LOW, HIGH, LOW, HIGH);
         }
     }
 

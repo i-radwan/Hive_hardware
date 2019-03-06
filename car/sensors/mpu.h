@@ -1,48 +1,98 @@
 #pragma once
 
+#include <I2Cdev.h>
+#include <MPU6050_6Axis_MotionApps20.h>
 #include <Wire.h>
 
 #include "../utils/constants.h"
 
 class MPUSensor {
 public:
-    
+
     void setup() {
         Wire.begin(MPU_I2C_SDA, MPU_I2C_SCL);
-        
+
         delay(150);
         
-        I2C_Write(MPU_ADDRESS, MPU_REG_SMPLRT_DIV, 0x07);
-        I2C_Write(MPU_ADDRESS, MPU_REG_PWR_MGMT_1, 0x01);
-        I2C_Write(MPU_ADDRESS, MPU_REG_PWR_MGMT_2, 0x00);
-        I2C_Write(MPU_ADDRESS, MPU_REG_CONFIG, 0x00);
-        I2C_Write(MPU_ADDRESS, MPU_REG_GYRO_CONFIG, 0x00); // Set +/-250 degree/second full scale
-        I2C_Write(MPU_ADDRESS, MPU_REG_ACCEL_CONFIG, 0x00); // Set +/- 2g full scale
-        I2C_Write(MPU_ADDRESS, MPU_REG_FIFO_EN, 0x00);
-        I2C_Write(MPU_ADDRESS, MPU_REG_INT_ENABLE, 0x01);
-        I2C_Write(MPU_ADDRESS, MPU_REG_SIGNAL_PATH_RESET, 0x00);
-        I2C_Write(MPU_ADDRESS, MPU_REG_USER_CTRL, 0x00);
+        Serial.println("Initializing MPU...");
+        mpu.initialize();
+
+        Serial.println("Testing device connections...");
+        Serial.println(mpu.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
+    
+        Serial.println(F("Initializing DMP..."));
+        devStatus = mpu.dmpInitialize();
+
+        // Sensors offsets
+        mpu.setXAccelOffset(MPU_ACCEL_X_OFF);
+        mpu.setYAccelOffset(MPU_ACCEL_Y_OFF);
+        mpu.setZAccelOffset(MPU_ACCEL_Z_OFF);
+        mpu.setXGyroOffset(MPU_GYRO_X_OFF);
+        mpu.setYGyroOffset(MPU_GYRO_Y_OFF);
+        mpu.setZGyroOffset(MPU_GYRO_Z_OFF);
+
+        if (devStatus == 0) {
+            Serial.println("Enabling DMP...");
+
+            mpu.setDMPEnabled(true);
+
+            mpuIntStatus = mpu.getIntStatus();
+            packetSize = mpu.dmpGetFIFOPacketSize();
+
+            dmpReady = true;
+        } else {
+            Serial.println("DMP Initialization failed (code " + String(devStatus) + ")");
+        }
     }
     
-    void read(double& ax, double& ay, double& az, double& gx, double& gy, double& gz) {
-        Wire.beginTransmission(MPU_ADDRESS);
-        Wire.write(MPU_REG_ACCEL_XOUT_H);
-        Wire.endTransmission();
-        
-        Wire.requestFrom(MPU_ADDRESS, (int) 14);
-        ax = (((int) Wire.read() << 8) | Wire.read()) / MPU_ACCEL_SCALE_FACTOR;
-        ay = (((int) Wire.read() << 8) | Wire.read()) / MPU_ACCEL_SCALE_FACTOR;
-        az = (((int) Wire.read() << 8) | Wire.read()) / MPU_ACCEL_SCALE_FACTOR;
-        gx = (((int) Wire.read() << 8) | Wire.read()) / MPU_GYRO_SCALE_FACTOR;
-        gy = (((int) Wire.read() << 8) | Wire.read()) / MPU_GYRO_SCALE_FACTOR;
-        gz = (((int) Wire.read() << 8) | Wire.read()) / MPU_GYRO_SCALE_FACTOR;
+    bool read(double& y, double& p, double& r) {
+        if (!dmpReady) return false;
+
+        mpuIntStatus = mpu.getIntStatus();
+        fifoCount = mpu.getFIFOCount();
+
+        if (fifoCount < packetSize)
+            return false;
+
+        // Check for overflow (this should never happen unless our code is too inefficient)
+        if ((mpuIntStatus & 0x10) || fifoCount == 1024) {
+            // Reset so we can continue cleanly
+            mpu.resetFIFO();
+            Serial.println("FIFO overflow! " + String(fifoCount));
+
+        } else if (mpuIntStatus & 0x02) {
+            mpu.getFIFOBytes(fifoBuffer, packetSize);
+
+            // Track FIFO count here in case there is > 1 packet available
+            // (this lets us immediately read more without waiting for an interrupt)
+            fifoCount -= packetSize;
+
+            mpu.dmpGetQuaternion(&q, fifoBuffer);
+            mpu.dmpGetGravity(&gravity, &q);
+            mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+
+            y = ypr[0] * 180 / M_PI;
+            p = ypr[1] * 180 / M_PI;
+            r = ypr[2] * 180 / M_PI;
+
+            return true;
+        }
+
+        return false;
     }
 
 private:
-    void I2C_Write(int deviceAddress, int regAddress, int data){
-        Wire.beginTransmission(deviceAddress);
-        Wire.write(regAddress);
-        Wire.write(data);
-        Wire.endTransmission();
-    }    
+    MPU6050 mpu;
+    
+    // MPU control/status vars
+    bool dmpReady = false;  // Set true if DMP init was successful
+    uint8_t mpuIntStatus;   // Holds actual interrupt status byte from MPU
+    uint8_t devStatus;      // Return status after each device operation (0 = success, !0 = error)
+    uint16_t packetSize;    // Expected DMP packet size (default is 42 bytes)
+    uint16_t fifoCount;     // Count of all bytes currently in FIFO
+    uint8_t fifoBuffer[64]; // FIFO storage buffer
+
+    Quaternion q;
+    VectorFloat gravity;
+    float ypr[3]; 
 };

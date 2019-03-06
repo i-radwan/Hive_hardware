@@ -1,11 +1,13 @@
 #include "utils/constants.h"
 #include "communicator.h"
 #include "navigator.h"
+#include "ota.h"
 #include "sensors/mpu.h"
 
 Communicator comm;
 Navigator nav;
 MPUSensor mpu;
+OTAHandler ota;
 
 boolean setupState = false;
 
@@ -16,20 +18,29 @@ void setup() {
     // Initialize connection
     setupState = comm.setup();
 
-    // Initialize motors
-    nav.setup();
+    // Initialize OTA
+    ota.setup();
 
     // Initialize sensors
     mpu.setup();
+
+    // Initialize motors
+    nav.setup();
 }
 
 void loop() {
+    ota.handle();
+
     if(!setupState)
         return;
 
-    //
+    // Read sensors
+    double y, p, r;
+    if (mpu.read(y, p, r)) {
+        comm.send(((String) y + " - " + (String) nav.getReferenceAngle()).c_str());
+    }
+
     // Server commands
-    //
     int msg = comm.receive();
 
     switch (msg) {
@@ -38,11 +49,11 @@ void loop() {
         break;
 
         case FORWARD:
-            nav.forward();
+            nav.forward(y);
         break;
 
         case BACKWARD:
-            nav.backward();
+            nav.backward(y);
         break;
 
         case LEFT:
@@ -54,24 +65,8 @@ void loop() {
         break;
     }
 
-    //
-    // Local logic
-    //
-
-    // Read sensors
-    double ax, ay, az, gx, gy, gz;
-    mpu.read(ax, ay, az, gx, gy, gz);
-
-    // Serial.println("Reading Sensors...");
-    // Serial.print("Ax: " + (String) ax);
-    // Serial.print("Ay: " + (String) ay);
-    // Serial.print("Az: " + (String) az);
-    // Serial.print("Gx: " + (String) gx);
-    // Serial.print("Gy: " + (String) gy);
-    // Serial.print("Gz: " + (String) gz);
-
     // Navigation
-    nav.move(0);
+    nav.move(y);
 
     delay(10);
 }

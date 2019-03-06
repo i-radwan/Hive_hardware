@@ -51,8 +51,6 @@ public:
             } else if (packetBuffer[0] == RIGHT) {
                 return RIGHT;
             }
-
-            sendACK();
         }
 
         return NONE;
