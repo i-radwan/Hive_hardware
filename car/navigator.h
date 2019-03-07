@@ -1,5 +1,6 @@
 #pragma once
 
+#include "communicator.h"
 #include "utils/constants.h"
 
 class Navigator {
@@ -79,25 +80,6 @@ private:
     double prevRotationAngle = 0;
     bool rotatingLeft = false, rotatingRight = false, movingForward = false, movingBackward = false;
 
-    bool rotate(double currentAngle, bool left, bool right) {
-        double diff = currentAngle - referenceAngle;
-
-        if ((left && prevRotationAngle > referenceAngle && currentAngle < referenceAngle) ||
-            (right && prevRotationAngle < referenceAngle && currentAngle > referenceAngle)) {
-            return true;
-        }
-
-        if (left) {
-            adjustMotors(LOW, PWMRANGE, LOW, LOW, HIGH, LOW);
-        } else if (right) {
-            adjustMotors(PWMRANGE, LOW, HIGH, LOW, LOW, LOW);
-        }
-
-        prevRotationAngle = currentAngle;
-
-        return false;
-    }
-    
     void align(double currentAngle) {
         // Update timers
         double current = millis();
@@ -106,6 +88,13 @@ private:
 
         // PID calculations
         double diff = currentAngle - referenceAngle;
+        if (diff > 180) {
+            diff -= 360;
+        }
+
+        if (diff < -180) {
+            diff += 360;
+        }
         
         pidP = KP * diff;
         pidI += (diff < I_LIMIT && diff > -I_LIMIT) ? (KI * diff) : 0;
@@ -126,17 +115,13 @@ private:
 
         prevDiff = diff;
 
-        if (movingForward)
+        if (movingForward || rotatingRight || rotatingLeft)
             adjustMotors(leftPWM * LF, rightPWM * RF, HIGH, LOW, HIGH, LOW);
         else if (movingBackward)
             adjustMotors(rightPWM * LF, leftPWM * RF, LOW, HIGH, LOW, HIGH);
     }
 
     void adjustMotors(int lSpeed, int rSpeed, int lDir1, int lDir2, int rDir1, int rDir2) {
-        Serial.println("Adjust motors..." + (String) lSpeed + " "  + (String) rSpeed + " "  + 
-            (String) lDir1 + " "  + (String) lDir2 + " "  + (String) rDir1 + " "  + 
-            (String) rDir2);
-
         analogWrite(LEFT_SPED, lSpeed);
         analogWrite(RGHT_SPED, rSpeed);
         digitalWrite(LEFT_DIR1, lDir1);
