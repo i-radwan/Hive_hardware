@@ -29,11 +29,11 @@ int LEFT_DIR2 = D4;
 int LEFT_SPED = D5;
 
 // Motors PID 
-const double KP = 50;
-const double KI = 0.1;
-const double KD = 10;
+const double KP = 55;
+const double KI = 0.5;
+const double KD = 7;
 const double LF = 1; // Left motor factor
-const double RF = 0.8; // Right motor factor
+const double RF = 0.81; // Right motor factor
 const double I_LIMIT = 10;
 
 // Sensors

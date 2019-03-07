@@ -46,22 +46,27 @@ void loop() {
     switch (msg) {
         case STOP:
             nav.stop();
+            comm.send(String("Stop!").c_str());
         break;
 
         case FORWARD:
             nav.forward(y);
+            comm.send(String("Forward!").c_str());
         break;
 
         case BACKWARD:
             nav.backward(y);
+            comm.send(String("Backward!").c_str());
         break;
 
         case LEFT:
             nav.left(y);
+            comm.send(String("Left!").c_str());
         break;
 
         case RIGHT:
             nav.right(y);
+            comm.send(String("Right!").c_str());
         break;
     }
 

@@ -16,17 +16,7 @@ public:
     }
 
     void move(double currentAngle) {
-        if (rotatingLeft) {
-            rotatingLeft = !rotate(currentAngle, true, false);
-            
-            if (!rotatingLeft)
-                stop();
-        } else if (rotatingRight) {
-            rotatingRight = !rotate(currentAngle, false, true);
-            
-            if (!rotatingRight)
-                stop();
-        } else if (movingForward || movingBackward) {
+        if (movingForward || movingBackward || rotatingLeft || rotatingRight) {
             align(currentAngle);
         }
     }
@@ -40,6 +30,7 @@ public:
     
     void forward(double currentAngle) {
         time = millis();
+        movingBackward = rotatingRight = rotatingLeft = false;
         movingForward = true;
         referenceAngle = currentAngle;
         adjustMotors(PWMRANGE, PWMRANGE, HIGH, LOW, HIGH, LOW);
@@ -47,13 +38,14 @@ public:
 
     void backward(double currentAngle) {
         time = millis();
+        movingForward = rotatingRight = rotatingLeft = false;
         movingBackward = true;
         referenceAngle = currentAngle;
         adjustMotors(PWMRANGE, PWMRANGE, LOW, HIGH, LOW, HIGH);
     }
 
     void left(double currentAngle) {
-        movingForward = movingBackward = false;
+        movingForward = movingBackward = rotatingRight = false;
         rotatingLeft = true;
 
         referenceAngle = prevRotationAngle = currentAngle - 90;
@@ -64,7 +56,7 @@ public:
     }
 
     void right(double currentAngle) {
-        movingForward = movingBackward = false;
+        movingForward = movingBackward = rotatingLeft = false;
         rotatingRight = true;
         
         referenceAngle = prevRotationAngle = currentAngle + 90;
@@ -124,7 +116,7 @@ private:
         pid = max(pid, -PWMRANGE * 1.0);
         pid = min(pid, PWMRANGE * 1.0);
 
-        double leftPWM = (PWMRANGE - pid) * LF, rightPWM = (PWMRANGE + pid) * RF;
+        double leftPWM = (PWMRANGE - pid), rightPWM = (PWMRANGE + pid);
 
         // Apply limits
         leftPWM = max(leftPWM, 0.0);
@@ -135,9 +127,9 @@ private:
         prevDiff = diff;
 
         if (movingForward)
-            adjustMotors(leftPWM, rightPWM, HIGH, LOW, HIGH, LOW);
+            adjustMotors(leftPWM * LF, rightPWM * RF, HIGH, LOW, HIGH, LOW);
         else if (movingBackward)
-            adjustMotors(rightPWM, leftPWM, LOW, HIGH, LOW, HIGH);
+            adjustMotors(rightPWM * LF, leftPWM * RF, LOW, HIGH, LOW, HIGH);
     }
 
     void adjustMotors(int lSpeed, int rSpeed, int lDir1, int lDir2, int rDir1, int rDir2) {
