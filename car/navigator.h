@@ -120,13 +120,11 @@ private:
         pidD = KD * ((diff - prevDiff) / elapsedTime);
         pid = pidP + pidI + pidD;
 
-        const double throttle = PWMRANGE;
-        
         // Apply limits        
         pid = max(pid, -PWMRANGE * 1.0);
         pid = min(pid, PWMRANGE * 1.0);
 
-        double leftPWM = (throttle - pid) * LF, rightPWM = (throttle + pid) * RF;
+        double leftPWM = (PWMRANGE - pid) * LF, rightPWM = (PWMRANGE + pid) * RF;
 
         // Apply limits
         leftPWM = max(leftPWM, 0.0);
