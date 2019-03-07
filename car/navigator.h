@@ -30,6 +30,7 @@ public:
     
     void forward(double currentAngle) {
         time = millis();
+        pidI = 0;
         movingBackward = rotatingRight = rotatingLeft = false;
         movingForward = true;
         referenceAngle = currentAngle;
@@ -38,6 +39,7 @@ public:
 
     void backward(double currentAngle) {
         time = millis();
+        pidI = 0;
         movingForward = rotatingRight = rotatingLeft = false;
         movingBackward = true;
         referenceAngle = currentAngle;
@@ -45,6 +47,8 @@ public:
     }
 
     void left(double currentAngle) {
+        time = millis();
+        pidI = 0;
         movingForward = movingBackward = rotatingRight = false;
         rotatingLeft = true;
 
@@ -56,6 +60,8 @@ public:
     }
 
     void right(double currentAngle) {
+        time = millis();
+        pidI = 0;
         movingForward = movingBackward = rotatingLeft = false;
         rotatingRight = true;
         
@@ -106,6 +112,13 @@ private:
 
         // PID calculations
         double diff = currentAngle - referenceAngle;
+        if (diff > 180) {
+            diff -= 360;
+        }
+
+        if (diff < -180) {
+            diff += 360;
+        }
         
         pidP = KP * diff;
         pidI += (diff < I_LIMIT && diff > -I_LIMIT) ? (KI * diff) : 0;
@@ -126,7 +139,7 @@ private:
 
         prevDiff = diff;
 
-        if (movingForward)
+        if (movingForward || rotatingRight || rotatingLeft)
             adjustMotors(leftPWM * LF, rightPWM * RF, HIGH, LOW, HIGH, LOW);
         else if (movingBackward)
             adjustMotors(rightPWM * LF, leftPWM * RF, LOW, HIGH, LOW, HIGH);
