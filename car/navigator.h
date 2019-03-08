@@ -1,6 +1,7 @@
 #pragma once
 
 #include "communicator.h"
+#include "utils/utils.h"
 #include "utils/constants.h"
 
 class Navigator {
@@ -55,7 +56,7 @@ public:
         movingForward = movingBackward = rotatingRight = false;
         rotatingLeft = true;
 
-        referenceAngle = prevRotationAngle = currentAngle - 90;
+        referenceAngle = currentAngle - 90;
 
         if (referenceAngle < -180) {
             referenceAngle +=  360;
@@ -68,7 +69,7 @@ public:
         movingForward = movingBackward = rotatingLeft = false;
         rotatingRight = true;
         
-        referenceAngle = prevRotationAngle = currentAngle + 90;
+        referenceAngle = currentAngle + 90;
 
         if (referenceAngle > 180) {
             referenceAngle -= 360;
@@ -87,27 +88,7 @@ private:
     double pid = 0, pidP = 0, pidI = 0, pidD = 0;
 
     double referenceAngle = 0;
-    double prevRotationAngle = 0;
     bool rotatingLeft = false, rotatingRight = false, movingForward = false, movingBackward = false;
-
-    bool rotate(double currentAngle, bool left, bool right) {
-        double diff = currentAngle - referenceAngle;
-
-        if ((left && prevRotationAngle > referenceAngle && currentAngle < referenceAngle) ||
-            (right && prevRotationAngle < referenceAngle && currentAngle > referenceAngle)) {
-            return true;
-        }
-
-        if (left) {
-            adjustMotors(LOW, PWMRANGE, LOW, LOW, HIGH, LOW);
-        } else if (right) {
-            adjustMotors(PWMRANGE, LOW, HIGH, LOW, LOW, LOW);
-        }
-
-        prevRotationAngle = currentAngle;
-
-        return false;
-    }
     
     void align(double currentAngle) {
         // Update timers
@@ -125,43 +106,59 @@ private:
             diff += 360;
         }
 
-        pidP = KP * diff;
+        pidP = KP / ((rotatingRight || rotatingLeft) ? 1.2 : 1.0) * diff;
         pidI += (diff < I_LIMIT && diff > -I_LIMIT) ? (KI * diff) : 0;
         pidD = KD * ((diff - prevDiff) / elapsedTime);
         pid = pidP + pidI + pidD;
 
-        if (rotatingLeft || rotatingRight)
-            pid *= 0.8;
-
         // Apply limits        
-        pid = max(pid, -PWMRANGE * 1.0);
-        pid = min(pid, PWMRANGE * 1.0);
+        pid = max(pid, -PWMRANGE * 2.0);
+        pid = min(pid, PWMRANGE * 2.0);
 
         double leftPWM = (PWMRANGE - pid), rightPWM = (PWMRANGE + pid);
 
         // Apply limits
-        leftPWM = max(leftPWM, 0.0);
+        leftPWM = max(leftPWM, PWMRANGE * -1.0);
         leftPWM = min(leftPWM, PWMRANGE * 1.0);
-        rightPWM = max(rightPWM, 0.0);
+        rightPWM = max(rightPWM, PWMRANGE * -1.0);
         rightPWM = min(rightPWM, PWMRANGE * 1.0);
+
+        // Set directions
+        int lDir1, lDir2, rDir1, rDir2;
+
+        if (movingForward || rotatingRight || rotatingLeft) {
+            lDir1 = HIGH;
+            lDir2 = LOW;
+            rDir1 = HIGH;
+            rDir2 = LOW;
+        } else if (movingBackward) {
+            lDir1 = LOW;
+            lDir2 = HIGH;
+            rDir1 = LOW;
+            rDir2 = HIGH;
+
+            Utils::swap(&leftPWM, &rightPWM);
+        }
+
+        // -ve values mean the other direction
+        if (leftPWM < 0) {
+            leftPWM = -leftPWM;
+
+            Utils::swap(&lDir1, &lDir2);
+        }
+
+        if (rightPWM < 0) {
+            rightPWM = -rightPWM;
+
+            Utils::swap(&rDir1, &rDir2);
+        }
 
         prevDiff = diff;
 
-        this->com->send(String(diff) + " " + String(pid) + " " + String(leftPWM * LF) + " " + String(rightPWM * RF));
-
-        if (movingForward)
-            adjustMotors(leftPWM * LF, rightPWM * RF, HIGH, LOW, HIGH, LOW);
-        else if (movingBackward)
-            adjustMotors(rightPWM * LF, leftPWM * RF, LOW, HIGH, LOW, HIGH);
-        else if (rotatingRight || rotatingLeft)
-            adjustMotors(leftPWM, rightPWM, HIGH, LOW, HIGH, LOW);
+        adjustMotors(leftPWM * LF, rightPWM * RF, lDir1, lDir2, rDir1, rDir2);
     }
 
     void adjustMotors(int lSpeed, int rSpeed, int lDir1, int lDir2, int rDir1, int rDir2) {
-        Serial.println("Adjust motors..." + (String) lSpeed + " "  + (String) rSpeed + " "  + 
-            (String) lDir1 + " "  + (String) lDir2 + " "  + (String) rDir1 + " "  + 
-            (String) rDir2);
-
         analogWrite(LEFT_SPED, lSpeed);
         analogWrite(RGHT_SPED, rSpeed);
         digitalWrite(LEFT_DIR1, lDir1);
