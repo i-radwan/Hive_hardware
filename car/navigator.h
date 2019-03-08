@@ -1,11 +1,12 @@
 #pragma once
 
+#include "communicator.h"
 #include "utils/constants.h"
 
 class Navigator {
 public:
 
-    void setup() {
+    void setup(Communicator* com) {
         // Motor pins
         pinMode(LEFT_DIR1, OUTPUT);
         pinMode(LEFT_DIR2, OUTPUT);
@@ -13,6 +14,8 @@ public:
         pinMode(RGHT_DIR1, OUTPUT);
         pinMode(RGHT_DIR2, OUTPUT);
         pinMode(RGHT_SPED, OUTPUT);
+
+        this->com = com;
     }
 
     void move(double currentAngle) {
@@ -77,6 +80,8 @@ public:
     }
 
 private:
+    Communicator* com;
+
     double time = 0;
     double prevDiff = 0;
     double pid = 0, pidP = 0, pidI = 0, pidD = 0;
@@ -119,11 +124,14 @@ private:
         if (diff < -180) {
             diff += 360;
         }
-        
+
         pidP = KP * diff;
         pidI += (diff < I_LIMIT && diff > -I_LIMIT) ? (KI * diff) : 0;
         pidD = KD * ((diff - prevDiff) / elapsedTime);
         pid = pidP + pidI + pidD;
+
+        if (rotatingLeft || rotatingRight)
+            pid *= 0.8;
 
         // Apply limits        
         pid = max(pid, -PWMRANGE * 1.0);
@@ -139,10 +147,14 @@ private:
 
         prevDiff = diff;
 
-        if (movingForward || rotatingRight || rotatingLeft)
+        this->com->send(String(diff) + " " + String(pid) + " " + String(leftPWM * LF) + " " + String(rightPWM * RF));
+
+        if (movingForward)
             adjustMotors(leftPWM * LF, rightPWM * RF, HIGH, LOW, HIGH, LOW);
         else if (movingBackward)
             adjustMotors(rightPWM * LF, leftPWM * RF, LOW, HIGH, LOW, HIGH);
+        else if (rotatingRight || rotatingLeft)
+            adjustMotors(leftPWM, rightPWM, HIGH, LOW, HIGH, LOW);
     }
 
     void adjustMotors(int lSpeed, int rSpeed, int lDir1, int lDir2, int rDir1, int rDir2) {

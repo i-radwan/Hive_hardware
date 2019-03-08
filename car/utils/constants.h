@@ -35,6 +35,7 @@ const double KD = 7;
 const double LF = 1; // Left motor factor
 const double RF = 0.81; // Right motor factor
 const double I_LIMIT = 10;
+const double ROTATION_FACTOR = 0.7;
 
 // Sensors
 const int MPU_ADDRESS = 0x68;

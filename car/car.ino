@@ -25,7 +25,7 @@ void setup() {
     mpu.setup();
 
     // Initialize motors
-    nav.setup();
+    nav.setup(&comm);
 }
 
 void loop() {
