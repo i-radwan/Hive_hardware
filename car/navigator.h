@@ -20,7 +20,7 @@ public:
     }
 
     void move(double currentAngle) {
-        if (movingForward || movingBackward || rotatingLeft || rotatingRight) {
+        if (movingForward || movingBackward) {
             align(currentAngle);
         }
     }
@@ -28,35 +28,38 @@ public:
     void stop() {
         Serial.println("Stopping...");
         movingForward = movingBackward = false;
-        rotatingLeft = rotatingRight = false;
         adjustMotors(LOW, LOW, LOW, LOW, LOW, LOW);
     }
     
     void forward(double currentAngle) {
         time = millis();
         pidI = 0;
-        movingBackward = rotatingRight = rotatingLeft = false;
+        
+        movingBackward = false;
         movingForward = true;
+        
         referenceAngle = currentAngle;
+        
         adjustMotors(PWMRANGE, PWMRANGE, HIGH, LOW, HIGH, LOW);
     }
 
     void backward(double currentAngle) {
         time = millis();
         pidI = 0;
-        movingForward = rotatingRight = rotatingLeft = false;
+        
+        movingForward = false;
         movingBackward = true;
+        
         referenceAngle = currentAngle;
+        
         adjustMotors(PWMRANGE, PWMRANGE, LOW, HIGH, LOW, HIGH);
     }
 
     void left(double currentAngle) {
         time = millis();
         pidI = 0;
-        movingForward = movingBackward = rotatingRight = false;
-        rotatingLeft = true;
-
-        referenceAngle = currentAngle - 90;
+        
+        referenceAngle = referenceAngle - 90;
 
         if (referenceAngle < -180) {
             referenceAngle +=  360;
@@ -66,18 +69,12 @@ public:
     void right(double currentAngle) {
         time = millis();
         pidI = 0;
-        movingForward = movingBackward = rotatingLeft = false;
-        rotatingRight = true;
         
-        referenceAngle = currentAngle + 90;
+        referenceAngle = referenceAngle + 90;
 
         if (referenceAngle > 180) {
             referenceAngle -= 360;
         }
-    }
-
-    double getReferenceAngle() {
-        return referenceAngle;
     }
 
 private:
@@ -88,7 +85,7 @@ private:
     double pid = 0, pidP = 0, pidI = 0, pidD = 0;
 
     double referenceAngle = 0;
-    bool rotatingLeft = false, rotatingRight = false, movingForward = false, movingBackward = false;
+    bool movingForward = false, movingBackward = false;
     
     void align(double currentAngle) {
         // Update timers
@@ -106,7 +103,7 @@ private:
             diff += 360;
         }
 
-        pidP = KP / ((rotatingRight || rotatingLeft) ? 1.2 : 1.0) * diff;
+        pidP = KP * diff;
         pidI += (diff < I_LIMIT && diff > -I_LIMIT) ? (KI * diff) : 0;
         pidD = KD * ((diff - prevDiff) / elapsedTime);
         pid = pidP + pidI + pidD;
@@ -126,7 +123,7 @@ private:
         // Set directions
         int lDir1, lDir2, rDir1, rDir2;
 
-        if (movingForward || rotatingRight || rotatingLeft) {
+        if (movingForward) {
             lDir1 = HIGH;
             lDir2 = LOW;
             rDir1 = HIGH;

@@ -33,7 +33,7 @@ const double KP = 55;
 const double KI = 0.5;
 const double KD = 7;
 const double LF = 1; // Left motor factor
-const double RF = 0.77; // Right motor factor
+const double RF = 0.748; // Right motor factor
 const double I_LIMIT = 10;
 const double ROTATION_FACTOR = 0.7;
 
