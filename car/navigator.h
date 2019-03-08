@@ -7,7 +7,7 @@
 class Navigator {
 public:
 
-    void setup(Communicator* com) {
+    void setup() {
         // Motor pins
         pinMode(LEFT_DIR1, OUTPUT);
         pinMode(LEFT_DIR2, OUTPUT);
@@ -15,11 +15,12 @@ public:
         pinMode(RGHT_DIR1, OUTPUT);
         pinMode(RGHT_DIR2, OUTPUT);
         pinMode(RGHT_SPED, OUTPUT);
-
-        this->com = com;
     }
 
-    void move(double currentAngle) {
+    void move(double currentAngle, double dx, double dy) {
+        heading += dy;
+        drifting += dx;
+
         if (movingForward || movingBackward) {
             align(currentAngle);
         }
@@ -78,7 +79,7 @@ public:
     }
 
 private:
-    Communicator* com;
+    double heading = 0, drifting = 0;
 
     double time = 0;
     double prevDiff = 0;

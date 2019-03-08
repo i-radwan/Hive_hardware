@@ -49,6 +49,10 @@ const double MPU_GYRO_X_OFF = -78 / 3.5;
 const double MPU_GYRO_Y_OFF = -391 / 4.05;
 const double MPU_GYRO_Z_OFF = -185 / 3.5;
 
+const int OPTICAL_CLCK = 1;
+const int OPTICAL_DATA = 3;
+const double OPTICAL_DPI_TO_MM = 1 / 30.0;
+
 // General
 const double EPS = 0.1;
 const double MAX_ROTATION_ANGLE = 90.0;

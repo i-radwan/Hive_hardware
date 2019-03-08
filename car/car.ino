@@ -3,10 +3,12 @@
 #include "navigator.h"
 #include "ota.h"
 #include "sensors/mpu.h"
+#include "sensors/optical.h"
 
 Communicator comm;
 Navigator nav;
 MPUSensor mpu;
+OpticalSensor opt;
 OTAHandler ota;
 
 bool setupState = false;
@@ -23,10 +25,13 @@ void setup() {
 
     // Initialize sensors
     mpu.setup();
+    opt.setup();
 
     // Initialize motors
-    nav.setup(&comm);
+    nav.setup();
 }
+
+int i = 0;
 
 void loop() {
     ota.handle();
@@ -39,6 +44,9 @@ void loop() {
     if (mpu.read(y, p, r)) {
         // comm.send(((String) y + " - " + (String) nav.getReferenceAngle()).c_str());
     }
+
+    double dx, dy;
+    opt.read(dx, dy);
 
     // Server commands
     int msg = comm.receive();
@@ -71,7 +79,7 @@ void loop() {
     }
 
     // Navigation
-    nav.move(y);
+    nav.move(y, dx, dy);
 
     delay(10);
 }
