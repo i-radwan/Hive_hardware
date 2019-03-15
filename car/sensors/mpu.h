@@ -10,10 +10,6 @@ class MPUSensor {
 public:
 
     void setup() {
-        Wire.begin(MPU_I2C_SDA, MPU_I2C_SCL);
-
-        delay(150);
-        
         Serial.println("Initializing MPU...");
         mpu.initialize();
 

@@ -90,6 +90,7 @@ private:
     }
 
     bool connectWifi() {
+        WiFi.mode(WIFI_STA);
         WiFi.begin(NET_NAME, NET_PASS);
         
         Serial.println("");

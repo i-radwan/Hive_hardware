@@ -7,7 +7,7 @@
 class Navigator {
 public:
 
-    void setup() {
+    void setup(Communicator* comm, PCF857x* pcf1) {
         // Motor pins
         pinMode(LEFT_DIR1, OUTPUT);
         pinMode(LEFT_DIR2, OUTPUT);
@@ -15,19 +15,18 @@ public:
         pinMode(RGHT_DIR1, OUTPUT);
         pinMode(RGHT_DIR2, OUTPUT);
         pinMode(RGHT_SPED, OUTPUT);
+
+        this->comm = comm;
+        this->pcf1 = pcf1;
     }
 
-    void move(double currentAngle, double dx, double dy) {
-        heading += dy;
-        drifting += dx;
-
+    void move(double currentAngle) {
         if (movingForward || movingBackward) {
             align(currentAngle);
         }
     }
     
     void stop() {
-        Serial.println("Stopping...");
         movingForward = movingBackward = false;
         adjustMotors(LOW, LOW, LOW, LOW, LOW, LOW);
     }
@@ -79,7 +78,8 @@ public:
     }
 
 private:
-    double heading = 0, drifting = 0;
+    Communicator* comm;
+    PCF857x* pcf1;
 
     double time = 0;
     double prevDiff = 0;
@@ -109,11 +109,13 @@ private:
         pidD = KD * ((diff - prevDiff) / elapsedTime);
         pid = pidP + pidI + pidD;
 
+        const double throttle = PWMRANGE / 2.0;
+
         // Apply limits        
         pid = max(pid, -PWMRANGE * 2.0);
         pid = min(pid, PWMRANGE * 2.0);
 
-        double leftPWM = (PWMRANGE - pid), rightPWM = (PWMRANGE + pid);
+        double leftPWM = (throttle - pid), rightPWM = (throttle + pid);
 
         // Apply limits
         leftPWM = max(leftPWM, PWMRANGE * -1.0);
@@ -153,15 +155,18 @@ private:
 
         prevDiff = diff;
 
+        // this->comm->send(String(diff) + " " + String(pid) + " " + String(leftPWM * LF) + " " + String(rightPWM * RF));
+
         adjustMotors(leftPWM * LF, rightPWM * RF, lDir1, lDir2, rDir1, rDir2);
     }
 
     void adjustMotors(int lSpeed, int rSpeed, int lDir1, int lDir2, int rDir1, int rDir2) {
         analogWrite(LEFT_SPED, lSpeed);
         analogWrite(RGHT_SPED, rSpeed);
-        digitalWrite(LEFT_DIR1, lDir1);
-        digitalWrite(LEFT_DIR2, lDir2);
-        digitalWrite(RGHT_DIR1, rDir1);
-        digitalWrite(RGHT_DIR2, rDir2);
+
+        pcf1->write(LEFT_DIR1, lDir1);
+        pcf1->write(LEFT_DIR2, lDir2);
+        pcf1->write(RGHT_DIR1, rDir1);
+        pcf1->write(RGHT_DIR2, rDir2);
     }
 };

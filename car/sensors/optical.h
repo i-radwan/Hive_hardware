@@ -21,8 +21,7 @@ public:
         mouse->begin();
     }
 
-    void read(double& dx, double& dy) {
-        uint8_t stat;
+    void read(uint8_t& stat, double& dx, double& dy) {
         int x, y;
         mouse->getPosition(stat, x, y);
 
