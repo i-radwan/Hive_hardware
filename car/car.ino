@@ -88,6 +88,9 @@ void loop() {
         return;
     }
 
+    // Init navigator to set the reference angle once.
+    nav.init(y);
+
     //
     // Server commands
     //
@@ -122,6 +125,4 @@ void loop() {
 
     // Navigation
     nav.navigate(y);
-
-    delay(10);
 }

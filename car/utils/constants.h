@@ -29,9 +29,9 @@ const int RGHT_DIR2 = 2;
 const int RGHT_SPED = D1;
 
 // Motors PID
-const double KP = 3;
+const double KP = 0.75;
 const double KI = 0;
-const double KD = 0;
+const double KD = 1;
 const double I_LIMIT = 3;
 const double LF = 1; // Left motor factor
 const double RF = 0.955; // Right motor factor
@@ -64,14 +64,21 @@ const int OPTICAL_DATA = 3;
 const double OPTICAL_DPI_TO_MM = 1 / 39.0;
 
 // General
-const double MOTORS_ADJUST_DELTA = 60; // ms
+const double MOTORS_ADJUST_DELTA = 200; // ms
 const double MOTORS_INIT_PWM = PWMRANGE / 4;
-const double STEP = 180; // mm
+const double MOTORS_INIT_SPEED = 60; // rpm
+const double MOTORS_MAX_SPEED = 75; // rpm
+const double STEP = 250; // mm
 
 enum STATE {
-	INIT,
-	IDLE,
-	MOVE,
-	ROTATE,
-	ALIGN
+    INIT,
+    IDLE,
+    MOVE,
+    ROTATE,
+    ALIGN
+};
+
+enum DIRECTION {
+    FWARD,
+    BWARD
 };

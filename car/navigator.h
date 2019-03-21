@@ -8,6 +8,11 @@
 class Navigator {
 public:
 
+    // 1.2, 0.1, 0.4
+    Navigator() : leftMotorPID(1.3, 0.1, 0.4, MOTORS_INIT_SPEED, 0), 
+                  rightMotorPID(1.2, 0.1, 0.3, MOTORS_INIT_SPEED, 0) {
+    }
+
     void setup(Communicator* com, PCF857x* pcf1, Encoder* len, Encoder* ren) {
         // Motor pins
         pinMode(LEFT_DIR1, OUTPUT);
@@ -23,6 +28,15 @@ public:
         this->ren = ren;
     }
 
+    void init(double currentAngle) {
+        if (state != INIT)
+            return;
+
+        angle = currentAngle;
+
+        state = IDLE;
+    }
+
     void navigate(double currentAngle) {
         if (state == MOVE)
             move(currentAngle);
@@ -32,42 +46,27 @@ public:
     
     void stop() {
         state = IDLE;
-        avgAngle = 0;
-        angelsCnt = 0;
 
         adjustMotors(PWMRANGE, PWMRANGE, LOW, LOW, LOW, LOW);
     }
     
     void forward(double currentAngle) {
-        if (state == INIT)
-            init(currentAngle);
-
         time = millis();
         pidI = 0;
         state = MOVE;
-        avgAngle = 0;
-        angelsCnt = 0;
 
         distance += STEP;
     }
 
     void backward(double currentAngle) {
-        if (state == INIT)
-            init(currentAngle);
-
         // time = millis();
         // pidI = 0;
     }
 
     void left(double currentAngle) {
-        if (state == INIT)
-            init(currentAngle);
-
         time = millis();
         pidI = 0;
         state = ROTATE;
-        avgAngle = 0;
-        angelsCnt = 0;
         
         angle += -90;
 
@@ -77,14 +76,9 @@ public:
     }
 
     void right(double currentAngle) {
-        if (state == INIT)
-            init(currentAngle);
-
         time = millis();
         pidI = 0;
         state = ROTATE;
-        avgAngle = 0;
-        angelsCnt = 0;
         
         angle += 90;
 
@@ -93,13 +87,68 @@ public:
         }
     }
 
+    struct MotorPID {
+        DIRECTION dir;
+
+        double kp, ki, kd;
+        double p = 0, i = 0, d = 0, diff = 0, prevDiff = 0, speed, throttle;
+        
+        MotorPID(double kp, double ki, double kd, double speed, double throttle) : kp(kp), ki(ki), kd(kd) {
+            this->speed = speed;
+            this->throttle = throttle;
+        }
+
+        double computePWM(double spd, double elapsedTime) {
+            diff = speed - spd;
+
+            p = diff * kp;
+            i += diff * ki;
+            d = (diff - prevDiff) * kd;
+
+            prevDiff = diff;
+
+            double pid = p + i + d;
+            pid = constrain(pid, -PWMRANGE, PWMRANGE);
+
+            throttle = constrain(throttle + pid, -PWMRANGE, PWMRANGE);
+
+            dir = (throttle >= 0) ? FWARD : BWARD;
+
+            return throttle;
+        }
+
+        double computeRPM(double ticks, double elapsedTime) {
+            int sign = (dir == FWARD) ? 1 : -1;
+
+            return sign * ((ticks / DISK_SLOTS) * float(60) / elapsedTime);
+        }
+
+        double computeDistance(double ticks) {
+            int sign = (dir == FWARD) ? 1 : -1;
+
+            return sign * ((ticks / DISK_SLOTS) * WHEEL_DIAMETER * M_PI);
+        }
+
+        void adjustSpeed(double spd) {
+            speed = constrain(spd, -MOTORS_MAX_SPEED, MOTORS_MAX_SPEED);
+        }
+
+        void reset() {
+            p = i = d = diff = prevDiff = 0;
+        }
+    };
+
 private:
+    STATE state = INIT;
+
     Communicator* com;
     PCF857x* pcf1;
+    
     Encoder* len;
     Encoder* ren;
 
-    STATE state = INIT;
+    MotorPID leftMotorPID;
+    MotorPID rightMotorPID;
 
     double angle = 0; // Reference angle
     double distance = 0; // Remaining distance
@@ -108,17 +157,19 @@ private:
     double prevDiff = 0;
     double pid = 0, pidP = 0, pidI = 0, pidD = 0;
 
-    double avgAngle = 0;
-    int angelsCnt = 0;
-
-    void init(double currentAngle) {
-        angle = currentAngle;
-
-        state = IDLE;
-    }
-
     void move(double currentAngle) {
-        // com->send(" ");
+        com->send(" ");
+        //
+        // Timer
+        //
+        double current = millis();
+
+        if (current - time < MOTORS_ADJUST_DELTA)
+            return;
+
+        double elapsedTime = (current - time) / 1000.0;
+        time = current;
+
         //
         // Angle
         //
@@ -130,19 +181,15 @@ private:
             diff += 360;
         }
 
-        avgAngle += currentAngle;
-        angelsCnt++;
+        pidP = KP * diff;
+        pidI += (diff < I_LIMIT && diff > -I_LIMIT) ? (KI * diff) : 0;
+        pidD = KD * ((diff - prevDiff) / elapsedTime);
+        prevDiff = diff;
 
-        //
-        // Timer
-        //
-        double current = millis();
+        pid = constrain(pidP + pidI + pidD, -MOTORS_MAX_SPEED, MOTORS_MAX_SPEED);
 
-        if (current - time < MOTORS_ADJUST_DELTA)
-            return;
-
-        double elapsedTime = (current - time) / 1000.0;
-        time = current;
+        leftMotorPID.adjustSpeed(MOTORS_INIT_SPEED - pid);
+        rightMotorPID.adjustSpeed(MOTORS_INIT_SPEED + pid);
 
         //
         // Distance
@@ -154,35 +201,49 @@ private:
         ren->readAndReset(rightTicks);
         interrupts();
 
-        double leftDistance = leftTicks / DISK_SLOTS * WHEEL_DIAMETER * M_PI;
-        double rightDistance = rightTicks / DISK_SLOTS * WHEEL_DIAMETER * M_PI;
+        // Get motors distances
+        double leftDistance = leftMotorPID.computeDistance(leftTicks);
+        double rightDistance = rightMotorPID.computeDistance(rightTicks);
     
-        double currentDistance = min(leftDistance, rightDistance);
+        // Get motors speeds
+        double leftRPM = leftMotorPID.computeRPM(leftTicks, elapsedTime);
+        double rightRPM = rightMotorPID.computeRPM(rightTicks, elapsedTime);
 
-        distance -= currentDistance;
+        // Get motors throttle
+        double leftPWM = leftMotorPID.computePWM(leftRPM, elapsedTime);
+        double rightPWM = rightMotorPID.computePWM(rightRPM, elapsedTime);
 
-        angelsCnt = avgAngle = 0;
+        // Update distance
+        distance -= min(leftDistance, rightDistance);
         
         if (distance <= 0) {
-            state = ALIGN;
+            com->send("Distance: " + String(distance));
+            // state = ALIGN; // ToDo: uncomment and remove next line
+            stop();
 
             return;
         }
 
-        // com->send(String(leftDistance - rightDistance) + " - " + String(leftTicks) + " - " + String(rightTicks) + " - " + String(leftDistance) + " - " + String(rightDistance));
-
-        //
-        // PID
-        //
-        pidP = KP * diff;
-        pidI += (diff < I_LIMIT && diff > -I_LIMIT) ? (KI * diff) : 0;
-        pidD = KD * ((diff - prevDiff) / elapsedTime);
-        prevDiff = diff;
-
-        pid = constrain(pidP + pidI + pidD, -PWMRANGE, PWMRANGE);
-
-        double leftPWM = constrain(MOTORS_INIT_PWM - pid, -PWMRANGE, PWMRANGE);
-        double rightPWM = constrain(MOTORS_INIT_PWM + pid, -PWMRANGE, PWMRANGE);
+        com->send("MOVE:: elapsedTime: " + String(elapsedTime) + 
+                  " - PID: " + String(pid) + 
+                  " - DIFF: " + String(diff) + 
+                  " - Angle: " + String(angle) + 
+                  " - currentAngle: " + String(currentAngle) + 
+                  " - LeftRPM: " + String(leftRPM) + 
+                  " - LeftSpeed: " + String(leftMotorPID.speed) + 
+                  " - LeftPWM: " + String(leftPWM) + 
+                  " - LeftP: " + String(leftMotorPID.p) +
+                  " - LeftI: " + String(leftMotorPID.i) +
+                  " - LeftD: " + String(leftMotorPID.d) + 
+                  " - RightRPM: " + String(rightRPM) +
+                  " - RightSpeed: " + String(rightMotorPID.speed) + 
+                  " - RightPWM: " + String(rightPWM) +
+                  " - RightP: " + String(rightMotorPID.p) +
+                  " - RightI: " + String(rightMotorPID.i) +
+                  " - RightD: " + String(rightMotorPID.d) + 
+                  " - leftDistance: " + String(leftDistance) + 
+                  " - rightDistance: " + String(rightDistance) + 
+                  " - Distance: " + String(distance));
 
         // Set directions
         int lDir1 = HIGH;
@@ -190,82 +251,12 @@ private:
         int rDir1 = HIGH;
         int rDir2 = LOW;
         
-        // com->send("Diff: " + String(diff) + " currentAngle: " + String(currentAngle) + " angle: " + String(angle) + " distance: " + String(distance) + " pid: " + String(pid) + " leftPWM: " + String(leftPWM) + " rightPWM: " + String(rightPWM));
-
-        adjustMotors(leftPWM * LF, rightPWM * RF, lDir1, lDir2, rDir1, rDir2);
-    }
-
-    void rotate(double currentAngle) {
-        // com->send(" ");
-        //
-        // Angle
-        //
-        double diff = currentAngle - angle;
-
-        if (diff > 180) {
-            diff -= 360;
-        } else if (diff < -180) {
-            diff += 360;
-        }
-
-        //
-        // Timer
-        //
-        double current = millis();
-
-        if (current - time < MOTORS_ADJUST_DELTA)
-            return;
-
-        double elapsedTime = (current - time) / 1000.0;
-        time = current;
-
-        //
-        // PID
-        //
-        pidP = KP * diff / 5;
-        pidI += (diff < I_LIMIT && diff > -I_LIMIT) ? (KI * diff) : 0;
-        pidD = KD * ((diff - prevDiff) / elapsedTime);
-        prevDiff = diff;
-
-        pid = constrain(pidP + pidI + pidD, -PWMRANGE, PWMRANGE);
-
-        // com->send("Diff: " + String(diff) + " currentAngle: " + String(currentAngle) + " angle: " + String(angle) + " distance: " + String(distance) + " pid: " + String(pid));
-
-        if (abs(diff) < 4 || abs(pid) < 10) {
-            adjustMotors(PWMRANGE, PWMRANGE, LOW, LOW, LOW, LOW);
-            
-            // Remove the ticks to not consider them as distance when moving forward
-            noInterrupts();
-            len->reset();
-            ren->reset();
-            interrupts();
-            
-            return;
-        }
-
-        double leftPWM, rightPWM;
-
-        if (diff < 0) { // Turn right
-            leftPWM = constrain(MOTORS_INIT_PWM - pid, 0, PWMRANGE / 4);
-            rightPWM = constrain(-MOTORS_INIT_PWM + pid, -PWMRANGE / 4, 0);
-        } else { // Turn left
-            leftPWM = constrain(-MOTORS_INIT_PWM - pid, -PWMRANGE / 4, 0);
-            rightPWM = constrain(MOTORS_INIT_PWM + pid, 0, PWMRANGE / 4);
-        }
-
-        // Set directions
-        int lDir1 = HIGH;
-        int lDir2 = LOW;
-        int rDir1 = HIGH;
-        int rDir2 = LOW;
-
-         // -ve values mean the other direction
         if (leftPWM < 0) {
             leftPWM = -leftPWM;
 
             Utils::swap(&lDir1, &lDir2);
         }
-
+        
         if (rightPWM < 0) {
             rightPWM = -rightPWM;
 
@@ -273,6 +264,10 @@ private:
         }
 
         adjustMotors(leftPWM, rightPWM, lDir1, lDir2, rDir1, rDir2);
+    }
+
+    void rotate(double currentAngle) {
+
     }
 
     void adjustMotors(int lSpeed, int rSpeed, int lDir1, int lDir2, int rDir1, int rDir2) {

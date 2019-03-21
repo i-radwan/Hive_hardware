@@ -45,47 +45,7 @@ void keyPressed() {
         byte[] message = new byte[1];
         message[0] = 0;
         udp.send(message, ip, port);
-    } else if (key == 'p') {
-        byte[] message = new byte[1];
-        message[0] = 10;
-        udp.send(message, ip, port);
-    } else if (key == 'o') {
-        byte[] message = new byte[1];
-        message[0] = 11;
-        udp.send(message, ip, port);
-    } else if (key == 'i') {
-        byte[] message = new byte[1];
-        message[0] = 12;
-        udp.send(message, ip, port);
-    } else if (key == 'u') {
-        byte[] message = new byte[1];
-        message[0] = 13;
-        udp.send(message, ip, port);
-    } else if (key == 'y') {
-        byte[] message = new byte[1];
-        message[0] = 14;
-        udp.send(message, ip, port);
-    } else if (key == 't') {
-        byte[] message = new byte[1];
-        message[0] = 15;
-        udp.send(message, ip, port);
-    } else if (key == 'r') {
-        byte[] message = new byte[1];
-        message[0] = 16;
-        udp.send(message, ip, port);
-    } else if (key == 'e') {
-        byte[] message = new byte[1];
-        message[0] = 17;
-        udp.send(message, ip, port);
-    } else if (key == 'e') {
-        byte[] message = new byte[1];
-        message[0] = 17;
-        udp.send(message, ip, port);
-    } else if (key == 'b') {
-        byte[] message = new byte[1];
-        message[0] = 18;
-        udp.send(message, ip, port);
-    }      
+    }
 }
 
 void receive(byte[] data) {
