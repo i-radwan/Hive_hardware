@@ -33,8 +33,11 @@ const double KP = 0.75;
 const double KI = 0;
 const double KD = 1;
 const double I_LIMIT = 3;
-const double LF = 1; // Left motor factor
-const double RF = 0.955; // Right motor factor
+
+const double KP2 = 3;
+const double KI2 = 0.1;
+const double KD2 = 1;
+const double I_LIMIT2 = 3;
 
 // Motors encoders
 const int LEFT_ENC = D2;
@@ -65,10 +68,10 @@ const double OPTICAL_DPI_TO_MM = 1 / 39.0;
 
 // General
 const double MOTORS_ADJUST_DELTA = 200; // ms
-const double MOTORS_INIT_PWM = PWMRANGE / 4;
-const double MOTORS_INIT_SPEED = 60; // rpm
-const double MOTORS_MAX_SPEED = 75; // rpm
-const double STEP = 250; // mm
+const double MOTORS_INIT_SPEED = 50; // rpm
+const double MOTORS_MAX_SPEED = 55; // rpm
+const double MOTORS_ROTATION_PWM = 200;
+const double STEP = 260; // mm
 
 enum STATE {
     INIT,
