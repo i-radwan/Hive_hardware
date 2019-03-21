@@ -2,16 +2,24 @@ import hypermedia.net.*;
 
 UDP udp; // Define the UDP object
 
-String ip = "192.168.1.9"; // The remote IP address
+String ip = "192.168.1.3"; // The remote IP address
 int port = 12345; // The destination port
+double time;
 
 void setup() {
     udp = new UDP(this, 12345);
     udp.listen(true);
+    time = millis();
 }
 
 void draw() {
-    
+    if (millis() - time > 100){
+          byte[] message = new byte[1];
+          message[0] = 18;
+          udp.send(message, ip, port);
+          
+          time = millis();
+    }    
 }
 
 void keyPressed() {
@@ -37,14 +45,56 @@ void keyPressed() {
         byte[] message = new byte[1];
         message[0] = 0;
         udp.send(message, ip, port);
+    } else if (key == 'p') {
+        byte[] message = new byte[1];
+        message[0] = 10;
+        udp.send(message, ip, port);
+    } else if (key == 'o') {
+        byte[] message = new byte[1];
+        message[0] = 11;
+        udp.send(message, ip, port);
+    } else if (key == 'i') {
+        byte[] message = new byte[1];
+        message[0] = 12;
+        udp.send(message, ip, port);
+    } else if (key == 'u') {
+        byte[] message = new byte[1];
+        message[0] = 13;
+        udp.send(message, ip, port);
+    } else if (key == 'y') {
+        byte[] message = new byte[1];
+        message[0] = 14;
+        udp.send(message, ip, port);
+    } else if (key == 't') {
+        byte[] message = new byte[1];
+        message[0] = 15;
+        udp.send(message, ip, port);
+    } else if (key == 'r') {
+        byte[] message = new byte[1];
+        message[0] = 16;
+        udp.send(message, ip, port);
+    } else if (key == 'e') {
+        byte[] message = new byte[1];
+        message[0] = 17;
+        udp.send(message, ip, port);
+    } else if (key == 'e') {
+        byte[] message = new byte[1];
+        message[0] = 17;
+        udp.send(message, ip, port);
+    } else if (key == 'b') {
+        byte[] message = new byte[1];
+        message[0] = 18;
+        udp.send(message, ip, port);
     }      
 }
 
 void receive(byte[] data) {
-    for (int i = 0; i < data.length; i++)
-        print(char(data[i]));
+    if (data.length > 1) {
+        for (int i = 0; i < data.length; i++)
+            print(char(data[i]));
         
-    println();
+        println();
+    }
     
     // Send ACK. TODO: for debugging only
     byte[] message = new byte[1];

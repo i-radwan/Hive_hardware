@@ -24,23 +24,25 @@ const int LEFT_DIR1 = 0;
 const int LEFT_DIR2 = 1;
 const int LEFT_SPED = D0;
 
-const int RGHT_DIR1 = 2;
-const int RGHT_DIR2 = 3;
+const int RGHT_DIR1 = 3;
+const int RGHT_DIR2 = 2;
 const int RGHT_SPED = D1;
 
-// Motors PID 
-// const double KP = 55;
-// const double KI = 0.5;
-// const double KD = 7;
-// const double LF = 1; // Left motor factor
-// const double RF = 0.7; // Right motor factor
-// const double I_LIMIT = 10;
-const double KP = 7;
+// Motors PID
+const double KP = 3;
 const double KI = 0;
 const double KD = 0;
+const double I_LIMIT = 3;
 const double LF = 1; // Left motor factor
-const double RF = 0.7; // Right motor factor
-const double I_LIMIT = 10;
+const double RF = 0.955; // Right motor factor
+
+// Motors encoders
+const int LEFT_ENC = D2;
+const int RGHT_ENC = D5;
+
+const double DISK_SLOTS = 20.0;
+const int WHEEL_DIAMETER = 67; // mm
+const int DEBOUNCE_DELTA = 1000; // us
 
 // PCF8574
 const int PCF1_ADDRESS = 0x20;
@@ -62,5 +64,14 @@ const int OPTICAL_DATA = 3;
 const double OPTICAL_DPI_TO_MM = 1 / 39.0;
 
 // General
-const double EPS = 0.1;
-const double MAX_ROTATION_ANGLE = 90.0;
+const double MOTORS_ADJUST_DELTA = 60; // ms
+const double MOTORS_INIT_PWM = PWMRANGE / 4;
+const double STEP = 180; // mm
+
+enum STATE {
+	INIT,
+	IDLE,
+	MOVE,
+	ROTATE,
+	ALIGN
+};
