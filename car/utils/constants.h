@@ -29,7 +29,7 @@ const int RGHT_DIR2 = 2;
 const int RGHT_SPED = D1;
 
 // Motors PID
-const double KP = 0.75;
+const double KP = 0.65;
 const double KI = 0;
 const double KD = 1;
 const double I_LIMIT = 3;
