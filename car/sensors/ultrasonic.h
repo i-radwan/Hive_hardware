@@ -27,7 +27,7 @@ public:
         // Reads the ULTRA_SONIC_ECHO_PIN, returns the sound wave travel time in microseconds
         unsigned long duration = pulseIn(ULTRA_SONIC_ECHO_PIN, HIGH);
 
-        // Calculating the distance (via sound speed 343 m/s)
+        // Calculating the cm distance (via sound speed 343 m/s == 0.034 cm/microsecond)
         distance = duration * 0.034 / 2;
     }
 };

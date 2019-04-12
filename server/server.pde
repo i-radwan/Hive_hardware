@@ -62,6 +62,7 @@ void receive(byte[] data) {
             print(char(data[i]));
         
         println();
+        println();
     }
     
     // Send ACK. TODO: for debugging only

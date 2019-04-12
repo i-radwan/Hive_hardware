@@ -149,5 +149,5 @@ void loop() {
     }
 
     // Navigation
-    nav.navigate(y);
+    nav.navigate(y, distance, isBlack);
 }
