@@ -75,6 +75,8 @@ const int SERVO_PIN = D8;
 const int SERVO_DOWN_ANGLE = 20;
 const int SERVO_UP_ANGLE = 110;
 
+const int BLACK_SENSOR_PIN = 4;
+
 // General
 const double MOTORS_ADJUST_DELTA = 200; // ms
 const double MOTORS_INIT_SPEED = 50; // rpm

@@ -10,13 +10,13 @@ class MPUSensor {
 public:
 
     void setup() {
-        Serial.println("Initializing MPU...");
+        // Serial.println("Initializing MPU...");
         mpu.initialize();
 
-        Serial.println("Testing device connections...");
-        Serial.println(mpu.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
+        // Serial.println("Testing device connections...");
+        // Serial.println(mpu.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
     
-        Serial.println(F("Initializing DMP..."));
+        // Serial.println(F("Initializing DMP..."));
         devStatus = mpu.dmpInitialize();
 
         // Sensors offsets
@@ -28,7 +28,7 @@ public:
         mpu.setZGyroOffset(MPU_GYRO_Z_OFF);
 
         if (devStatus == 0) {
-            Serial.println("Enabling DMP...");
+            // Serial.println("Enabling DMP...");
 
             mpu.setDMPEnabled(true);
 
@@ -37,7 +37,7 @@ public:
 
             dmpReady = true;
         } else {
-            Serial.println("DMP Initialization failed (code " + String(devStatus) + ")");
+            // Serial.println("DMP Initialization failed (code " + String(devStatus) + ")");
         }
     }
     
@@ -54,7 +54,7 @@ public:
         if ((mpuIntStatus & 0x10) || fifoCount == 1024) {
             // Reset so we can continue cleanly
             mpu.resetFIFO();
-            Serial.println("FIFO overflow! " + String(fifoCount));
+            // Serial.println("FIFO overflow! " + String(fifoCount));
 
         } else if (mpuIntStatus & 0x02) {
             mpu.getFIFOBytes(fifoBuffer, packetSize);

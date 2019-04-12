@@ -7,6 +7,8 @@
 #include "sensors/mpu.h"
 #include "sensors/optical.h"
 #include "sensors/encoder.h"
+#include "sensors/black.h"
+#include "sensors/ultrasonic.h"
 #include "utils/constants.h"
 
 //
@@ -15,6 +17,8 @@
 Communicator com;
 Navigator nav;
 MPUSensor mpu;
+BlackSensor blk;
+UltrasonicSensor uls;
 OTAHandler ota;
 Encoder len;
 Encoder ren;
@@ -40,7 +44,7 @@ void rightEncoderISR() {
 //
 void setup() {
     // Initialize Serial connection
-    Serial.begin(BAUD_RATE);
+    // Serial.begin(BAUD_RATE);
 
     // Initialize I2C Bus
     Wire.begin(I2C_SDA, I2C_SCL);
@@ -54,13 +58,15 @@ void setup() {
     }
 
     // Initialize PCFs
-    pcf1.begin(0); // 0 means all 8 pins are outputs
-    
+    pcf1.begin(0x10); // P0-P3 output, P4 input
+
     // Initialize OTA
     ota.setup();
 
     // Initialize sensors
     mpu.setup();
+    uls.setup();
+    blk.setup(&pcf1);
 
     // Initialize encoders
     len.setup(LEFT_ENC);
@@ -91,7 +97,15 @@ void loop() {
     if(!mpu.read(y, p, r)) {
         return;
     }
-    
+
+    // Black sensor
+    bool isBlack;
+    blk.read(isBlack);
+
+    // Ultrasonic
+    double distance;
+    uls.read(distance);
+
     //
     // Server commands
     //

@@ -22,9 +22,7 @@ void draw() {
     //}    
 }
 
-void keyPressed() {
-    System.out.println("key pressed");
-    
+void keyPressed() {    
     if (key == CODED) {
         if (keyCode == UP) {
             byte[] message = new byte[1];

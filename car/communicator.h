@@ -24,17 +24,17 @@ public:
         int packetSize = UDP.parsePacket();
         
         if(packetSize) {
-            Serial.print("Received packet of size " + (String) packetSize + " From ");
+            // Serial.print("Received packet of size " + (String) packetSize + " From ");
             
-            IPAddress remote = UDP.remoteIP();
-            for (int i = 0; i < 4; i++)
-            {
-                Serial.print(remote[i], DEC);
-                if (i < 3)
-                {
-                    Serial.print(".");
-                }
-            }
+            // IPAddress remote = UDP.remoteIP();
+            // for (int i = 0; i < 4; i++)
+            // {
+            //     Serial.print(remote[i], DEC);
+            //     if (i < 3)
+            //     {
+            //         Serial.print(".");
+            //     }
+            // }
 
             // Read the packet into packetBufffer
             UDP.read(packetBuffer,UDP_TX_PACKET_MAX_SIZE);
@@ -80,14 +80,14 @@ private:
     bool connectUDP() {
         bool state = false;
     
-        Serial.println("");
-        Serial.println("Connecting to UDP");
+        // Serial.println("");
+        // Serial.println("Connecting to UDP");
     
         if(UDP.begin(PORT) == 1) {
-            Serial.println("Connection successful");
+            // Serial.println("Connection successful");
             state = true;
         } else {
-            Serial.println("Connection failed");
+            // Serial.println("Connection failed");
         }
     
         return state;
@@ -97,14 +97,14 @@ private:
         WiFi.mode(WIFI_STA);
         WiFi.begin(NET_NAME, NET_PASS);
         
-        Serial.println("");
-        Serial.print("Connecting to WiFi ");
+        // Serial.println("");
+        // Serial.print("Connecting to WiFi ");
     
         bool state = true;
         int i = 0;
         while (WiFi.status() != WL_CONNECTED) {
             delay(500);
-            Serial.print(".");
+            // Serial.print(".");
             
             if (i > 10) {
                 state = false;
@@ -114,13 +114,13 @@ private:
             i++;
         }
 
-        Serial.println("");
-        if (state) {
-            Serial.print("Connected to " + (String) NET_NAME + "IP address: ");
-            Serial.println(WiFi.localIP());
-        } else {
-            Serial.println("Connection failed.");
-        }
+        // Serial.println("");
+        // if (state) {
+        //     Serial.print("Connected to " + (String) NET_NAME + "IP address: ");
+        //     Serial.println(WiFi.localIP());
+        // } else {
+        //     Serial.println("Connection failed.");
+        // }
         
         return state;
     }
