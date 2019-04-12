@@ -2,7 +2,7 @@
 
 #include "communicator.h"
 #include "navigator.h"
-#include "ota.h"
+#include "ota.h"   
 #include "sensors/mpu.h"
 #include "sensors/optical.h"
 #include "sensors/encoder.h"
@@ -95,7 +95,7 @@ void loop() {
 
     switch (msg) {
         case STOP:
-            nav.stop();
+            nav.stop(y);
             com.send(String("Stop!"));
         break;
 

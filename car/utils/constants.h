@@ -22,11 +22,11 @@ enum MSG {
 // Motors pins
 const int LEFT_DIR1 = 0;
 const int LEFT_DIR2 = 1;
-const int LEFT_SPED = D0;
+const int LEFT_SPED = D4;
 
-const int RGHT_DIR1 = 3;
-const int RGHT_DIR2 = 2;
-const int RGHT_SPED = D1;
+const int RGHT_DIR1 = 2;
+const int RGHT_DIR2 = 3;
+const int RGHT_SPED = D0;
 
 // Motors PID
 const double KP = 0.65;
@@ -34,14 +34,14 @@ const double KI = 0;
 const double KD = 1;
 const double I_LIMIT = 3;
 
-const double KP2 = 3;
-const double KI2 = 0.1;
-const double KD2 = 1;
+const double KP2 = 2;
+const double KI2 = 0.01;
+const double KD2 = 0.5;
 const double I_LIMIT2 = 3;
 
 // Motors encoders
-const int LEFT_ENC = D2;
-const int RGHT_ENC = D5;
+const int LEFT_ENC = D1;
+const int RGHT_ENC = D2;
 
 const double DISK_SLOTS = 20.0;
 const int WHEEL_DIAMETER = 67; // mm
@@ -66,12 +66,17 @@ const int OPTICAL_CLCK = 1;
 const int OPTICAL_DATA = 3;
 const double OPTICAL_DPI_TO_MM = 1 / 39.0;
 
+const int ULTRA_SONIC_TRIGGER_PIN = D3;
+const int ULTRA_SONIC_ECHO_PIN = D5;
+
+const int SERVO_PIN = D8;
+
 // General
 const double MOTORS_ADJUST_DELTA = 200; // ms
 const double MOTORS_INIT_SPEED = 50; // rpm
 const double MOTORS_MAX_SPEED = 55; // rpm
 const double MOTORS_ROTATION_PWM = 200;
-const double STEP = 260; // mm
+const double STEP = 300; // mm
 
 enum STATE {
     INIT,
