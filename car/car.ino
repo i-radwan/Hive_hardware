@@ -1,4 +1,5 @@
 #include <pcf8574_esp.h>
+#include <Servo.h>
 
 #include "communicator.h"
 #include "navigator.h"
@@ -17,6 +18,7 @@ MPUSensor mpu;
 OTAHandler ota;
 Encoder len;
 Encoder ren;
+Servo servo;
 
 PCF857x pcf1(PCF1_ADDRESS, &Wire);
 
@@ -68,9 +70,11 @@ void setup() {
 
     // Initialize motors
     nav.setup(&com, &pcf1, &len, &ren);
-}
 
-int i = 0;
+    // Initialize servo
+    servo.attach(SERVO_PIN);
+    servo.write(SERVO_DOWN_ANGLE);
+}
 
 void loop() {
     ota.handle();
@@ -87,7 +91,7 @@ void loop() {
     if(!mpu.read(y, p, r)) {
         return;
     }
-
+    
     //
     // Server commands
     //
@@ -117,6 +121,16 @@ void loop() {
         case RIGHT:
             nav.right(y);
             com.send(String("Right!"));
+        break;
+
+        case UP:
+            servo.write(SERVO_UP_ANGLE);
+            com.send(String("Up!"));
+        break;
+
+        case DOWN:
+            servo.write(SERVO_DOWN_ANGLE);
+            com.send(String("Down!"));
         break;
     }
 

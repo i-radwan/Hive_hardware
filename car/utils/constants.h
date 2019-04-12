@@ -16,7 +16,9 @@ enum MSG {
     FORWARD = 1,
     BACKWARD = 2,
     LEFT = 3,
-    RIGHT = 4
+    RIGHT = 4,
+    UP = 5,
+    DOWN = 6
 };
 
 // Motors pins
@@ -70,6 +72,8 @@ const int ULTRA_SONIC_TRIGGER_PIN = D3;
 const int ULTRA_SONIC_ECHO_PIN = D5;
 
 const int SERVO_PIN = D8;
+const int SERVO_DOWN_ANGLE = 20;
+const int SERVO_UP_ANGLE = 110;
 
 // General
 const double MOTORS_ADJUST_DELTA = 200; // ms

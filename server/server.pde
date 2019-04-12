@@ -13,16 +13,18 @@ void setup() {
 }
 
 void draw() {
-    if (millis() - time > 100){
-          byte[] message = new byte[1];
-          message[0] = 18;
-          udp.send(message, ip, port);
+    //if (millis() - time > 100){
+    //      byte[] message = new byte[1];
+    //      message[0] = 18;
+    //      udp.send(message, ip, port);
           
-          time = millis();
-    }    
+    //      time = millis();
+    //}    
 }
 
 void keyPressed() {
+    System.out.println("key pressed");
+    
     if (key == CODED) {
         if (keyCode == UP) {
             byte[] message = new byte[1];
@@ -44,6 +46,14 @@ void keyPressed() {
     } else if (key == ' ') {
         byte[] message = new byte[1];
         message[0] = 0;
+        udp.send(message, ip, port);
+    } else if (key == 'u' || key == 'U') {
+        byte[] message = new byte[1];
+        message[0] = 5;
+        udp.send(message, ip, port);
+    } else if (key == 'd' || key == 'D') {
+        byte[] message = new byte[1];
+        message[0] = 6;
         udp.send(message, ip, port);
     }
 }

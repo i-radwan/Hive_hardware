@@ -243,26 +243,26 @@ private:
             return;
         }
 
-        com->send("MOVE:: elapsedTime: " + String(elapsedTime) + 
-                  " - PID: " + String(pid) + 
-                  " - DIFF: " + String(diff) + 
-                  " - Angle: " + String(angle) + 
-                  " - currentAngle: " + String(currentAngle) + 
-                  " - LeftRPM: " + String(leftRPM) + 
-                  " - LeftSpeed: " + String(leftMotorPID.speed) + 
-                  " - LeftPWM: " + String(leftPWM) + 
-                  " - LeftP: " + String(leftMotorPID.p) +
-                  " - LeftI: " + String(leftMotorPID.i) +
-                  " - LeftD: " + String(leftMotorPID.d) + 
-                  " - RightRPM: " + String(rightRPM) +
-                  " - RightSpeed: " + String(rightMotorPID.speed) + 
-                  " - RightPWM: " + String(rightPWM) +
-                  " - RightP: " + String(rightMotorPID.p) +
-                  " - RightI: " + String(rightMotorPID.i) +
-                  " - RightD: " + String(rightMotorPID.d) + 
-                  " - leftDistance: " + String(leftDistance) + 
-                  " - rightDistance: " + String(rightDistance) + 
-                  " - Distance: " + String(distance));
+        // com->send("MOVE:: elapsedTime: " + String(elapsedTime) + 
+        //           " - PID: " + String(pid) + 
+        //           " - DIFF: " + String(diff) + 
+        //           " - Angle: " + String(angle) + 
+        //           " - currentAngle: " + String(currentAngle) + 
+        //           " - LeftRPM: " + String(leftRPM) + 
+        //           " - LeftSpeed: " + String(leftMotorPID.speed) + 
+        //           " - LeftPWM: " + String(leftPWM) + 
+        //           " - LeftP: " + String(leftMotorPID.p) +
+        //           " - LeftI: " + String(leftMotorPID.i) +
+        //           " - LeftD: " + String(leftMotorPID.d) + 
+        //           " - RightRPM: " + String(rightRPM) +
+        //           " - RightSpeed: " + String(rightMotorPID.speed) + 
+        //           " - RightPWM: " + String(rightPWM) +
+        //           " - RightP: " + String(rightMotorPID.p) +
+        //           " - RightI: " + String(rightMotorPID.i) +
+        //           " - RightD: " + String(rightMotorPID.d) + 
+        //           " - leftDistance: " + String(leftDistance) + 
+        //           " - rightDistance: " + String(rightDistance) + 
+        //           " - Distance: " + String(distance));
 
         // Set directions
         int lDir1 = HIGH;

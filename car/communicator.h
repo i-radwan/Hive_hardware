@@ -49,6 +49,10 @@ public:
                 return LEFT;
             } else if (packetBuffer[0] == RIGHT) {
                 return RIGHT;
+            } else if (packetBuffer[0] == UP) {
+                return UP;
+            } else if (packetBuffer[0] == DOWN) {
+                return DOWN;
             }
         }
 
