@@ -10,7 +10,7 @@ public:
 
     // 1.2, 0.1, 0.4
     Navigator() : leftMotorPID(1.3, 0.1, 0.4, MOTORS_INIT_SPEED, 0), 
-                  rightMotorPID(1.2, 0.1, 0.3, MOTORS_INIT_SPEED, 0) {
+                  rightMotorPID(1.3, 0.1, 0.4, MOTORS_INIT_SPEED, 0) {
     }
 
     void setup(Communicator* com, PCF857x* pcf1, Encoder* len, Encoder* ren) {
@@ -85,7 +85,6 @@ public:
         
         time = millis();
         pidI = 0;
-        throttle = MOTORS_ROTATION_PWM;
         i = 0;
         prevDiff = currentAngle - angle;
         state = ROTATE;
@@ -102,7 +101,6 @@ public:
         
         time = millis();
         pidI = 0;
-        throttle = MOTORS_ROTATION_PWM;
         i = 0;
         prevDiff = currentAngle - angle;
         state = ROTATE;
@@ -181,7 +179,7 @@ private:
 
     double time = 0;
     double prevDiff = 0;
-    double pid = 0, pidP = 0, pidI = 0, pidD = 0, throttle = MOTORS_ROTATION_PWM;
+    double pid = 0, pidP = 0, pidI = 0, pidD = 0;
 
     double preAlignTime;
 
@@ -281,8 +279,8 @@ private:
         double rightRPM = rightMotorPID.computeRPM(rightTicks, elapsedTime);
 
         // Adjust speed to maintain angle and reduce speed difference
-        leftMotorPID.adjustSpeed(MOTORS_INIT_SPEED - pid - (leftRPM - rightRPM) / 2.);
-        rightMotorPID.adjustSpeed(MOTORS_INIT_SPEED + pid + (leftRPM - rightRPM) / 2.);
+        leftMotorPID.adjustSpeed(MOTORS_INIT_SPEED - pid);
+        rightMotorPID.adjustSpeed(MOTORS_INIT_SPEED + pid);
 
         // Get motors throttle
         double leftPWM = leftMotorPID.computePWM(leftRPM, elapsedTime);
@@ -350,6 +348,10 @@ private:
         // Timer
         //
         double current = millis();
+
+        if (current - time < 100)
+            return;
+
         double elapsedTime = (current - time) / 1000.0;
         time = current;
 
@@ -364,8 +366,8 @@ private:
             diff += 360;
         }
 
-        if (fabs(diff) <= 3) {
-            com->send("Diff:: " + String(i++) + " " + String(diff));
+        if (fabs(diff) <= 5) {
+            // com->send("Diff:: " + String(i++) + " " + String(diff));
 
             adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
             
@@ -377,12 +379,16 @@ private:
             return;
         }
 
+        if (diff * prevDiff < 0) { // Signs flipped
+            pidI = 0;
+        }
+
         //
         // PID
         //        
-        pidP = KP2 * diff;
+        pidP = ((state == ROTATE) ? 0.65 : KP2) * diff;
         pidI += KI2 * diff;
-        pidD = KD2 * ((diff - prevDiff) / elapsedTime);
+        pidD = KD2 * ((diff - prevDiff));
         prevDiff = diff;
 
         pid = constrain(pidP + pidI + pidD, -PWMRANGE, PWMRANGE);

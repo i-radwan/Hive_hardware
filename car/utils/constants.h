@@ -36,9 +36,9 @@ const double KI = 0;
 const double KD = 1;
 const double I_LIMIT = 3;
 
-const double KP2 = 2;
-const double KI2 = 0.01;
-const double KD2 = 0.5;
+const double KP2 = 3.4;
+const double KI2 = 0.1;
+const double KD2 = 1;
 const double I_LIMIT2 = 3;
 
 // Motors encoders
@@ -83,7 +83,7 @@ const int RGT_BLACK_SENSOR_PIN = 5;
 const double MOTORS_ADJUST_DELTA = 200; // ms
 const double MOTORS_INIT_SPEED = 50; // rpm
 const double MOTORS_MAX_SPEED = 55; // rpm
-const double MOTORS_ROTATION_PWM = 200;
+const double MOTORS_ROTATION_PWM = 150;
 const double STEP = 300; // mm
 
 enum STATE {
