@@ -9,8 +9,8 @@ class Navigator {
 public:
 
     // 1.2, 0.1, 0.4
-    Navigator() : leftMotorPID(2.3, 0.1, 0.4, MOTORS_INIT_SPEED, 0), 
-                  rightMotorPID(2.14, 0.05, 0.3, MOTORS_INIT_SPEED, 0) {
+    Navigator() : leftMotorPID(1.3, 0.1, 0.4, MOTORS_INIT_SPEED, 0), 
+                  rightMotorPID(1.2, 0.1, 0.3, MOTORS_INIT_SPEED, 0) {
     }
 
     void setup(Communicator* com, PCF857x* pcf1, Encoder* len, Encoder* ren) {
@@ -37,13 +37,13 @@ public:
         state = IDLE;
     }
 
-    void navigate(double currentAngle, unsigned long distance, bool isBlack) {
+    void navigate(double currentAngle, unsigned long distance, bool isLeftBlack, bool isRightBlack) {
         if (state == MOVE)
-            move(currentAngle, distance, isBlack);
-        else if (state == ROTATE)
-            rotate(currentAngle);
-        else if (state == ALIGN)
-            align(currentAngle);
+            move(currentAngle, distance, isLeftBlack, isRightBlack);
+        // else if (state == ROTATE)
+        //     rotate(currentAngle);
+        // else if (state == ALIGN)
+        //     align(currentAngle);
     }
     
     void stop(double currentAngle) {
@@ -136,10 +136,9 @@ public:
 
             prevDiff = diff;
 
-            double pid = p + i + d;
-            pid = constrain(pid, -PWMRANGE, PWMRANGE);
+            pid = constrain(p + i + d, -PWMRANGE, PWMRANGE);
 
-            throttle = constrain(PWMRANGE / 3. + pid, 0, PWMRANGE);
+            throttle = constrain(throttle + pid, 0, PWMRANGE);
 
             return throttle;
         }
@@ -161,7 +160,7 @@ public:
         }
 
         void reset() {
-            p = i = d = diff = prevDiff = throttle = 0;
+            p = i = d = diff = prevDiff = 0;
         }
     };
 
@@ -191,7 +190,7 @@ private:
     bool atJoint = true, atEdge = false, atBlack = true;
     double atBlackTime = millis();
 
-    void move(double currentAngle, unsigned long obstacleDistance, bool isBlack) {
+    void move(double currentAngle, unsigned long obstacleDistance, bool isLeftBlack, bool isRightBlack) {
         com->send(" ");
 
         // Emergency braking
@@ -206,31 +205,31 @@ private:
         }
 
         // Reached a black spot
-        if (isBlack && millis() - atBlackTime > 250 && !atBlack) {
-            if (atJoint && !atEdge) {
-                atJoint = false;
-                atEdge = true;
+        // if (isBlack && millis() - atBlackTime > 250 && !atBlack) {
+        //     if (atJoint && !atEdge) {
+        //         atJoint = false;
+        //         atEdge = true;
 
-                angle = currentAngle; // Recalibrate angle here
-            } else if (!atJoint && atEdge) {
-                atJoint = true;
-                atEdge = false;
+        //         angle = currentAngle; // Recalibrate angle here
+        //     } else if (!atJoint && atEdge) {
+        //         atJoint = true;
+        //         atEdge = false;
 
-                com->send("Distance: " + String(distance) + " isBlack: " + String(isBlack));
+        //         com->send("Distance: " + String(distance) + " isBlack: " + String(isBlack));
                 
-                adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
+        //         adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
 
-                state = ALIGN;
-                preAlignTime = millis();
-            }
+        //         state = ALIGN;
+        //         preAlignTime = millis();
+        //     }
 
-            atBlackTime = millis();
-            atBlack = true;
-        }
+        //     atBlackTime = millis();
+        //     atBlack = true;
+        // }
 
-        if (!isBlack) {
-            atBlack = false;
-        }
+        // if (!isBlack) {
+        //     atBlack = false;
+        // }
 
         if (state == ALIGN) {
             return;

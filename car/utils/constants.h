@@ -31,14 +31,14 @@ const int RGHT_DIR2 = 3;
 const int RGHT_SPED = D0;
 
 // Motors PID
-const double KP = 6.8;
-const double KI = 0.05;
-const double KD = 0.65;
+const double KP = 0.65;
+const double KI = 0;
+const double KD = 1;
 const double I_LIMIT = 3;
 
-const double KP2 = 0.8;
-const double KI2 = 0.01;
-const double KD2 = 0.1;
+const double KP2 = 3;
+const double KI2 = 0.1;
+const double KD2 = 1;
 const double I_LIMIT2 = 3;
 
 // Motors encoders
@@ -76,7 +76,8 @@ const int SERVO_PIN = D8;
 const int SERVO_DOWN_ANGLE = 20;
 const int SERVO_UP_ANGLE = 110;
 
-const int BLACK_SENSOR_PIN = 4;
+const int LFT_BLACK_SENSOR_PIN = 4;
+const int RGT_BLACK_SENSOR_PIN = 5;
 
 // General
 const double MOTORS_ADJUST_DELTA = 100; // ms

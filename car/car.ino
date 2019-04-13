@@ -17,7 +17,8 @@
 Communicator com;
 Navigator nav;
 MPUSensor mpu;
-BlackSensor blk;
+BlackSensor lblk;
+BlackSensor rblk;
 UltrasonicSensor uls;
 OTAHandler ota;
 Encoder len;
@@ -58,7 +59,7 @@ void setup() {
     }
 
     // Initialize PCFs
-    pcf1.begin(0x10); // P0-P3 output, P4 input
+    pcf1.begin(0x30); // P0-P3 output, P4-P5 input
 
     // Initialize OTA
     ota.setup();
@@ -66,7 +67,8 @@ void setup() {
     // Initialize sensors
     mpu.setup();
     uls.setup();
-    blk.setup(&pcf1);
+    lblk.setup(&pcf1, LFT_BLACK_SENSOR_PIN);
+    rblk.setup(&pcf1, RGT_BLACK_SENSOR_PIN);
 
     // Initialize encoders
     len.setup(LEFT_ENC);
@@ -99,8 +101,9 @@ void loop() {
     }
 
     // Black sensor
-    bool isBlack;
-    blk.read(isBlack);
+    bool isLeftBlack, isRightBlack;
+    lblk.read(isLeftBlack);
+    rblk.read(isRightBlack);
 
     // Ultrasonic
     double distance;
@@ -149,5 +152,5 @@ void loop() {
     }
 
     // Navigation
-    nav.navigate(y, distance, isBlack);
+    nav.navigate(y, distance, isLeftBlack, isRightBlack);
 }

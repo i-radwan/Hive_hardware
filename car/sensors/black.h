@@ -8,14 +8,16 @@ public:
 
     BlackSensor() {}
 
-    void setup(PCF857x* pcf1) {
+    void setup(PCF857x* pcf1, int pin) {
         this->pcf1 = pcf1;
+        this->pin = pin;
     }
 
     void read(bool& isBlack) {
-        isBlack = (pcf1->read(BLACK_SENSOR_PIN) == LOW);
+        isBlack = (pcf1->read(pin) == LOW);
     }
 
 private:
     PCF857x* pcf1;
+    int pin;
 };
