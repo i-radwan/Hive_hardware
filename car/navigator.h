@@ -383,11 +383,10 @@ private:
         pidP = KP2 * diff;
         pidI += KI2 * diff;
         pidD = KD2 * ((diff - prevDiff) / elapsedTime);
+        prevDiff = diff;
 
         pid = constrain(pidP + pidI + pidD, -PWMRANGE, PWMRANGE);
         
-        prevDiff = diff;
-
         double leftPWM, rightPWM;
 
         if (diff >= 0) { // Turning left
