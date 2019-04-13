@@ -348,10 +348,6 @@ private:
         // Timer
         //
         double current = millis();
-
-        if (current - time < 100)
-            return;
-
         double elapsedTime = (current - time) / 1000.0;
         time = current;
 
@@ -366,7 +362,7 @@ private:
             diff += 360;
         }
 
-        if (fabs(diff) <= 5) {
+        if (fabs(diff) <= 5 || fabs(diff) >= 100) {
             // com->send("Diff:: " + String(i++) + " " + String(diff));
 
             adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
@@ -379,16 +375,12 @@ private:
             return;
         }
 
-        if (diff * prevDiff < 0) { // Signs flipped
-            pidI = 0;
-        }
-
         //
         // PID
         //        
-        pidP = ((state == ROTATE) ? 0.65 : KP2) * diff;
+        pidP = KP2 * diff;
         pidI += KI2 * diff;
-        pidD = KD2 * ((diff - prevDiff));
+        pidD = (elapsedTime > 1e-6) ? (KD2 * ((diff - prevDiff) / elapsedTime)) : 0;
         prevDiff = diff;
 
         pid = constrain(pidP + pidI + pidD, -PWMRANGE, PWMRANGE);
@@ -402,9 +394,6 @@ private:
             leftPWM = MOTORS_ROTATION_PWM - pid;
             rightPWM = -MOTORS_ROTATION_PWM + pid;
         }
-
-        leftPWM = constrain(leftPWM, -PWMRANGE, PWMRANGE);
-        rightPWM = constrain(rightPWM, -PWMRANGE, PWMRANGE);
 
         com->send("ROTATE:: " + String(i++) + 
                   " - elapsedTime: " + String(elapsedTime) + 

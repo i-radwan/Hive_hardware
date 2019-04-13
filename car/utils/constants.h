@@ -36,9 +36,9 @@ const double KI = 0;
 const double KD = 1;
 const double I_LIMIT = 3;
 
-const double KP2 = 3.4;
-const double KI2 = 0.1;
-const double KD2 = 1;
+const double KP2 = 2;
+const double KI2 = 0.01;
+const double KD2 = 0.5;
 const double I_LIMIT2 = 3;
 
 // Motors encoders
