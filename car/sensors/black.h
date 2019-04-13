@@ -13,7 +13,7 @@ public:
     }
 
     void read(bool& isBlack) {
-        isBlack = (this->pcf1->read(BLACK_SENSOR_PIN) == LOW);
+        isBlack = (pcf1->read(BLACK_SENSOR_PIN) == LOW);
     }
 
 private:

@@ -36,7 +36,7 @@ const double KI = 0.05;
 const double KD = 0.65;
 const double I_LIMIT = 3;
 
-const double KP2 = 0.5;
+const double KP2 = 0.8;
 const double KI2 = 0.01;
 const double KD2 = 0.1;
 const double I_LIMIT2 = 3;
@@ -82,7 +82,9 @@ const int BLACK_SENSOR_PIN = 4;
 const double MOTORS_ADJUST_DELTA = 100; // ms
 const double MOTORS_INIT_SPEED = 45; // rpm
 const double MOTORS_MAX_SPEED = 70; // rpm
-const double MOTORS_ROTATION_PWM = 200;
+const double MOTORS_ROTATION_PWM = 250;
+const double MOTORS_ALIGNMENT_PWM = 200;
+const double PRE_ALIGN_PERIOD = 1000;
 const double STEP = 300; // mm
 
 enum STATE {

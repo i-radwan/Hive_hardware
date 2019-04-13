@@ -2,7 +2,7 @@ import hypermedia.net.*;
 
 UDP udp; // Define the UDP object
 
-String ip = "192.168.1.12"; // The remote IP address
+String ip = "192.168.1.4"; // The remote IP address
 int port = 12345; // The destination port
 double time;
 
@@ -61,7 +61,6 @@ void receive(byte[] data) {
         for (int i = 0; i < data.length; i++)
             print(char(data[i]));
         
-        println();
         println();
     }
     
