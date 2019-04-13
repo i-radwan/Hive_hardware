@@ -136,7 +136,7 @@ public:
 
             prevDiff = diff;
 
-            pid = constrain(p + i + d, -PWMRANGE, PWMRANGE);
+            double pid = constrain(p + i + d, -PWMRANGE, PWMRANGE);
 
             throttle = constrain(throttle + pid, 0, PWMRANGE);
 
