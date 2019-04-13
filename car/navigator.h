@@ -40,10 +40,8 @@ public:
     void navigate(double currentAngle, unsigned long distance, bool isLeftBlack, bool isRightBlack) {
         if (state == MOVE)
             move(currentAngle, distance, isLeftBlack, isRightBlack);
-        // else if (state == ROTATE)
-        //     rotate(currentAngle);
-        // else if (state == ALIGN)
-        //     align(currentAngle);
+        else if (state == ROTATE || state == ALIGN)
+            rotate(currentAngle);
     }
     
     void stop(double currentAngle) {
@@ -293,15 +291,15 @@ private:
         // Update distance
         distance -= (leftDistance + rightDistance) / 2;
         
-        // if (isBlack) {
-        //     com->send("Distance: " + String(distance) + " isBlack: " + String(isBlack));
+        if (distance <= 0) {
+            com->send("Distance: " + String(distance));
             
-        //     state = IDLE;
+            state = ALIGN;
             
-        //     adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
+            adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
 
-        //     return;
-        // }
+            return;
+        }
 
         com->send("MOVE:: elapsedTime: " + String(elapsedTime) + 
                   " - PID: " + String(pid) + 
@@ -352,10 +350,6 @@ private:
         // Timer
         //
         double current = millis();
-
-        if (current - time < MOTORS_ADJUST_DELTA * 2)
-            return;
-
         double elapsedTime = (current - time) / 1000.0;
         time = current;
 
@@ -370,158 +364,45 @@ private:
             diff += 360;
         }
 
-        if (fabs(diff) <= 65) {
+        if (fabs(diff) <= 3) {
             com->send("Diff:: " + String(i++) + " " + String(diff));
 
-            throttle = MOTORS_ROTATION_PWM;
-
             adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
-
-            state = ALIGN;
-            preAlignTime = millis();
+            
+            noInterrupts();
+            len->reset();
+            ren->reset();
+            interrupts();
 
             return;
         }
 
         //
         // PID
-        //
-        // if (fabs(diff) > 60) { 
-        //     pidP = KP2 * diff;
-        //     pidI = 0;
-        //     pid = constrain(pidP + pidI, -PWMRANGE, PWMRANGE);
-            
-        //     if (diff >= 0) { // Turning left
-        //         leftPWM = -MOTORS_ROTATION_PWM - pid;
-        //         rightPWM = MOTORS_ROTATION_PWM + pid;
-        //     } else {
-        //         leftPWM = MOTORS_ROTATION_PWM - pid;
-        //         rightPWM = -MOTORS_ROTATION_PWM + pid;
-        //     }
-        // } else {
-        //     pidP = 2 * diff;
-        //     pidI += 0.05 * diff;
-        //     pid = constrain(pidP + pidI, -PWMRANGE, PWMRANGE);
-            
-        //     if (diff >= 0) { // Turning left
-        //         leftPWM = -pid;
-        //         rightPWM = pid;
-        //     } else {
-        //         leftPWM = -pid;
-        //         rightPWM = pid;
-        //     }
-        // }
+        //        
+        pidP = KP2 * diff;
+        pidI += KI2 * diff;
+        pidD = KD2 * ((diff - prevDiff) / elapsedTime);
+
+        pid = constrain(pidP + pidI + pidD, -PWMRANGE, PWMRANGE);
         
-        double leftPWM, rightPWM;
-
-        // if (fabs(diff) < fabs(prevDiff) && abs(diff) < 60) {
-        //     throttle /= 1.2;
-        // } else {
-        
-        if (abs(diff) >= abs(prevDiff)) {
-            throttle += 5;
-        } else if (fabs(prevDiff) - fabs(diff) >= 2) {
-            // throttle /= 2;
-        }
-
-        // }
-
         prevDiff = diff;
 
+        double leftPWM, rightPWM;
+
         if (diff >= 0) { // Turning left
-            leftPWM = -throttle;
-            rightPWM = throttle;
+            leftPWM = -MOTORS_ROTATION_PWM - pid;
+            rightPWM = MOTORS_ROTATION_PWM + pid;
         } else {
-            leftPWM = throttle;
-            rightPWM = -throttle;
+            leftPWM = MOTORS_ROTATION_PWM - pid;
+            rightPWM = -MOTORS_ROTATION_PWM + pid;
         }
+
+        leftPWM = constrain(leftPWM, -PWMRANGE, PWMRANGE);
+        rightPWM = constrain(rightPWM, -PWMRANGE, PWMRANGE);
 
         com->send("ROTATE:: " + String(i++) + 
                   " - elapsedTime: " + String(elapsedTime) + 
-                  " - PID: " + String(pid) + 
-                  " - P: " + String(pidP) + 
-                  " - I: " + String(pidI) + 
-                  " - D: " + String(pidD) + 
-                  " - DIFF: " + String(diff) + 
-                  " - Angle: " + String(angle) + 
-                  " - currentAngle: " + String(currentAngle) + 
-                  " - LeftPWM: " + String(leftPWM) + 
-                  " - RightPWM: " + String(rightPWM));
-
-        // Set directions
-        int lDir1 = HIGH;
-        int lDir2 = LOW;
-        int rDir1 = HIGH;
-        int rDir2 = LOW;
-        
-        if (leftPWM < 0) {
-            leftPWM = -leftPWM;
-
-            Utils::swap(&lDir1, &lDir2);
-        }
-        
-        if (rightPWM < 0) {
-            rightPWM = -rightPWM;
-
-            Utils::swap(&rDir1, &rDir2);
-        }
-
-        adjustMotors(leftPWM, rightPWM, lDir1, lDir2, rDir1, rDir2);
-    }
-
-    void align(double currentAngle) {
-        com->send(" ");
-
-        if (millis() - preAlignTime < PRE_ALIGN_PERIOD) { // Wait for the car to stop first
-            return;
-        }
-
-        double current = millis();
-
-        if (current - time < MOTORS_ADJUST_DELTA)
-            return;
-
-        double elapsedTime = (current - time) / 1000.0;
-        time = current;
-
-        double diff = currentAngle - angle;
-
-        if (diff > 180) {
-            diff -= 360;
-        } else if (diff < -180) {
-            diff += 360;
-        }
-
-        if (fabs(diff) <= 10) {
-            // com->send("Diff:: " + String(i++) + " " + String(diff));
-
-            adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
-
-            return;
-        } else if (fabs(diff) > 65) {
-            state = ROTATE;
-
-            return;
-        }
-
-        //
-        // PID
-        //
-        double leftPWM, rightPWM;
-        
-        pidP = KP2 * diff;
-        pidI += KI2 * diff;
-        pid = constrain(pidP + pidI, -PWMRANGE, PWMRANGE);
-        
-        if (diff >= 0) { // Turning left
-            leftPWM = -MOTORS_ALIGNMENT_PWM - pid;
-            rightPWM = MOTORS_ALIGNMENT_PWM + pid;
-        } else {
-            leftPWM = MOTORS_ALIGNMENT_PWM - pid;
-            rightPWM = -MOTORS_ALIGNMENT_PWM + pid;
-        }
-
-        com->send("ALIGN:: " + String(i++) + 
                   " - PID: " + String(pid) + 
                   " - P: " + String(pidP) + 
                   " - I: " + String(pidI) + 
