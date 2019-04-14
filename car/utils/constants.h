@@ -81,8 +81,8 @@ const int RGT_BLACK_SENSOR_PIN = 5;
 
 // General
 const double MOTORS_ADJUST_DELTA = 200; // ms
-const double MOTORS_INIT_SPEED = 50; // rpm
-const double MOTORS_MAX_SPEED = 55; // rpm
+const double MOTORS_INIT_SPEED = 20; // rpm
+const double MOTORS_MAX_SPEED = 25; // rpm
 const double MOTORS_ROTATION_PWM = 150;
 const double STEP = 300; // mm
 

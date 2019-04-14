@@ -61,9 +61,10 @@ public:
 
         time = millis();
         pidI = 0;
+        prevDiff = currentAngle - angle;
+
         leftMotorPID.reset();
         rightMotorPID.reset();
-        state = MOVE;
 
         noInterrupts();
         len->reset();
@@ -71,6 +72,8 @@ public:
         interrupts();
 
         distance += STEP;
+
+        state = MOVE;
     }
 
     void backward(double currentAngle) {
@@ -156,7 +159,7 @@ public:
         }
 
         void reset() {
-            p = i = d = diff = prevDiff = 0;
+            p = i = d = diff = prevDiff = throttle = 0;
         }
     };
 
@@ -181,9 +184,7 @@ private:
     double prevDiff = 0;
     double pid = 0, pidP = 0, pidI = 0, pidD = 0;
 
-    double preAlignTime;
-
-    bool atJoint = true, atEdge = false, atBlack = true;
+    bool atBlack = true;
     double atBlackTime = millis();
 
     void move(double currentAngle, unsigned long obstacleDistance, bool isLeftBlack, bool isRightBlack) {
@@ -201,31 +202,20 @@ private:
         }
 
         // Reached a black spot
-        // if (isBlack && millis() - atBlackTime > 250 && !atBlack) {
-        //     if (atJoint && !atEdge) {
-        //         atJoint = false;
-        //         atEdge = true;
+        if (isLeftBlack && isRightBlack && millis() - atBlackTime > 250 && !atBlack) {
+            com->send("New Black Spot!");
+            
+            adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
 
-        //         angle = currentAngle; // Recalibrate angle here
-        //     } else if (!atJoint && atEdge) {
-        //         atJoint = true;
-        //         atEdge = false;
+            state = ALIGN;
 
-        //         com->send("Distance: " + String(distance) + " isBlack: " + String(isBlack));
-                
-        //         adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
+            atBlackTime = millis();
+            atBlack = true;
+        }
 
-        //         state = ALIGN;
-        //         preAlignTime = millis();
-        //     }
-
-        //     atBlackTime = millis();
-        //     atBlack = true;
-        // }
-
-        // if (!isBlack) {
-        //     atBlack = false;
-        // }
+        if (!isLeftBlack || !isRightBlack) {
+            atBlack = false;
+        }
 
         if (state == ALIGN) {
             return;
@@ -255,7 +245,7 @@ private:
 
         pidP = KP * diff;
         pidI += (diff < I_LIMIT && diff > -I_LIMIT) ? (KI * diff) : 0;
-        pidD = KD * ((diff - prevDiff) / elapsedTime);
+        pidD = (elapsedTime > 1e-6) ? (KD * ((diff - prevDiff) / elapsedTime)) : 0;
         prevDiff = diff;
 
         pid = constrain(pidP + pidI + pidD, -MOTORS_MAX_SPEED, MOTORS_MAX_SPEED);
@@ -286,21 +276,18 @@ private:
         double leftPWM = leftMotorPID.computePWM(leftRPM, elapsedTime);
         double rightPWM = rightMotorPID.computePWM(rightRPM, elapsedTime);
 
+        // Consider line feedback
+        double leftFactor = 1; //(isLeftBlack && !isRightBlack) ? 0.5 : 1;
+        double rightFactor = 1; //(isRightBlack && !isLeftBlack) ? 0.5 : 1;
+
         // Update distance
         distance -= (leftDistance + rightDistance) / 2;
-        
-        if (distance <= 0) {
-            com->send("Distance: " + String(distance));
-            
-            state = ALIGN;
-            
-            adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
-
-            return;
-        }
 
         com->send("MOVE:: elapsedTime: " + String(elapsedTime) + 
                   " - PID: " + String(pid) + 
+                  " - P: " + String(pidP) + 
+                  " - I: " + String(pidI) + 
+                  " - D: " + String(pidD) + 
                   " - DIFF: " + String(diff) + 
                   " - Angle: " + String(angle) + 
                   " - currentAngle: " + String(currentAngle) + 
@@ -338,12 +325,12 @@ private:
             Utils::swap(&rDir1, &rDir2);
         }
 
-        adjustMotors(leftPWM, rightPWM, lDir1, lDir2, rDir1, rDir2);
+        adjustMotors(leftPWM * leftFactor, rightPWM * rightFactor, lDir1, lDir2, rDir1, rDir2);
     }
 
     void rotate(double currentAngle) {
         com->send(" ");
-        
+
         //
         // Timer
         //
@@ -362,7 +349,7 @@ private:
             diff += 360;
         }
 
-        if (fabs(diff) <= 5 || fabs(diff) >= 100) {
+        if (fabs(diff) <= 10 || fabs(diff) >= 100) {
             // com->send("Diff:: " + String(i++) + " " + String(diff));
 
             adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
