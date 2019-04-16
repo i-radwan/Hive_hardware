@@ -31,9 +31,9 @@ const int RGHT_DIR2 = 3;
 const int RGHT_SPED = D0;
 
 // Motors PID
-const double KP = 0.65;
+const double KP = 3;
 const double KI = 0;
-const double KD = 1;
+const double KD = 0.1;
 const double I_LIMIT = 3;
 
 const double KP2 = 2;
@@ -81,8 +81,8 @@ const int RGT_BLACK_SENSOR_PIN = 5;
 
 // General
 const double MOTORS_ADJUST_DELTA = 200; // ms
-const double MOTORS_INIT_SPEED = 20; // rpm
-const double MOTORS_MAX_SPEED = 25; // rpm
+const double MOTORS_INIT_SPEED = 30; // rpm
+const double MOTORS_MAX_SPEED = 70; // rpm
 const double MOTORS_ROTATION_PWM = 150;
 const double STEP = 300; // mm
 

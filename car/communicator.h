@@ -63,7 +63,7 @@ public:
         send(MSG_ACK);
     }
 
-    void send(String str) {
+    inline void send(String str) {
         UDP.beginPacket(UDP.remoteIP(), UDP.remotePort());
         UDP.write(str.c_str());
         UDP.endPacket();

@@ -84,6 +84,8 @@ void setup() {
     servo.write(SERVO_DOWN_ANGLE);
 }
 
+int i = 0;
+
 void loop() {
     ota.handle();
 
@@ -96,9 +98,8 @@ void loop() {
     
     // MPU
     double y, p, r;
-    if(!mpu.read(y, p, r)) {
+    if (!mpu.read(y, p, r)) 
         return;
-    }
 
     // Black sensor
     bool isLeftBlack, isRightBlack;
@@ -107,7 +108,7 @@ void loop() {
 
     // Ultrasonic
     double distance;
-    uls.read(distance);
+    // uls.read(distance);
 
     //
     // Server commands
@@ -152,5 +153,12 @@ void loop() {
     }
 
     // Navigation
-    nav.navigate(y, distance, isLeftBlack, isRightBlack);
+    String log = "";
+    nav.navigate(y, distance, isLeftBlack, isRightBlack, log);
+
+    if (log.length() > 0)
+        com.send(String(i++) + " :: " + log);
+
+    yield();
+    delay(10);
 }

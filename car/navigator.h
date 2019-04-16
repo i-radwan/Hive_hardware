@@ -37,9 +37,9 @@ public:
         state = IDLE;
     }
 
-    void navigate(double currentAngle, unsigned long distance, bool isLeftBlack, bool isRightBlack) {
+    void navigate(double currentAngle, unsigned long distance, bool isLeftBlack, bool isRightBlack, String& log) {
         if (state == MOVE)
-            move(currentAngle, distance, isLeftBlack, isRightBlack);
+            move(currentAngle, distance, isLeftBlack, isRightBlack, log);
         else if (state == ROTATE || state == ALIGN)
             rotate(currentAngle);
     }
@@ -137,7 +137,7 @@ public:
 
             double pid = constrain(p + i + d, -PWMRANGE, PWMRANGE);
 
-            throttle = constrain(throttle + pid, 0, PWMRANGE);
+            throttle = constrain(PWMRANGE / 4. + pid, 0, PWMRANGE);
 
             return throttle;
         }
@@ -187,39 +187,41 @@ private:
     bool atBlack = true;
     double atBlackTime = millis();
 
-    void move(double currentAngle, unsigned long obstacleDistance, bool isLeftBlack, bool isRightBlack) {
-        com->send(" ");
+    String log = "";
+
+    void move(double currentAngle, unsigned long obstacleDistance, bool isLeftBlack, bool isRightBlack, String& log) {
+        // com->send(" ");
 
         // Emergency braking
-        if (obstacleDistance < MIN_DISTANCE) {
-            com->send("Error: nearby object!");
+        // if (obstacleDistance < MIN_DISTANCE) {
+        //     com->send("Error: nearby object!");
 
-            adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);
+        //     adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);
 
-            time = millis(); // To avoid large elapsed time after the obstacle is removed
+        //     time = millis(); // To avoid large elapsed time after the obstacle is removed
 
-            return;
-        }
+        //     return;
+        // }
 
         // Reached a black spot
-        if (isLeftBlack && isRightBlack && millis() - atBlackTime > 250 && !atBlack) {
-            com->send("New Black Spot!");
+        // if (isLeftBlack && isRightBlack && millis() - atBlackTime > 250 && !atBlack) {
+        //     com->send("New Black Spot!");
             
-            adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
+        //     adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
 
-            state = ALIGN;
+        //     state = ALIGN;
 
-            atBlackTime = millis();
-            atBlack = true;
-        }
+        //     atBlackTime = millis();
+        //     atBlack = true;
+        // }
 
-        if (!isLeftBlack || !isRightBlack) {
-            atBlack = false;
-        }
+        // if (!isLeftBlack || !isRightBlack) {
+        //     atBlack = false;
+        // }
 
-        if (state == ALIGN) {
-            return;
-        }
+        // if (state == ALIGN) {
+        //     return;
+        // }
 
         //
         // Timer
@@ -251,6 +253,18 @@ private:
         pid = constrain(pidP + pidI + pidD, -MOTORS_MAX_SPEED, MOTORS_MAX_SPEED);
 
         //
+        // Line following
+        //
+        double spdDiff = 0;
+
+        if (isLeftBlack && !isRightBlack)
+            spdDiff = 25;
+        else if (!isLeftBlack && isRightBlack)
+            spdDiff = -25;
+        else if (!isLeftBlack && !isRightBlack)
+            spdDiff = pid;
+
+        //
         // Distance
         //
         unsigned long leftTicks, rightTicks;
@@ -269,43 +283,48 @@ private:
         double rightRPM = rightMotorPID.computeRPM(rightTicks, elapsedTime);
 
         // Adjust speed to maintain angle and reduce speed difference
-        leftMotorPID.adjustSpeed(MOTORS_INIT_SPEED - pid);
-        rightMotorPID.adjustSpeed(MOTORS_INIT_SPEED + pid);
+        leftMotorPID.adjustSpeed(MOTORS_INIT_SPEED - spdDiff);
+        rightMotorPID.adjustSpeed(MOTORS_INIT_SPEED + spdDiff);
 
         // Get motors throttle
         double leftPWM = leftMotorPID.computePWM(leftRPM, elapsedTime);
         double rightPWM = rightMotorPID.computePWM(rightRPM, elapsedTime);
 
-        // Consider line feedback
-        double leftFactor = 1; //(isLeftBlack && !isRightBlack) ? 0.5 : 1;
-        double rightFactor = 1; //(isRightBlack && !isLeftBlack) ? 0.5 : 1;
-
         // Update distance
         distance -= (leftDistance + rightDistance) / 2;
 
-        com->send("MOVE:: elapsedTime: " + String(elapsedTime) + 
-                  " - PID: " + String(pid) + 
-                  " - P: " + String(pidP) + 
-                  " - I: " + String(pidI) + 
-                  " - D: " + String(pidD) + 
+        // if (distance <= 0) {
+        //     adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
+
+        //     state = IDLE;
+
+        //     return;
+        // }
+
+        log += ("MOVE:: elapsedTime: " + String(elapsedTime) + 
+                  // " - PID: " + String(pid) + 
+                  // " - P: " + String(pidP) + 
+                  // " - I: " + String(pidI) + 
+                  // " - D: " + String(pidD) + 
                   " - DIFF: " + String(diff) + 
-                  " - Angle: " + String(angle) + 
-                  " - currentAngle: " + String(currentAngle) + 
+                  // " - Angle: " + String(angle) + 
+                  // " - currentAngle: " + String(currentAngle) + 
                   " - LeftRPM: " + String(leftRPM) + 
                   " - LeftSpeed: " + String(leftMotorPID.speed) + 
                   " - LeftPWM: " + String(leftPWM) + 
-                  " - LeftP: " + String(leftMotorPID.p) +
-                  " - LeftI: " + String(leftMotorPID.i) +
-                  " - LeftD: " + String(leftMotorPID.d) + 
+                  // " - LeftP: " + String(leftMotorPID.p) +
+                  // " - LeftI: " + String(leftMotorPID.i) +
+                  // " - LeftD: " + String(leftMotorPID.d) + 
                   " - RightRPM: " + String(rightRPM) +
                   " - RightSpeed: " + String(rightMotorPID.speed) + 
                   " - RightPWM: " + String(rightPWM) +
-                  " - RightP: " + String(rightMotorPID.p) +
-                  " - RightI: " + String(rightMotorPID.i) +
-                  " - RightD: " + String(rightMotorPID.d) + 
-                  " - leftDistance: " + String(leftDistance) + 
-                  " - rightDistance: " + String(rightDistance) + 
-                  " - Distance: " + String(distance));
+                  // " - RightP: " + String(rightMotorPID.p) +
+                  // " - RightI: " + String(rightMotorPID.i) +
+                  // " - RightD: " + String(rightMotorPID.d) + 
+                  // " - leftDistance: " + String(leftDistance) + 
+                  // " - rightDistance: " + String(rightDistance) + 
+                  // " - Distance: " + String(distance) + 
+                  " - spdDiff: " + String(spdDiff));
 
         // Set directions
         int lDir1 = HIGH;
@@ -325,7 +344,7 @@ private:
             Utils::swap(&rDir1, &rDir2);
         }
 
-        adjustMotors(leftPWM * leftFactor, rightPWM * rightFactor, lDir1, lDir2, rDir1, rDir2);
+        adjustMotors(leftPWM, rightPWM, lDir1, lDir2, rDir1, rDir2);
     }
 
     void rotate(double currentAngle) {

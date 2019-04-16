@@ -2,7 +2,7 @@ import hypermedia.net.*;
 
 UDP udp; // Define the UDP object
 
-String ip = "192.168.1.4"; // The remote IP address
+String ip = "192.168.1.7"; // The remote IP address
 int port = 12345; // The destination port
 double time;
 
@@ -12,22 +12,26 @@ void setup() {
     time = millis();
 }
 
+boolean moving = false;
+
 void draw() {
-    //if (millis() - time > 100){
-    //      byte[] message = new byte[1];
-    //      message[0] = 18;
-    //      udp.send(message, ip, port);
+    if (millis() - time > 100 && moving){
+          byte[] message = new byte[1];
+          message[0] = (byte)255;
+          udp.send(message, ip, port);
           
-    //      time = millis();
-    //}    
+          time = millis();
+    }    
 }
 
 void keyPressed() {    
     if (key == CODED) {
-        if (keyCode == UP) {
+        if (keyCode == UP) {            
             byte[] message = new byte[1];
             message[0] = 1;
             udp.send(message, ip, port);
+            
+            moving = true;
         } else if (keyCode == DOWN) {
             byte[] message = new byte[1];
             message[0] = 2;
@@ -45,6 +49,8 @@ void keyPressed() {
         byte[] message = new byte[1];
         message[0] = 0;
         udp.send(message, ip, port);
+        
+        moving = false;
     } else if (key == 'u' || key == 'U') {
         byte[] message = new byte[1];
         message[0] = 5;
