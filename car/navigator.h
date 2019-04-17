@@ -9,8 +9,8 @@ class Navigator {
 public:
 
     // 1.2, 0.1, 0.4
-    Navigator() : leftMotorPID(1.3, 0.1, 0.4, MOTORS_INIT_SPEED, 0), 
-                  rightMotorPID(1.3, 0.1, 0.4, MOTORS_INIT_SPEED, 0) {
+    Navigator() : leftMotorPID(1.3, 0.1, 0, MOTORS_INIT_SPEED, 0), 
+                  rightMotorPID(0.9, 0.1, 0, MOTORS_INIT_SPEED, 0) {
     }
 
     void setup(Communicator* com, PCF857x* pcf1, Encoder* len, Encoder* ren) {
@@ -131,13 +131,13 @@ public:
 
             p = diff * kp;
             i += diff * ki;
-            d = (diff - prevDiff) * kd;
+            d = (elapsedTime > 1e-6) ? ((diff - prevDiff) / elapsedTime * kd) : 0;
 
             prevDiff = diff;
 
             double pid = constrain(p + i + d, -PWMRANGE, PWMRANGE);
 
-            throttle = constrain(PWMRANGE / 4. + pid, 0, PWMRANGE);
+            throttle = constrain(PWMRANGE / 5. + pid, 0, PWMRANGE);
 
             return throttle;
         }
@@ -187,6 +187,11 @@ private:
     bool atBlack = true;
     double atBlackTime = millis();
 
+    int j = 0;
+
+    bool prevIsRightBlack = false;
+    bool prevIsLeftBlack = false;
+
     String log = "";
 
     void move(double currentAngle, unsigned long obstacleDistance, bool isLeftBlack, bool isRightBlack, String& log) {
@@ -228,7 +233,7 @@ private:
         //
         double current = millis();
 
-        if (current - time < MOTORS_ADJUST_DELTA)
+        if (current - time < MOTORS_ADJUST_DELTA && prevIsRightBlack == isRightBlack && prevIsLeftBlack == isLeftBlack)
             return;
 
         double elapsedTime = (current - time) / 1000.0;
@@ -255,14 +260,17 @@ private:
         //
         // Line following
         //
+        prevIsRightBlack = isRightBlack;
+        prevIsLeftBlack = isLeftBlack;
+
         double spdDiff = 0;
 
         if (isLeftBlack && !isRightBlack)
-            spdDiff = 25;
+            j -= 2, spdDiff = 20 + j;
         else if (!isLeftBlack && isRightBlack)
-            spdDiff = -25;
+            j -= 2, spdDiff = -20 - j;
         else if (!isLeftBlack && !isRightBlack)
-            spdDiff = pid;
+            spdDiff = pid, j = 0;
 
         //
         // Distance
@@ -312,15 +320,15 @@ private:
                   " - LeftRPM: " + String(leftRPM) + 
                   " - LeftSpeed: " + String(leftMotorPID.speed) + 
                   " - LeftPWM: " + String(leftPWM) + 
-                  // " - LeftP: " + String(leftMotorPID.p) +
-                  // " - LeftI: " + String(leftMotorPID.i) +
-                  // " - LeftD: " + String(leftMotorPID.d) + 
+                  " - LeftP: " + String(leftMotorPID.p) +
+                  " - LeftI: " + String(leftMotorPID.i) +
+                  " - LeftD: " + String(leftMotorPID.d) + 
                   " - RightRPM: " + String(rightRPM) +
                   " - RightSpeed: " + String(rightMotorPID.speed) + 
                   " - RightPWM: " + String(rightPWM) +
-                  // " - RightP: " + String(rightMotorPID.p) +
-                  // " - RightI: " + String(rightMotorPID.i) +
-                  // " - RightD: " + String(rightMotorPID.d) + 
+                  " - RightP: " + String(rightMotorPID.p) +
+                  " - RightI: " + String(rightMotorPID.i) +
+                  " - RightD: " + String(rightMotorPID.d) + 
                   // " - leftDistance: " + String(leftDistance) + 
                   // " - rightDistance: " + String(rightDistance) + 
                   // " - Distance: " + String(distance) + 

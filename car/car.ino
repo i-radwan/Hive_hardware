@@ -85,6 +85,7 @@ void setup() {
 }
 
 int i = 0;
+String logs = "";
 
 void loop() {
     ota.handle();
@@ -153,11 +154,14 @@ void loop() {
     }
 
     // Navigation
-    String log = "";
-    nav.navigate(y, distance, isLeftBlack, isRightBlack, log);
+    nav.navigate(y, distance, isLeftBlack, isRightBlack, logs);
 
-    if (log.length() > 0)
-        com.send(String(i++) + " :: " + log);
+    delay(50);
+
+    if (logs.length() > 0) {
+        com.send(String(i++) + " :: " + logs);
+        logs = "";
+    }
 
     yield();
     delay(10);
