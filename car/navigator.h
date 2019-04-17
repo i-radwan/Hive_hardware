@@ -38,7 +38,7 @@ public:
     }
 
     void navigate(double currentAngle, unsigned long distance, bool isLeftBlack, bool isRightBlack, String& log) {
-        if (state == MOVE)
+        if (state == STRAIGHT || state == STRAIGHT_LEFT || state == STRAIGHT_RIGHT || state == OFFLINE_LEFT || state ==  OFFLINE_RIGHT)
             move(currentAngle, distance, isLeftBlack, isRightBlack, log);
         else if (state == ROTATE || state == ALIGN)
             rotate(currentAngle);
@@ -73,7 +73,7 @@ public:
 
         distance += STEP;
 
-        state = MOVE;
+        state = STRAIGHT;
     }
 
     void backward(double currentAngle) {
@@ -187,10 +187,11 @@ private:
     bool atBlack = true;
     double atBlackTime = millis();
 
-    int j = 0;
+    int spdDiffI = 0;
 
     bool prevIsRightBlack = false;
     bool prevIsLeftBlack = false;
+    double entryDiff = 0;
 
     String log = "";
 
@@ -263,14 +264,75 @@ private:
         prevIsRightBlack = isRightBlack;
         prevIsLeftBlack = isLeftBlack;
 
+        // FSM transitions
+        switch (state) {
+            case STRAIGHT:
+                if (isLeftBlack && !isRightBlack) {
+                    state = STRAIGHT_RIGHT;
+                    entryDiff = diff;
+                    spdDiffI = 0;
+                } else if (!isLeftBlack && isRightBlack) {
+                    state = STRAIGHT_LEFT;
+                    entryDiff = diff;
+                    spdDiffI = 0;
+                }
+            break;
+
+            case STRAIGHT_LEFT:
+                if (!isRightBlack /*&& diff * entryDiff < 0*/) { // Signs changed
+                    state = STRAIGHT;
+                } else if (!isRightBlack && diff * entryDiff > 0) { // Same sign
+                    // state = OFFLINE_LEFT;
+                    // spdDiffI = 0;
+                }
+            break;
+
+            case STRAIGHT_RIGHT:
+                if (!isLeftBlack /*&& diff * entryDiff < 0*/) { // Signs changed
+                    state = STRAIGHT;
+                } else if (!isLeftBlack && diff * entryDiff > 0) { // Same sign
+                    // state = OFFLINE_RIGHT;
+                    // spdDiffI = 0;
+                }
+            break;
+
+            case OFFLINE_LEFT:
+                if (isRightBlack) {
+                    state = STRAIGHT;
+                }
+            break;
+
+            case OFFLINE_RIGHT:
+                if (isLeftBlack) {
+                    state = STRAIGHT;
+                }
+            break;
+        }
+
         double spdDiff = 0;
 
-        if (isLeftBlack && !isRightBlack)
-            j -= 2, spdDiff = 20 + j;
-        else if (!isLeftBlack && isRightBlack)
-            j -= 2, spdDiff = -20 - j;
-        else if (!isLeftBlack && !isRightBlack)
-            spdDiff = pid, j = 0;
+        // States actions
+        switch (state) {
+            case STRAIGHT:
+                spdDiff = pid, spdDiffI = 0;
+            break;
+
+            case STRAIGHT_LEFT:
+                spdDiffI -= 2, spdDiff = -20 - spdDiffI;
+            break;
+
+            case STRAIGHT_RIGHT:
+                spdDiffI -= 2, spdDiff = 20 + spdDiffI;
+            break;
+
+            case OFFLINE_LEFT:
+                spdDiffI -= 4, spdDiff = -40 - spdDiffI;
+            break;
+
+            case OFFLINE_RIGHT:
+                spdDiffI -= 4, spdDiff = 40 + spdDiffI;
+            break;
+        }
 
         //
         // Distance
@@ -310,6 +372,7 @@ private:
         // }
 
         log += ("MOVE:: elapsedTime: " + String(elapsedTime) + 
+                " - STATE: " + String(state) + 
                   // " - PID: " + String(pid) + 
                   // " - P: " + String(pidP) + 
                   // " - I: " + String(pidI) + 
@@ -332,7 +395,10 @@ private:
                   // " - leftDistance: " + String(leftDistance) + 
                   // " - rightDistance: " + String(rightDistance) + 
                   // " - Distance: " + String(distance) + 
-                  " - spdDiff: " + String(spdDiff));
+                  " - isLeftBlack: " + String(isLeftBlack) +
+                  " - isRightBlack: " + String(isRightBlack) +
+                  " - spdDiff: " + String(spdDiff) +
+                  " - spdDiffI: " + String(spdDiffI));
 
         // Set directions
         int lDir1 = HIGH;

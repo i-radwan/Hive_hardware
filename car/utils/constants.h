@@ -85,16 +85,20 @@ const int RGT_BLACK_SENSOR_PIN = 5;
 
 // General
 const double MOTORS_ADJUST_DELTA = 150; // ms
-const double MOTORS_INIT_SPEED = 60; // rpm
+const double MOTORS_INIT_SPEED = 50; // rpm
 const double MOTORS_MAX_SPEED = 100; // rpm
 const double MOTORS_ROTATION_PWM = 150;
 const double STEP = 300; // mm
 
 enum STATE {
-    INIT,
-    IDLE,
-    MOVE,
-    ROTATE,
+    INIT,               // 0
+    IDLE,               // 1
+    STRAIGHT,           // 2
+    STRAIGHT_LEFT,      // 3
+    STRAIGHT_RIGHT,     // 4
+    OFFLINE_LEFT,       // 5
+    OFFLINE_RIGHT,      // 6
+    ROTATE,             // 7
     ALIGN
 };
 
