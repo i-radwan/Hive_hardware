@@ -133,12 +133,12 @@ void loop() {
         break;
 
         case LEFT:
-            nav.left(y);
+            nav.left(y, isLeftBlack, isRightBlack);
             com.send(String("Left!"));
         break;
 
         case RIGHT:
-            nav.right(y);
+            nav.right(y, isLeftBlack, isRightBlack);
             com.send(String("Right!"));
         break;
 

@@ -98,7 +98,12 @@ enum STATE {
     STRAIGHT_RIGHT,     // 4
     OFFLINE_LEFT,       // 5
     OFFLINE_RIGHT,      // 6
-    ROTATE,             // 7
+    ROTATE_RIGHT,       // 7
+    ROTATE_LEFT,        // 8
+    PRE_ROTATE_RIGHT,   // 9
+    PRE_ROTATE_LEFT,    // 10
+    POST_ROTATE_RIGHT,  // 11
+    POST_ROTATE_LEFT,   // 12
     ALIGNMENT
 };
 

@@ -10,7 +10,7 @@ public:
 
     // 1.2, 0.1, 0.4
     Navigator() : leftMotorPID(1.3, 0.1, 0, MOTORS_INIT_SPEED, 0), 
-                  rightMotorPID(0.9, 0.1, 0, MOTORS_INIT_SPEED, 0) {
+                  rightMotorPID(1.3, 0.1, 0, MOTORS_INIT_SPEED, 0) {
     }
 
     void setup(Communicator* com, PCF857x* pcf1, Encoder* len, Encoder* ren) {
@@ -37,11 +37,11 @@ public:
         state = IDLE;
     }
 
-    void navigate(double currentAngle, unsigned long distance, bool isLeftBlack, bool isRightBlack, String& log) {
+    void navigate(double currentAngle, unsigned long distance, bool isLeftBlack, bool isRightBlack, String& logs) {
         if (state == STRAIGHT || state == STRAIGHT_LEFT || state == STRAIGHT_RIGHT || state == OFFLINE_LEFT || state ==  OFFLINE_RIGHT || state == ALIGNMENT)
-            move(currentAngle, distance, isLeftBlack, isRightBlack, log);
-        else if (state == ROTATE)
-            rotate(currentAngle);
+            move(currentAngle, distance, isLeftBlack, isRightBlack, logs);
+        else if (state == ROTATE_LEFT || state == ROTATE_RIGHT || state == PRE_ROTATE_RIGHT || state == PRE_ROTATE_LEFT || state == POST_ROTATE_RIGHT || state == POST_ROTATE_LEFT)
+            rotate(currentAngle, isLeftBlack, isRightBlack, logs);
     }
     
     void stop(double currentAngle) {
@@ -81,14 +81,27 @@ public:
         // pidI = 0;
     }
 
-    void left(double currentAngle) {
+    void left(double currentAngle, bool isLeftBlack, bool isRightBlack) {
         init(currentAngle);
         
         time = millis();
         pidI = 0;
         i = 0;
         prevDiff = currentAngle - angle;
-        state = ROTATE;
+
+        leftMotorPID.reset();
+        rightMotorPID.reset();
+
+        noInterrupts();
+        len->reset();
+        ren->reset();
+        interrupts();
+
+        if (isLeftBlack) {
+            state = PRE_ROTATE_LEFT;
+        } else {
+            state = ROTATE_LEFT;
+        }
         
         angle += -90;
 
@@ -97,14 +110,27 @@ public:
         }
     }
 
-    void right(double currentAngle) {
+    void right(double currentAngle, bool isLeftBlack, bool isRightBlack) {
         init(currentAngle);
         
         time = millis();
         pidI = 0;
         i = 0;
         prevDiff = currentAngle - angle;
-        state = ROTATE;
+
+        leftMotorPID.reset();
+        rightMotorPID.reset();
+
+        noInterrupts();
+        len->reset();
+        ren->reset();
+        interrupts();
+
+        if (isRightBlack) {
+            state = PRE_ROTATE_RIGHT;
+        } else {
+            state = ROTATE_RIGHT;
+        }
         
         angle += 90;
 
@@ -141,15 +167,11 @@ public:
         }
 
         double computeRPM(double ticks, double elapsedTime) {
-            int sign = (dir == FWARD) ? 1 : -1;
-
-            return sign * ((ticks / DISK_SLOTS) * float(60) / elapsedTime);
+            return (ticks / DISK_SLOTS) * float(60) / elapsedTime;
         }
 
         double computeDistance(double ticks) {
-            int sign = (dir == FWARD) ? 1 : -1;
-
-            return sign * ((ticks / DISK_SLOTS) * WHEEL_DIAMETER * M_PI);
+            return (ticks / DISK_SLOTS) * WHEEL_DIAMETER * M_PI;
         }
 
         void adjustSpeed(double spd) {
@@ -193,9 +215,7 @@ private:
     bool prevIsLeftBlack = false;
     double entryDiff = 0;
 
-    String log = "";
-
-    void move(double currentAngle, unsigned long obstacleDistance, bool isLeftBlack, bool isRightBlack, String& log) {
+    void move(double currentAngle, unsigned long obstacleDistance, bool isLeftBlack, bool isRightBlack, String& logs) {
         // com->send(" ");
 
         // Emergency braking
@@ -312,6 +332,7 @@ private:
         }
 
         double spdDiff = 0;
+        double leftFactor = 1, rightFactor = 1;
 
         // States actions
         switch (state) {
@@ -320,11 +341,19 @@ private:
             break;
 
             case STRAIGHT_LEFT:
-                spdDiffI -= 2, spdDiff = -20 - spdDiffI;
+                spdDiffI -= 2, spdDiff = -20 * fabs((diff / entryDiff));
+
+                if (abs(diff) >= 5) { // Stop the wheel to lock the car to the line
+                    rightFactor = 0;
+                }
             break;
 
             case STRAIGHT_RIGHT:
-                spdDiffI -= 2, spdDiff = 20 + spdDiffI;
+                spdDiffI -= 2, spdDiff = 20 * fabs((diff / entryDiff));
+
+                if (abs(diff) >= 5) { // Stop the wheel to lock the car to the line
+                    leftFactor = 0;
+                }
             break;
 
             case OFFLINE_LEFT:
@@ -355,8 +384,8 @@ private:
         double rightRPM = rightMotorPID.computeRPM(rightTicks, elapsedTime);
 
         // Adjust speed to maintain angle and reduce speed difference
-        leftMotorPID.adjustSpeed(MOTORS_INIT_SPEED - spdDiff);
-        rightMotorPID.adjustSpeed(MOTORS_INIT_SPEED + spdDiff);
+        leftMotorPID.adjustSpeed((MOTORS_INIT_SPEED - spdDiff) * leftFactor);
+        rightMotorPID.adjustSpeed((MOTORS_INIT_SPEED + spdDiff) * rightFactor);
 
         // Get motors throttle
         double leftPWM = leftMotorPID.computePWM(leftRPM, elapsedTime);
@@ -384,7 +413,7 @@ private:
             distance += STEP;
         }
 
-        log += ("MOVE:: elapsedTime: " + String(elapsedTime) + 
+        logs += ("MOVE:: elapsedTime: " + String(elapsedTime) + 
                 " - STATE: " + String(state) + 
                   // " - PID: " + String(pid) + 
                   // " - P: " + String(pidP) + 
@@ -435,9 +464,7 @@ private:
         adjustMotors(leftPWM, rightPWM, lDir1, lDir2, rDir1, rDir2);
     }
 
-    void rotate(double currentAngle) {
-        com->send(" ");
-
+    void rotate(double currentAngle, bool isLeftBlack, bool isRightBlack, String& logs) {
         //
         // Timer
         //
@@ -456,50 +483,141 @@ private:
             diff += 360;
         }
 
-        if (fabs(diff) <= 10 || fabs(diff) >= 100) {
-            // com->send("Diff:: " + String(i++) + " " + String(diff));
-
-            adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
+        //
+        // FSM transitions
+        //
+        switch (state) {
+            case PRE_ROTATE_RIGHT:
+                if (!isRightBlack) {
+                    state = ROTATE_RIGHT;
+                }
+            break;
+            case PRE_ROTATE_LEFT:
+                if (!isLeftBlack) {
+                    state = ROTATE_LEFT;
+                }
+            break;
             
-            noInterrupts();
-            len->reset();
-            ren->reset();
-            interrupts();
+            case ROTATE_RIGHT:
+                if (isRightBlack) {
+                    state = IDLE;
+                }
+            break;
+            
+            case ROTATE_LEFT: 
+                if (isLeftBlack) {
+                    state = IDLE;
+                }
+            break;
+            
+            case POST_ROTATE_RIGHT: 
+                if (!isRightBlack) {
+                    state = IDLE;
+                }
+            break;
+            
+            case POST_ROTATE_LEFT: 
+                if (!isLeftBlack) {
+                    state = IDLE;
+                }
+            break;
+        }
 
-            return;
+        double lspd = 0;
+        double rspd = 0;
+
+        // States actions
+        switch (state) {
+            case IDLE:
+                adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
+            
+                noInterrupts();
+                len->reset();
+                ren->reset();
+                interrupts();
+
+                return;
+            break;
+
+            case PRE_ROTATE_RIGHT:
+                rspd = -30;
+                lspd = 30;
+            break;
+
+            case PRE_ROTATE_LEFT:
+                rspd = 30;
+                lspd = -30;
+            break;
+            
+            case ROTATE_RIGHT:
+                rspd = -30;
+                lspd = 30;
+            break;
+            
+            case ROTATE_LEFT:
+                rspd = 30;
+                lspd = -30;
+            break;
+            
+            case POST_ROTATE_RIGHT:
+                rspd = -30;
+                lspd = 30;
+            break;
+            
+            case POST_ROTATE_LEFT:
+                rspd = 30;
+                lspd = -30;
+            break;
         }
 
         //
-        // PID
-        //        
-        pidP = KP2 * diff;
-        pidI += KI2 * diff;
-        pidD = (elapsedTime > 1e-6) ? (KD2 * ((diff - prevDiff) / elapsedTime)) : 0;
-        prevDiff = diff;
-
-        pid = constrain(pidP + pidI + pidD, -PWMRANGE, PWMRANGE);
+        // Distance
+        //
+        unsigned long leftTicks, rightTicks;
         
-        double leftPWM, rightPWM;
+        noInterrupts();
+        len->readAndReset(leftTicks);
+        ren->readAndReset(rightTicks);
+        interrupts();
 
-        if (diff >= 0) { // Turning left
-            leftPWM = -MOTORS_ROTATION_PWM - pid;
-            rightPWM = MOTORS_ROTATION_PWM + pid;
-        } else {
-            leftPWM = MOTORS_ROTATION_PWM - pid;
-            rightPWM = -MOTORS_ROTATION_PWM + pid;
-        }
+        // Get motors distances
+        double leftDistance = leftMotorPID.computeDistance(leftTicks);
+        double rightDistance = rightMotorPID.computeDistance(rightTicks);
+    
+        // Get motors speeds
+        double leftRPM = leftMotorPID.computeRPM(leftTicks, elapsedTime);
+        double rightRPM = rightMotorPID.computeRPM(rightTicks, elapsedTime);
 
-        com->send("ROTATE:: " + String(i++) + 
+        // Adjust speed to maintain angle and reduce speed difference
+        leftMotorPID.adjustSpeed(abs(lspd));
+        rightMotorPID.adjustSpeed(abs(rspd));
+
+        // Get motors throttle
+        double leftPWM = leftMotorPID.computePWM(leftRPM, elapsedTime);
+        double rightPWM = rightMotorPID.computePWM(rightRPM, elapsedTime);
+
+        logs += ("ROTATE:: " + String(i++) + 
+                  " - state: " + String(state) + 
                   " - elapsedTime: " + String(elapsedTime) + 
-                  " - PID: " + String(pid) + 
-                  " - P: " + String(pidP) + 
-                  " - I: " + String(pidI) + 
-                  " - D: " + String(pidD) + 
-                  " - DIFF: " + String(diff) + 
-                  " - Angle: " + String(angle) + 
-                  " - currentAngle: " + String(currentAngle) + 
+                  // " - PID: " + String(pid) + 
+                  // " - P: " + String(pidP) + 
+                  // " - I: " + String(pidI) + 
+                  // " - D: " + String(pidD) + 
+                  // " - DIFF: " + String(diff) + 
+                  // " - Angle: " + String(angle) + 
+                  // " - currentAngle: " + String(currentAngle) + 
+                  " - LeftRPM: " + String(leftRPM) + 
+                  " - LeftSpeed: " + String(leftMotorPID.speed) + 
                   " - LeftPWM: " + String(leftPWM) + 
-                  " - RightPWM: " + String(rightPWM));
+                  " - LeftP: " + String(leftMotorPID.p) +
+                  " - LeftI: " + String(leftMotorPID.i) +
+                  " - LeftD: " + String(leftMotorPID.d) + 
+                  " - RightRPM: " + String(rightRPM) +
+                  " - RightSpeed: " + String(rightMotorPID.speed) + 
+                  " - RightPWM: " + String(rightPWM) +
+                  " - RightP: " + String(rightMotorPID.p) +
+                  " - RightI: " + String(rightMotorPID.i) +
+                  " - RightD: " + String(rightMotorPID.d));
 
         // Set directions
         int lDir1 = HIGH;
@@ -507,15 +625,11 @@ private:
         int rDir1 = HIGH;
         int rDir2 = LOW;
         
-        if (leftPWM < 0) {
-            leftPWM = -leftPWM;
-
+        if (lspd < 0) {
             Utils::swap(&lDir1, &lDir2);
         }
         
-        if (rightPWM < 0) {
-            rightPWM = -rightPWM;
-
+        if (rspd < 0) {
             Utils::swap(&rDir1, &rDir2);
         }
 
