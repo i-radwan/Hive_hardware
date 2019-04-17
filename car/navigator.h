@@ -38,9 +38,9 @@ public:
     }
 
     void navigate(double currentAngle, unsigned long distance, bool isLeftBlack, bool isRightBlack, String& log) {
-        if (state == STRAIGHT || state == STRAIGHT_LEFT || state == STRAIGHT_RIGHT || state == OFFLINE_LEFT || state ==  OFFLINE_RIGHT)
+        if (state == STRAIGHT || state == STRAIGHT_LEFT || state == STRAIGHT_RIGHT || state == OFFLINE_LEFT || state ==  OFFLINE_RIGHT || state == ALIGNMENT)
             move(currentAngle, distance, isLeftBlack, isRightBlack, log);
-        else if (state == ROTATE || state == ALIGN)
+        else if (state == ROTATE)
             rotate(currentAngle);
     }
     
@@ -70,8 +70,6 @@ public:
         len->reset();
         ren->reset();
         interrupts();
-
-        distance += STEP;
 
         state = STRAIGHT;
     }
@@ -180,11 +178,13 @@ private:
     double angle = 0; // Reference angle
     double distance = 0; // Remaining distance
 
+    bool metered = false;
+
     double time = 0;
     double prevDiff = 0;
     double pid = 0, pidP = 0, pidI = 0, pidD = 0;
 
-    bool atBlack = true;
+    bool atNode = false; // ToDo: make true in complete grid
     double atBlackTime = millis();
 
     int spdDiffI = 0;
@@ -275,6 +275,8 @@ private:
                     state = STRAIGHT_LEFT;
                     entryDiff = diff;
                     spdDiffI = 0;
+                } else {
+                    atNode = false;
                 }
             break;
 
@@ -361,15 +363,26 @@ private:
         double rightPWM = rightMotorPID.computePWM(rightRPM, elapsedTime);
 
         // Update distance
-        distance -= (leftDistance + rightDistance) / 2;
+        if (metered) {
+            distance -= max(leftDistance, rightDistance);
+                
+            if (distance <= 0) {
+                adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
 
-        // if (distance <= 0) {
-        //     adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
+                state = IDLE;
+                metered = false;
+                atNode = true;
 
-        //     state = IDLE;
+                return;
+            }            
+        }
 
-        //     return;
-        // }
+        // Set metered to move specific distance. Note we don't want to subtract the distance in this iteration
+        // because this is the distance before we sensed the node
+        if (isLeftBlack && isRightBlack && !atNode) {
+            metered = true;
+            distance += STEP;
+        }
 
         log += ("MOVE:: elapsedTime: " + String(elapsedTime) + 
                 " - STATE: " + String(state) + 
@@ -383,18 +396,19 @@ private:
                   " - LeftRPM: " + String(leftRPM) + 
                   " - LeftSpeed: " + String(leftMotorPID.speed) + 
                   " - LeftPWM: " + String(leftPWM) + 
-                  " - LeftP: " + String(leftMotorPID.p) +
-                  " - LeftI: " + String(leftMotorPID.i) +
-                  " - LeftD: " + String(leftMotorPID.d) + 
+                  // " - LeftP: " + String(leftMotorPID.p) +
+                  // " - LeftI: " + String(leftMotorPID.i) +
+                  // " - LeftD: " + String(leftMotorPID.d) + 
                   " - RightRPM: " + String(rightRPM) +
                   " - RightSpeed: " + String(rightMotorPID.speed) + 
                   " - RightPWM: " + String(rightPWM) +
-                  " - RightP: " + String(rightMotorPID.p) +
-                  " - RightI: " + String(rightMotorPID.i) +
-                  " - RightD: " + String(rightMotorPID.d) + 
+                  // " - RightP: " + String(rightMotorPID.p) +
+                  // " - RightI: " + String(rightMotorPID.i) +
+                  // " - RightD: " + String(rightMotorPID.d) + 
                   // " - leftDistance: " + String(leftDistance) + 
                   // " - rightDistance: " + String(rightDistance) + 
-                  // " - Distance: " + String(distance) + 
+                  " - Metered: " + String(metered) + 
+                  " - Distance: " + String(distance) + 
                   " - isLeftBlack: " + String(isLeftBlack) +
                   " - isRightBlack: " + String(isRightBlack) +
                   " - spdDiff: " + String(spdDiff) +
