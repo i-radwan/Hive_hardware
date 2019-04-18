@@ -16,9 +16,11 @@
 //
 Communicator com;
 Navigator nav;
-MPUSensor mpu;
-BlackSensor lblk;
-BlackSensor rblk;
+// MPUSensor mpu;
+BlackSensor blblk;
+BlackSensor brblk;
+BlackSensor flblk;
+BlackSensor frblk;
 UltrasonicSensor uls;
 OTAHandler ota;
 Encoder len;
@@ -59,16 +61,18 @@ void setup() {
     }
 
     // Initialize PCFs
-    pcf1.begin(0x30); // P0-P3 output, P4-P5 input
+    pcf1.begin(0xF0); // P0-P3 output, P4-P7 input
 
     // Initialize OTA
     ota.setup();
 
     // Initialize sensors
-    mpu.setup();
+    // mpu.setup();
     uls.setup();
-    lblk.setup(&pcf1, LFT_BLACK_SENSOR_PIN);
-    rblk.setup(&pcf1, RGT_BLACK_SENSOR_PIN);
+    blblk.setup(&pcf1, BAK_LFT_BLACK_SENSOR_PIN, BAK_LFT_BLACK_SENSOR_INV);
+    brblk.setup(&pcf1, BAK_RGT_BLACK_SENSOR_PIN, BAK_RGT_BLACK_SENSOR_INV);
+    flblk.setup(&pcf1, FRT_LFT_BLACK_SENSOR_PIN, FRT_LFT_BLACK_SENSOR_INV);
+    frblk.setup(&pcf1, FRT_RGT_BLACK_SENSOR_PIN, FRT_RGT_BLACK_SENSOR_INV);
 
     // Initialize encoders
     len.setup(LEFT_ENC);
@@ -82,6 +86,9 @@ void setup() {
     // Initialize servo
     servo.attach(SERVO_PIN);
     servo.write(SERVO_DOWN_ANGLE);
+
+    // Send initial ACK
+    com.send(MSG_SET);
 }
 
 int i = 0;
@@ -92,20 +99,22 @@ void loop() {
 
     if(!setupState)
         return;
-
+    
     //
     // Read sensors
     //
     
     // MPU
-    double y, p, r;
-    if (!mpu.read(y, p, r)) 
-        return;
+    double y = 0, p = 0, r = 0;
+    // mpu.read(y, p, r);
+    //     return;
 
     // Black sensor
-    bool isLeftBlack, isRightBlack;
-    lblk.read(isLeftBlack);
-    rblk.read(isRightBlack);
+    bool isBackLeftBlack, isBackRightBlack, isFrontLeftBlack, isFrontRightBlack;
+    blblk.read(isBackLeftBlack);
+    brblk.read(isBackRightBlack);
+    flblk.read(isFrontLeftBlack);
+    frblk.read(isFrontRightBlack);
 
     // Ultrasonic
     double distance;
@@ -133,12 +142,12 @@ void loop() {
         break;
 
         case LEFT:
-            nav.left(y, isLeftBlack, isRightBlack);
+            nav.left(y, isFrontLeftBlack, isFrontRightBlack);
             com.send(String("Left!"));
         break;
 
         case RIGHT:
-            nav.right(y, isLeftBlack, isRightBlack);
+            nav.right(y, isFrontLeftBlack, isFrontRightBlack);
             com.send(String("Right!"));
         break;
 
@@ -154,15 +163,19 @@ void loop() {
     }
 
     // Navigation
-    nav.navigate(y, distance, isLeftBlack, isRightBlack, logs);
+    bool finished = nav.navigate(y, distance, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
 
     delay(50);
 
+    if (finished)
+        com.send(MSG_ACK);
+    
     if (logs.length() > 0) {
         com.send(String(i++) + " :: " + logs);
+        
         logs = "";
     }
 
-    yield();
+    // yield();
     delay(10);
 }

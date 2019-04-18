@@ -9,8 +9,8 @@ class Navigator {
 public:
 
     // 1.2, 0.1, 0.4
-    Navigator() : leftMotorPID(1.3, 0.1, 0, MOTORS_INIT_SPEED, 0), 
-                  rightMotorPID(1.3, 0.1, 0, MOTORS_INIT_SPEED, 0) {
+    Navigator() : leftMotorPID(2.3, 0.3, 0, MOTORS_INIT_SPEED, 0), 
+                  rightMotorPID(2.3, 0.3, 0, MOTORS_INIT_SPEED, 0) {
     }
 
     void setup(Communicator* com, PCF857x* pcf1, Encoder* len, Encoder* ren) {
@@ -37,11 +37,13 @@ public:
         state = IDLE;
     }
 
-    void navigate(double currentAngle, unsigned long distance, bool isLeftBlack, bool isRightBlack, String& logs) {
+    bool navigate(double currentAngle, unsigned long distance, bool isFrontLeftBlack, bool isFrontRightBlack, bool isBackLeftBlack, bool isBackRightBlack, String& logs) {
         if (state == STRAIGHT || state == STRAIGHT_LEFT || state == STRAIGHT_RIGHT || state == OFFLINE_LEFT || state ==  OFFLINE_RIGHT || state == ALIGNMENT)
-            move(currentAngle, distance, isLeftBlack, isRightBlack, logs);
+            return move(currentAngle, distance, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
         else if (state == ROTATE_LEFT || state == ROTATE_RIGHT || state == PRE_ROTATE_RIGHT || state == PRE_ROTATE_LEFT || state == POST_ROTATE_RIGHT || state == POST_ROTATE_LEFT)
-            rotate(currentAngle, isLeftBlack, isRightBlack, logs);
+            return rotate(currentAngle, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
+        
+        return false;
     }
     
     void stop(double currentAngle) {
@@ -81,7 +83,7 @@ public:
         // pidI = 0;
     }
 
-    void left(double currentAngle, bool isLeftBlack, bool isRightBlack) {
+    void left(double currentAngle, bool isFrontLeftBlack, bool isFrontRightBlack) {
         init(currentAngle);
         
         time = millis();
@@ -97,11 +99,14 @@ public:
         ren->reset();
         interrupts();
 
-        if (isLeftBlack) {
+        // if (isFrontLeftBlack) {
             state = PRE_ROTATE_LEFT;
-        } else {
-            state = ROTATE_LEFT;
-        }
+        // } else {
+            // state = ROTATE_LEFT;
+        // }
+
+        wasBackRightBlack = false;
+        wasBackLeftBlack = false;
         
         angle += -90;
 
@@ -110,7 +115,7 @@ public:
         }
     }
 
-    void right(double currentAngle, bool isLeftBlack, bool isRightBlack) {
+    void right(double currentAngle, bool isFrontLeftBlack, bool isBackRightBlack) {
         init(currentAngle);
         
         time = millis();
@@ -126,12 +131,15 @@ public:
         ren->reset();
         interrupts();
 
-        if (isRightBlack) {
+        // if (isFrontLeftBlack) {
             state = PRE_ROTATE_RIGHT;
-        } else {
-            state = ROTATE_RIGHT;
-        }
+        // } else {
+            // state = ROTATE_RIGHT;
+        // }
         
+        wasBackRightBlack = false;
+        wasBackLeftBlack = false;
+
         angle += 90;
 
         if (angle > 180) {
@@ -200,22 +208,24 @@ private:
     double angle = 0; // Reference angle
     double distance = 0; // Remaining distance
 
-    bool metered = false;
-
     double time = 0;
     double prevDiff = 0;
     double pid = 0, pidP = 0, pidI = 0, pidD = 0;
 
-    bool atNode = false; // ToDo: make true in complete grid
+    bool atNode = true;
     double atBlackTime = millis();
 
     int spdDiffI = 0;
 
-    bool prevIsRightBlack = false;
-    bool prevIsLeftBlack = false;
-    double entryDiff = 0;
+    bool prevIsFrontRightBlack = false;
+    bool prevIsFrontLeftBlack = false;
+    bool prevIsBackRightBlack = false;
+    bool prevIsBackLeftBlack = false;
 
-    void move(double currentAngle, unsigned long obstacleDistance, bool isLeftBlack, bool isRightBlack, String& logs) {
+    bool wasBackLeftBlack = false;
+    bool wasBackRightBlack = false;
+
+    bool move(double currentAngle, unsigned long obstacleDistance, bool isFrontLeftBlack, bool isFrontRightBlack, bool isBackLeftBlack, bool isBackRightBlack, String& logs) {
         // com->send(" ");
 
         // Emergency braking
@@ -230,7 +240,7 @@ private:
         // }
 
         // Reached a black spot
-        // if (isLeftBlack && isRightBlack && millis() - atBlackTime > 250 && !atBlack) {
+        // if (isFrontLeftBlack && isFrontRightBlack && millis() - atBlackTime > 250 && !atBlack) {
         //     com->send("New Black Spot!");
             
         //     adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
@@ -241,7 +251,7 @@ private:
         //     atBlack = true;
         // }
 
-        // if (!isLeftBlack || !isRightBlack) {
+        // if (!isFrontLeftBlack || !isFrontRightBlack) {
         //     atBlack = false;
         // }
 
@@ -254,8 +264,12 @@ private:
         //
         double current = millis();
 
-        if (current - time < MOTORS_ADJUST_DELTA && prevIsRightBlack == isRightBlack && prevIsLeftBlack == isLeftBlack)
-            return;
+        if (current - time < MOTORS_ADJUST_DELTA && 
+            prevIsFrontRightBlack == isFrontRightBlack && 
+            prevIsFrontLeftBlack == isFrontLeftBlack && 
+            prevIsBackRightBlack == isBackRightBlack && 
+            prevIsBackLeftBlack == isBackLeftBlack)
+            return false;
 
         double elapsedTime = (current - time) / 1000.0;
         time = current;
@@ -281,88 +295,109 @@ private:
         //
         // Line following
         //
-        prevIsRightBlack = isRightBlack;
-        prevIsLeftBlack = isLeftBlack;
+        prevIsFrontRightBlack = isFrontRightBlack;
+        prevIsFrontLeftBlack = isFrontLeftBlack;
+        prevIsBackRightBlack = isBackRightBlack;
+        prevIsBackLeftBlack = isBackLeftBlack;
 
         // FSM transitions
         switch (state) {
             case STRAIGHT:
-                if (isLeftBlack && !isRightBlack) {
+                if (isFrontLeftBlack && !isFrontRightBlack) {
                     state = STRAIGHT_RIGHT;
-                    entryDiff = diff;
                     spdDiffI = 0;
-                } else if (!isLeftBlack && isRightBlack) {
+                } else if (!isFrontLeftBlack && isFrontRightBlack) {
                     state = STRAIGHT_LEFT;
-                    entryDiff = diff;
                     spdDiffI = 0;
-                } else {
+                } 
+
+                if (!isBackLeftBlack && !isBackRightBlack) {
                     atNode = false;
                 }
             break;
 
             case STRAIGHT_LEFT:
-                if (!isRightBlack /*&& diff * entryDiff < 0*/) { // Signs changed
+                if (!isFrontRightBlack /*&& diff * entryDiff < 0*/) { // Signs changed
                     state = STRAIGHT;
-                } else if (!isRightBlack && diff * entryDiff > 0) { // Same sign
-                    // state = OFFLINE_LEFT;
-                    // spdDiffI = 0;
+                } 
+                // else if (!isFrontRightBlack && diff * entryDiff > 0) { // Same sign
+                //     state = OFFLINE_LEFT;
+                //     spdDiffI = 0;
+                // } 
+
+                if (!isBackLeftBlack && !isBackRightBlack) {
+                    atNode = false;
                 }
             break;
 
             case STRAIGHT_RIGHT:
-                if (!isLeftBlack /*&& diff * entryDiff < 0*/) { // Signs changed
+                if (!isFrontLeftBlack /*&& diff * entryDiff < 0*/) { // Signs changed
                     state = STRAIGHT;
-                } else if (!isLeftBlack && diff * entryDiff > 0) { // Same sign
-                    // state = OFFLINE_RIGHT;
-                    // spdDiffI = 0;
+                } 
+                // else if (!isFrontLeftBlack && diff * entryDiff > 0) { // Same sign
+                //     state = OFFLINE_RIGHT;
+                //     spdDiffI = 0;
+                // }
+
+                if (!isBackLeftBlack && !isBackRightBlack) {
+                    atNode = false;
                 }
             break;
 
-            case OFFLINE_LEFT:
-                if (isRightBlack) {
-                    state = STRAIGHT;
-                }
-            break;
+            // case OFFLINE_LEFT:
+            //     if (isFrontRightBlack) {
+            //         state = STRAIGHT;
+            //     }
+            // break;
 
-            case OFFLINE_RIGHT:
-                if (isLeftBlack) {
-                    state = STRAIGHT;
-                }
+            // case OFFLINE_RIGHT:
+            //     if (isFrontLeftBlack) {
+            //         state = STRAIGHT;
+            //     }
             break;
         }
 
         double spdDiff = 0;
-        double leftFactor = 1, rightFactor = 1;
+        double leftSpeed, rightSpeed;
 
         // States actions
         switch (state) {
             case STRAIGHT:
-                spdDiff = pid, spdDiffI = 0;
+                leftSpeed = MOTORS_INIT_SPEED;
+                rightSpeed = MOTORS_INIT_SPEED;
+                // spdDiff = pid, spdDiffI = 0;
             break;
 
             case STRAIGHT_LEFT:
-                spdDiffI -= 2, spdDiff = -20 * fabs((diff / entryDiff));
+                leftSpeed = MOTORS_INIT_SPEED;
+                rightSpeed = MOTORS_INIT_SPEED / 2.5;
+                // spdDiffI -= 2, spdDiff = -20 * fabs(diff / angle);
 
-                if (abs(diff) >= 5) { // Stop the wheel to lock the car to the line
-                    rightFactor = 0;
-                }
+                // if (abs(diff) >= 5) { // Stop the wheel to lock the car to the line
+                //     rightFactor = 0;
+                //     leftFactor = 0.75;
+                // }
             break;
 
             case STRAIGHT_RIGHT:
-                spdDiffI -= 2, spdDiff = 20 * fabs((diff / entryDiff));
+                leftSpeed = MOTORS_INIT_SPEED / 2.5;
+                rightSpeed = MOTORS_INIT_SPEED;
+                
+                // spdDiffI -= 2, spdDiff = 20 * fabs(diff / angle);
 
-                if (abs(diff) >= 5) { // Stop the wheel to lock the car to the line
-                    leftFactor = 0;
-                }
+                // if (abs(diff) >= 5) { // Stop the wheel to lock the car to the line
+                //     rightFactor = 0.75;
+                //     leftFactor = 0;
+                // }
             break;
 
-            case OFFLINE_LEFT:
-                spdDiffI -= 4, spdDiff = -40 - spdDiffI;
-            break;
+            // case OFFLINE_LEFT:
+            //     spdDiffI -= 4, spdDiff = -40 - spdDiffI;
+            // break;
 
-            case OFFLINE_RIGHT:
-                spdDiffI -= 4, spdDiff = 40 + spdDiffI;
-            break;
+            // case OFFLINE_RIGHT:
+            //     spdDiffI -= 4, spdDiff = 40 + spdDiffI;
+            // break;
         }
 
         //
@@ -384,62 +419,64 @@ private:
         double rightRPM = rightMotorPID.computeRPM(rightTicks, elapsedTime);
 
         // Adjust speed to maintain angle and reduce speed difference
-        leftMotorPID.adjustSpeed((MOTORS_INIT_SPEED - spdDiff) * leftFactor);
-        rightMotorPID.adjustSpeed((MOTORS_INIT_SPEED + spdDiff) * rightFactor);
+        // leftMotorPID.adjustSpeed((MOTORS_INIT_SPEED - spdDiff) * leftFactor);
+        // rightMotorPID.adjustSpeed((MOTORS_INIT_SPEED + spdDiff) * rightFactor);
+        leftMotorPID.adjustSpeed(leftSpeed);
+        rightMotorPID.adjustSpeed(rightSpeed);
 
         // Get motors throttle
         double leftPWM = leftMotorPID.computePWM(leftRPM, elapsedTime);
         double rightPWM = rightMotorPID.computePWM(rightRPM, elapsedTime);
 
-        // Update distance
-        if (metered) {
-            distance -= max(leftDistance, rightDistance);
-                
-            if (distance <= 0) {
-                adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
-
-                state = IDLE;
-                metered = false;
-                atNode = true;
-
-                return;
-            }            
+        // Stopping at nodes
+        if (isBackLeftBlack && !atNode) {
+            leftPWM = 0;
         }
 
-        // Set metered to move specific distance. Note we don't want to subtract the distance in this iteration
-        // because this is the distance before we sensed the node
-        if (isLeftBlack && isRightBlack && !atNode) {
-            metered = true;
-            distance += STEP;
+        if (isBackRightBlack && !atNode) {
+            rightPWM = 0;
+        }
+
+        if (isBackLeftBlack && isBackRightBlack && !atNode) {
+            adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
+
+            state = IDLE;
+            atNode = true;
+
+            logs += (" - Stopping");
+
+            return true;
         }
 
         logs += ("MOVE:: elapsedTime: " + String(elapsedTime) + 
                 " - STATE: " + String(state) + 
+                " - atNode: " + String(atNode) + 
                   // " - PID: " + String(pid) + 
                   // " - P: " + String(pidP) + 
                   // " - I: " + String(pidI) + 
                   // " - D: " + String(pidD) + 
                   " - DIFF: " + String(diff) + 
-                  // " - Angle: " + String(angle) + 
-                  // " - currentAngle: " + String(currentAngle) + 
+                  " - Angle: " + String(angle) + 
+                  " - currentAngle: " + String(currentAngle) + 
                   " - LeftRPM: " + String(leftRPM) + 
                   " - LeftSpeed: " + String(leftMotorPID.speed) + 
                   " - LeftPWM: " + String(leftPWM) + 
-                  // " - LeftP: " + String(leftMotorPID.p) +
-                  // " - LeftI: " + String(leftMotorPID.i) +
-                  // " - LeftD: " + String(leftMotorPID.d) + 
+                  " - LeftP: " + String(leftMotorPID.p) +
+                  " - LeftI: " + String(leftMotorPID.i) +
+                  " - LeftD: " + String(leftMotorPID.d) + 
                   " - RightRPM: " + String(rightRPM) +
                   " - RightSpeed: " + String(rightMotorPID.speed) + 
                   " - RightPWM: " + String(rightPWM) +
-                  // " - RightP: " + String(rightMotorPID.p) +
-                  // " - RightI: " + String(rightMotorPID.i) +
-                  // " - RightD: " + String(rightMotorPID.d) + 
+                  " - RightP: " + String(rightMotorPID.p) +
+                  " - RightI: " + String(rightMotorPID.i) +
+                  " - RightD: " + String(rightMotorPID.d) + 
                   // " - leftDistance: " + String(leftDistance) + 
                   // " - rightDistance: " + String(rightDistance) + 
-                  " - Metered: " + String(metered) + 
                   " - Distance: " + String(distance) + 
-                  " - isLeftBlack: " + String(isLeftBlack) +
-                  " - isRightBlack: " + String(isRightBlack) +
+                  " - isFrontLeftBlack: " + String(isFrontLeftBlack) +
+                  " - isFrontRightBlack: " + String(isFrontRightBlack) +
+                  " - isBackLeftBlack: " + String(isBackLeftBlack) +
+                  " - isBackRightBlack: " + String(isBackRightBlack) +
                   " - spdDiff: " + String(spdDiff) +
                   " - spdDiffI: " + String(spdDiffI));
 
@@ -461,14 +498,23 @@ private:
             Utils::swap(&rDir1, &rDir2);
         }
 
+        // adjustMotors(leftSpeed == 0 ? 0 : leftPWM, rightSpeed == 0 ? 0 : rightPWM, lDir1, lDir2, rDir1, rDir2);
         adjustMotors(leftPWM, rightPWM, lDir1, lDir2, rDir1, rDir2);
     }
 
-    void rotate(double currentAngle, bool isLeftBlack, bool isRightBlack, String& logs) {
+    bool rotate(double currentAngle, bool isFrontLeftBlack, bool isFrontRightBlack, bool isBackLeftBlack, bool isBackRightBlack, String& logs) {
         //
         // Timer
         //
         double current = millis();
+        
+        if (current - time < MOTORS_ADJUST_DELTA && 
+            prevIsFrontRightBlack == isFrontRightBlack && 
+            prevIsFrontLeftBlack == isFrontLeftBlack && 
+            prevIsBackRightBlack == isBackRightBlack && 
+            prevIsBackLeftBlack == isBackLeftBlack)
+            return false;
+
         double elapsedTime = (current - time) / 1000.0;
         time = current;
 
@@ -484,40 +530,80 @@ private:
         }
 
         //
-        // FSM transitions
+        // Line following
         //
+        prevIsFrontRightBlack = isFrontRightBlack;
+        prevIsFrontLeftBlack = isFrontLeftBlack;
+        prevIsBackRightBlack = isBackRightBlack;
+        prevIsBackLeftBlack = isBackLeftBlack;
+
+        // FSM transitions
         switch (state) {
+            // case PRE_ROTATE_RIGHT:
+            //     if (!isFrontRightBlack) {
+            //         state = ROTATE_RIGHT;
+            //     }
+            // break;
+            // case PRE_ROTATE_LEFT:
+            //     if (!isFrontLeftBlack) {
+            //         state = ROTATE_LEFT;
+            //     }
+            // break;
+            
+            // case ROTATE_RIGHT:
+            //     if (isFrontRightBlack) {
+            //         state = POST_ROTATE_RIGHT;
+            //     }
+            // break;
+            
+            // case ROTATE_LEFT: 
+            //     if (isFrontLeftBlack) {
+            //         state = POST_ROTATE_LEFT;
+            //     }
+            // break;
+            
+            // case POST_ROTATE_RIGHT: 
+            //     if (!isFrontRightBlack) {
+            //         state = IDLE;
+            //     }
+            // break;
+            
+            // case POST_ROTATE_LEFT: 
+            //     if (!isFrontLeftBlack) {
+            //         state = IDLE;
+            //     }
+            // break;
             case PRE_ROTATE_RIGHT:
-                if (!isRightBlack) {
+                if (!isBackRightBlack && !isBackLeftBlack && !isFrontRightBlack) {
                     state = ROTATE_RIGHT;
                 }
             break;
             case PRE_ROTATE_LEFT:
-                if (!isLeftBlack) {
+                if (!isBackRightBlack && !isBackLeftBlack && !isFrontLeftBlack) {
                     state = ROTATE_LEFT;
                 }
             break;
             
             case ROTATE_RIGHT:
-                if (isRightBlack) {
-                    state = IDLE;
+                if (isFrontRightBlack) {
+                    state = POST_ROTATE_RIGHT;
                 }
             break;
             
             case ROTATE_LEFT: 
-                if (isLeftBlack) {
+                if (isFrontLeftBlack) {
+                    state = POST_ROTATE_LEFT;
+                }
+            break;
+
+            case POST_ROTATE_RIGHT:
+                if (wasBackLeftBlack && wasBackRightBlack) {
                     state = IDLE;
                 }
             break;
-            
-            case POST_ROTATE_RIGHT: 
-                if (!isRightBlack) {
-                    state = IDLE;
-                }
-            break;
-            
-            case POST_ROTATE_LEFT: 
-                if (!isLeftBlack) {
+
+            case POST_ROTATE_LEFT:
+                if (wasBackLeftBlack && wasBackRightBlack) {
                     state = IDLE;
                 }
             break;
@@ -525,6 +611,8 @@ private:
 
         double lspd = 0;
         double rspd = 0;
+
+        int lFactor = 1, rFactor = 1;
 
         // States actions
         switch (state) {
@@ -536,37 +624,73 @@ private:
                 ren->reset();
                 interrupts();
 
-                return;
+                return true;
             break;
 
             case PRE_ROTATE_RIGHT:
-                rspd = -30;
-                lspd = 30;
+                rspd = -MOTORS_ROTATION_SPEED;
+                lspd = MOTORS_ROTATION_SPEED;
             break;
 
             case PRE_ROTATE_LEFT:
-                rspd = 30;
-                lspd = -30;
+                rspd = MOTORS_ROTATION_SPEED;
+                lspd = -MOTORS_ROTATION_SPEED;
             break;
             
             case ROTATE_RIGHT:
-                rspd = -30;
-                lspd = 30;
+                rspd = -MOTORS_ROTATION_SPEED;
+                lspd = MOTORS_ROTATION_SPEED;
             break;
             
             case ROTATE_LEFT:
-                rspd = 30;
-                lspd = -30;
+                rspd = MOTORS_ROTATION_SPEED;
+                lspd = -MOTORS_ROTATION_SPEED;
             break;
             
             case POST_ROTATE_RIGHT:
-                rspd = -30;
-                lspd = 30;
+                rspd = -MOTORS_ROTATION_SPEED;
+                lspd = MOTORS_ROTATION_SPEED;
+
+                if (isBackLeftBlack) {
+                    wasBackLeftBlack = true;
+                }
+                
+                if (isBackRightBlack) {
+                    wasBackRightBlack = true;
+                }
+
+                if (wasBackRightBlack) {
+                    rspd = 0;
+                    rFactor = 0;
+                }
+
+                if (wasBackLeftBlack) {
+                    lspd = 0;
+                    lFactor = 0;
+                }
             break;
             
             case POST_ROTATE_LEFT:
-                rspd = 30;
-                lspd = -30;
+                rspd = MOTORS_ROTATION_SPEED;
+                lspd = -MOTORS_ROTATION_SPEED;
+
+                if (isBackLeftBlack) {
+                    wasBackLeftBlack = true;
+                }
+                
+                if (isBackRightBlack) {
+                    wasBackRightBlack = true;
+                }
+
+                if (wasBackRightBlack) {
+                    rspd = 0;
+                    rFactor = 0;
+                }
+
+                if (wasBackLeftBlack) {
+                    lspd = 0;
+                    lFactor = 0;
+                }
             break;
         }
 
@@ -598,6 +722,12 @@ private:
 
         logs += ("ROTATE:: " + String(i++) + 
                   " - state: " + String(state) + 
+                  " - isFrontLeftBlack: " + String(isFrontLeftBlack) +
+                  " - isFrontRightBlack: " + String(isFrontRightBlack) +
+                  " - isBackLeftBlack: " + String(isBackLeftBlack) +
+                  " - isBackRightBlack: " + String(isBackRightBlack) +
+                  " - wasBackLeftBlack: " + String(wasBackLeftBlack) +
+                  " - wasBackRightBlack: " + String(wasBackRightBlack) +
                   " - elapsedTime: " + String(elapsedTime) + 
                   // " - PID: " + String(pid) + 
                   // " - P: " + String(pidP) + 
@@ -633,10 +763,23 @@ private:
             Utils::swap(&rDir1, &rDir2);
         }
 
-        adjustMotors(leftPWM, rightPWM, lDir1, lDir2, rDir1, rDir2);
+        adjustMotors(leftPWM * lFactor, rightPWM * rFactor, lDir1, lDir2, rDir1, rDir2);
+
+        return false;
     }
 
     void adjustMotors(int lSpeed, int rSpeed, int lDir1, int lDir2, int rDir1, int rDir2) {
+        // Lock the stopping wheels
+        if (lSpeed < 1e-6) {
+            lDir1 = lDir2 = HIGH;
+            lSpeed = PWMRANGE;
+        }
+
+        if (rSpeed < 1e-6) {
+            rDir1 = rDir2 = HIGH;
+            rSpeed = PWMRANGE;
+        }
+
         analogWrite(LEFT_SPED, lSpeed);
         analogWrite(RGHT_SPED, rSpeed);
 

@@ -4,7 +4,9 @@
 const char* NET_NAME = "Radwan";
 const char* NET_PASS = "9992009a";
 const int PORT = 12345;
-const char* MSG_ACK = "ACK";
+const String MSG_SET = "0";
+const String MSG_ACK = "1";
+const String MSG_ERR = "2";
 
 // Serial
 const int BAUD_RATE = 115200;
@@ -80,14 +82,21 @@ const int SERVO_PIN = D8;
 const int SERVO_DOWN_ANGLE = 20;
 const int SERVO_UP_ANGLE = 110;
 
-const int LFT_BLACK_SENSOR_PIN = 4;
-const int RGT_BLACK_SENSOR_PIN = 5;
+const int FRT_LFT_BLACK_SENSOR_PIN = 6;
+const int FRT_RGT_BLACK_SENSOR_PIN = 7;
+const int BAK_LFT_BLACK_SENSOR_PIN = 4;
+const int BAK_RGT_BLACK_SENSOR_PIN = 5;
+
+const bool FRT_LFT_BLACK_SENSOR_INV = false;
+const bool FRT_RGT_BLACK_SENSOR_INV = false;
+const bool BAK_LFT_BLACK_SENSOR_INV = true;
+const bool BAK_RGT_BLACK_SENSOR_INV = true;
 
 // General
 const double MOTORS_ADJUST_DELTA = 150; // ms
-const double MOTORS_INIT_SPEED = 50; // rpm
-const double MOTORS_MAX_SPEED = 100; // rpm
-const double MOTORS_ROTATION_PWM = 150;
+const double MOTORS_INIT_SPEED = 45; // rpm
+const double MOTORS_MAX_SPEED = 75; // rpm
+const double MOTORS_ROTATION_SPEED = 35;
 const double STEP = 60; // mm
 
 enum STATE {
