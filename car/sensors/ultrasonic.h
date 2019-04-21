@@ -10,6 +10,7 @@ public:
 
     void setup() {
         // Sensor pins
+        pinMode(ULTRA_SONIC_TRIGGER_PIN, FUNCTION_3);
         pinMode(ULTRA_SONIC_TRIGGER_PIN, OUTPUT);
         pinMode(ULTRA_SONIC_ECHO_PIN, INPUT);
     }

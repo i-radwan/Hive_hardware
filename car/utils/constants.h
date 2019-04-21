@@ -74,49 +74,53 @@ const int OPTICAL_CLCK = 1;
 const int OPTICAL_DATA = 3;
 const double OPTICAL_DPI_TO_MM = 1 / 39.0;
 
-const int ULTRA_SONIC_TRIGGER_PIN = D3;
+const int ULTRA_SONIC_TRIGGER_PIN = D9;
 const int ULTRA_SONIC_ECHO_PIN = D5;
 const int MIN_DISTANCE = 15; // cm. Min distance ahead of the robot
 
-const int SERVO_PIN = D8;
+const int SERVO_PIN = D3;
 const int SERVO_DOWN_ANGLE = 20;
 const int SERVO_UP_ANGLE = 110;
 
 const int FRT_LFT_BLACK_SENSOR_PIN = 6;
 const int FRT_RGT_BLACK_SENSOR_PIN = 7;
+const int FRT_CNT_BLACK_SENSOR_PIN = D8;
 const int BAK_LFT_BLACK_SENSOR_PIN = 4;
 const int BAK_RGT_BLACK_SENSOR_PIN = 5;
 
 const bool FRT_LFT_BLACK_SENSOR_INV = false;
 const bool FRT_RGT_BLACK_SENSOR_INV = false;
+const bool FRT_CNT_BLACK_SENSOR_INV = false;
 const bool BAK_LFT_BLACK_SENSOR_INV = true;
 const bool BAK_RGT_BLACK_SENSOR_INV = true;
 
+const bool FRT_LFT_BLACK_SENSOR_PCF = true;
+const bool FRT_RGT_BLACK_SENSOR_PCF = true;
+const bool FRT_CNT_BLACK_SENSOR_PCF = false;
+const bool BAK_LFT_BLACK_SENSOR_PCF = true;
+const bool BAK_RGT_BLACK_SENSOR_PCF = true;
+
 // General
 const double MOTORS_ADJUST_DELTA = 150; // ms
-const double MOTORS_INIT_SPEED = 45; // rpm
-const double MOTORS_MAX_SPEED = 75; // rpm
+const double MOTORS_INIT_SPEED = 55; // rpm
+const double MOTORS_MAX_SPEED = 85; // rpm
 const double MOTORS_ROTATION_SPEED = 35;
-const double STEP = 60; // mm
+const double STEP = 300; // mm
 
 enum STATE {
     INIT,               // 0
     IDLE,               // 1
-    STRAIGHT,           // 2
-    STRAIGHT_LEFT,      // 3
-    STRAIGHT_RIGHT,     // 4
-    OFFLINE_LEFT,       // 5
-    OFFLINE_RIGHT,      // 6
-    ROTATE_RIGHT,       // 7
-    ROTATE_LEFT,        // 8
-    PRE_ROTATE_RIGHT,   // 9
-    PRE_ROTATE_LEFT,    // 10
-    POST_ROTATE_RIGHT,  // 11
-    POST_ROTATE_LEFT,   // 12
-    ALIGNMENT
-};
-
-enum DIRECTION {
-    FWARD,
-    BWARD
+    FWARD,              // 2
+    STRAIGHT,           // 3
+    STRAIGHT_LEFT,      // 4
+    STRAIGHT_RIGHT,     // 5
+    OFFLINE_LEFT,       // 6
+    OFFLINE_RIGHT,      // 7
+    ROTATE_RIGHT,       // 8
+    ROTATE_LEFT,        // 9
+    PRE_ROTATE_RIGHT,   // 10
+    PRE_ROTATE_LEFT,    // 11
+    POST_ROTATE_RIGHT,  // 12
+    POST_ROTATE_LEFT,   // 13
+    ALIGNMENT           // 14
 };

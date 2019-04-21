@@ -21,6 +21,7 @@ BlackSensor blblk;
 BlackSensor brblk;
 BlackSensor flblk;
 BlackSensor frblk;
+BlackSensor fcblk;
 UltrasonicSensor uls;
 OTAHandler ota;
 Encoder len;
@@ -69,10 +70,11 @@ void setup() {
     // Initialize sensors
     // mpu.setup();
     uls.setup();
-    blblk.setup(&pcf1, BAK_LFT_BLACK_SENSOR_PIN, BAK_LFT_BLACK_SENSOR_INV);
-    brblk.setup(&pcf1, BAK_RGT_BLACK_SENSOR_PIN, BAK_RGT_BLACK_SENSOR_INV);
-    flblk.setup(&pcf1, FRT_LFT_BLACK_SENSOR_PIN, FRT_LFT_BLACK_SENSOR_INV);
-    frblk.setup(&pcf1, FRT_RGT_BLACK_SENSOR_PIN, FRT_RGT_BLACK_SENSOR_INV);
+    blblk.setup(&pcf1, BAK_LFT_BLACK_SENSOR_PIN, BAK_LFT_BLACK_SENSOR_INV, BAK_LFT_BLACK_SENSOR_PCF);
+    brblk.setup(&pcf1, BAK_RGT_BLACK_SENSOR_PIN, BAK_RGT_BLACK_SENSOR_INV, BAK_RGT_BLACK_SENSOR_PCF);
+    flblk.setup(&pcf1, FRT_LFT_BLACK_SENSOR_PIN, FRT_LFT_BLACK_SENSOR_INV, FRT_LFT_BLACK_SENSOR_PCF);
+    frblk.setup(&pcf1, FRT_RGT_BLACK_SENSOR_PIN, FRT_RGT_BLACK_SENSOR_INV, FRT_RGT_BLACK_SENSOR_PCF);
+    fcblk.setup(&pcf1, FRT_CNT_BLACK_SENSOR_PIN, FRT_CNT_BLACK_SENSOR_INV, FRT_CNT_BLACK_SENSOR_PCF);
 
     // Initialize encoders
     len.setup(LEFT_ENC);
@@ -84,8 +86,8 @@ void setup() {
     nav.setup(&com, &pcf1, &len, &ren);
 
     // Initialize servo
-    servo.attach(SERVO_PIN);
-    servo.write(SERVO_DOWN_ANGLE);
+    // servo.attach(SERVO_PIN);
+    // servo.write(SERVO_DOWN_ANGLE);
 
     // Send initial ACK
     com.send(MSG_SET);
@@ -110,11 +112,12 @@ void loop() {
     //     return;
 
     // Black sensor
-    bool isBackLeftBlack, isBackRightBlack, isFrontLeftBlack, isFrontRightBlack;
+    bool isBackLeftBlack, isBackRightBlack, isFrontLeftBlack, isFrontRightBlack, isFrontCenterBlack;
     blblk.read(isBackLeftBlack);
     brblk.read(isBackRightBlack);
     flblk.read(isFrontLeftBlack);
     frblk.read(isFrontRightBlack);
+    fcblk.read(isFrontCenterBlack);
 
     // Ultrasonic
     double distance;
@@ -142,12 +145,12 @@ void loop() {
         break;
 
         case LEFT:
-            nav.left(y, isFrontLeftBlack, isFrontRightBlack);
+            nav.left(y);
             com.send(String("Left!"));
         break;
 
         case RIGHT:
-            nav.right(y, isFrontLeftBlack, isFrontRightBlack);
+            nav.right(y);
             com.send(String("Right!"));
         break;
 
@@ -163,7 +166,7 @@ void loop() {
     }
 
     // Navigation
-    bool finished = nav.navigate(y, distance, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
+    bool finished = nav.navigate(y, distance, isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
 
     delay(50);
 
