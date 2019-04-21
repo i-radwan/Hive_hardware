@@ -23,13 +23,13 @@ final int xLimit = 3;
 final int yLimit = 1;
 
 int i = 0;
-final int iLimit = 1000;
+final int iLimit = 3000;
 
 boolean started = false;
 
 void setup() {
     udp = new UDP(this, 12345);
-    udp.listen(true);
+    udp.listen(true); 
     time = millis();
 }
 
