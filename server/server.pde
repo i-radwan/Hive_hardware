@@ -42,7 +42,7 @@ void draw() {
           time = millis();
     }    
     
-    if (started && millis() - ackTime > 10000) {
+    if (started && millis() - ackTime > 20000) {
         ack = true;
         ackTime = millis();
     }
