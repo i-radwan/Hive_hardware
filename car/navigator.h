@@ -307,7 +307,9 @@ private:
         // FSM transitions
         switch (state) {
             case FWARD:
-                if (!isFrontLeftBlack && !isFrontRightBlack && isFrontCenterBlack)
+                if (isFrontLeftBlack && isFrontRightBlack && isFrontCenterBlack)
+                    state = STRAIGHT;
+                else if (!isFrontLeftBlack && !isFrontRightBlack && isFrontCenterBlack)
                     state = STRAIGHT;
                 else if (!isFrontLeftBlack && isFrontRightBlack && isFrontCenterBlack)
                     state = STRAIGHT_LEFT;

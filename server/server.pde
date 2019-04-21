@@ -1,5 +1,7 @@
 import hypermedia.net.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
 
 UDP udp; // Define the UDP object
 
@@ -14,6 +16,7 @@ boolean ack = false;
 double ackTime;
 
 final int dir[][] = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}}; // Right, Up, Left, Down
+final String dirStr[] = {"Right", "Up", "Left", "Down"};
 
 boolean moving = false;
 
@@ -31,6 +34,12 @@ void setup() {
     udp = new UDP(this, 12345);
     udp.listen(true); 
     time = millis();
+    
+    try {
+        PrintStream fileOut = new PrintStream("./car_logs.txt");
+        System.setOut(fileOut);        
+    } catch(FileNotFoundException ex) {
+    }
 }
 
 void draw() {
@@ -51,7 +60,10 @@ void draw() {
         int randomNum = ThreadLocalRandom.current().nextInt(0, 3);
         
         if (randomNum == 0 && x + dir[dirIdx][0] >= 0 && x + dir[dirIdx][0] <= xLimit && y + dir[dirIdx][1] >= 0 && y + dir[dirIdx][1] <= yLimit) {
-            println("New pos @ " + i + " : " + x + ", " + y + " - " + dirIdx);
+            x += dir[dirIdx][0];
+            y += dir[dirIdx][1];
+            
+            println("Forward, New pos @ " + i + " : " + x + ", " + y + " - " + dirStr[dirIdx]);
             
             byte[] message = new byte[1];
             message[0] = 1;
@@ -59,9 +71,6 @@ void draw() {
             
             ack = false;
             moving = true;
-            
-            x += dir[dirIdx][0];
-            y += dir[dirIdx][1];
             
             i++;
         } else if (randomNum == 1) {
@@ -72,7 +81,9 @@ void draw() {
             //ack = false;
             //moving = true; 
         }  else if (randomNum == 2) {
-            println("New pos @ " + i + " : " + x + ", " + y + " - " + dirIdx);
+            dirIdx = (dirIdx + 1) % 4;
+            
+            println("Left, New pos @ " + i + " : " + x + ", " + y + " - " + dirStr[dirIdx]);
 
             byte[] message = new byte[1];
             message[0] = 3;
@@ -80,12 +91,12 @@ void draw() {
             
             ack = false;
             moving = true;
-            
-            dirIdx = (dirIdx + 1) % 4;
-            
+                        
             i++;
         }  else if (randomNum == 3) {
-            println("New pos @ " + i + " : " + x + ", " + y + " - " + dirIdx);
+            dirIdx = (dirIdx - 1 + 4) % 4;
+            
+            println("Right, New pos @ " + i + " : " + x + ", " + y + " - " + dirStr[dirIdx]  );
 
             byte[] message = new byte[1];
             message[0] = 4;
@@ -93,9 +104,7 @@ void draw() {
             
             ack = false;
             moving = true;
-            
-            dirIdx = (dirIdx - 1 + 4) % 4;
-            
+                        
             i++;
         } 
     }

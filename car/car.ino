@@ -169,15 +169,15 @@ void loop() {
     bool finished = nav.navigate(y, distance, isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
 
     delay(50);
-
-    if (finished)
-        com.send(MSG_ACK);
     
     if (logs.length() > 0) {
         com.send(String(i++) + " :: " + logs);
         
         logs = "";
     }
+    
+    if (finished)
+        com.send(MSG_ACK);
 
     // yield();
     delay(10);
