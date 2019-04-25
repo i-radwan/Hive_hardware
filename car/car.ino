@@ -91,6 +91,9 @@ void setup() {
 
     // Send initial ACK
     com.send(MSG_SET);
+
+    // Setup PWM freq
+    analogWriteFreq(1);
 }
 
 int i = 0;
@@ -118,6 +121,8 @@ void loop() {
     flblk.read(isFrontLeftBlack);
     frblk.read(isFrontRightBlack);
     fcblk.read(isFrontCenterBlack);
+
+    // com.send(String(isFrontLeftBlack) + " " + String(isFrontRightBlack) + " " + String(isFrontCenterBlack) + " " + String(isBackLeftBlack) + " " + String(isBackRightBlack));
 
     // Ultrasonic
     double distance;

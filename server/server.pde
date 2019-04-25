@@ -9,7 +9,7 @@ final String MSG_SET = "0";
 final String MSG_ACK = "1";
 final String MSG_ERR = "2";
 
-String ip = "192.168.1.6"; // The remote IP address
+String ip = "192.168.1.10"; // The remote IP address
 int port = 12345; // The destination port
 double time;
 boolean ack = false;
@@ -57,7 +57,14 @@ void draw() {
     }
     
     if (ack && i < iLimit) {
-        int randomNum = ThreadLocalRandom.current().nextInt(0, 3);
+        int randomNum = ThreadLocalRandom.current().nextInt(0, 4);
+        
+        if (x + dir[dirIdx][0] >= 0 && x + dir[dirIdx][0] <= xLimit && y + dir[dirIdx][1] >= 0 && y + dir[dirIdx][1] <= yLimit) {
+            int randomNum2 = ThreadLocalRandom.current().nextInt(0, 11);
+            
+            if (randomNum2 < 7)
+                randomNum = 0;
+        }
         
         if (randomNum == 0 && x + dir[dirIdx][0] >= 0 && x + dir[dirIdx][0] <= xLimit && y + dir[dirIdx][1] >= 0 && y + dir[dirIdx][1] <= yLimit) {
             x += dir[dirIdx][0];
