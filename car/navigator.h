@@ -906,7 +906,7 @@ private:
         // FSM transitions
         switch (state) {
             case PRE_ROTATE:
-                if (!isFrontCenterBlack) {
+                if (!isFrontCenterBlack && isFrontLeftBlack) {
                     state = ROTATE;
                 }
             break;

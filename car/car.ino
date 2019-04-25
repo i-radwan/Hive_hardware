@@ -93,7 +93,7 @@ void setup() {
     com.send(MSG_SET);
 
     // Setup PWM freq
-    analogWriteFreq(1);
+    analogWriteFreq(500);
 }
 
 int i = 0;
