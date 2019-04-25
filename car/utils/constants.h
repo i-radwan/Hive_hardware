@@ -102,27 +102,29 @@ const bool BAK_RGT_BLACK_SENSOR_PCF = true;
 
 // General
 const double MOTORS_ADJUST_DELTA = 150; // ms
-const double MOTORS_INIT_SPEED = 45; // rpm
-const double MOTORS_MAX_SPEED = 80; // rpm
+const double MOTORS_INIT_SPEED = 55; // rpm
+const double MOTORS_MAX_SPEED = 85; // rpm
 const double MOTORS_ROTATION_SPEED = 35;
 const double STEP = 300; // mm
 
 enum STATE {
     INIT,               // 0
     IDLE,               // 1
-    FWARD,              // 2
+    MOVE,               // 2
     STRAIGHT,           // 3
     STRAIGHT_LEFT,      // 4
     STRAIGHT_RIGHT,     // 5
     OFFLINE_LEFT,       // 6
     OFFLINE_RIGHT,      // 7
-    ROTATE_RIGHT,       // 8
-    ROTATE_LEFT,        // 9
-    PRE_ROTATE_RIGHT,   // 10
-    PRE_ROTATE_LEFT,    // 11
-    PRE_ROTATE_RIGHT_2, // 12
-    PRE_ROTATE_LEFT_2,  // 13
-    POST_ROTATE_RIGHT,  // 14
-    POST_ROTATE_LEFT,   // 15
-    ALIGNMENT           // 16
+    TURN_RIGHT,         // 8
+    TURN_LEFT,          // 9
+    PRE_TURN_RIGHT,     // 10
+    PRE_TURN_LEFT,      // 11
+    PRE_TURN_RIGHT_2,   // 12
+    PRE_TURN_LEFT_2,    // 13
+    POST_TURN_RIGHT,    // 14
+    POST_TURN_LEFT,     // 15
+    ALIGNMENT,          // 16
+    PRE_ROTATE,         // 17
+    ROTATE              // 18
 };
