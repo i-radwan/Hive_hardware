@@ -1,5 +1,8 @@
 #pragma once
 
+// PWM
+const int PWM_FREQUENCY = 500; // In range 1-1000 KHz
+
 // WIFI
 const char* NET_NAME = "Radwan";
 const char* NET_PASS = "9992009a";
@@ -106,6 +109,7 @@ const double MOTORS_INIT_SPEED = 55; // rpm
 const double MOTORS_MAX_SPEED = 85; // rpm
 const double MOTORS_ROTATION_SPEED = 35;
 const double STEP = 300; // mm
+const double EPS = 1e-6;
 
 enum STATE {
     INIT,               // 0
@@ -128,3 +132,4 @@ enum STATE {
     PRE_ROTATE,         // 17
     ROTATE              // 18
 };
+

@@ -9,264 +9,183 @@ class Navigator {
 public:
 
     // 1.2, 0.1, 0.4
-    Navigator() : leftMotorPID(2, 0.3, 0, MOTORS_INIT_SPEED, 0), 
-                  rightMotorPID(2, 0.3, 0, MOTORS_INIT_SPEED, 0) {
+    Navigator() : leftMotorController(2, 0.3, 0, MOTORS_INIT_SPEED), 
+                  rightMotorController(2, 0.3, 0, MOTORS_INIT_SPEED) {
     }
 
-    void setup(Communicator* com, PCF857x* pcf1, Encoder* len, Encoder* ren) {
+    void setup(PCF857x* pcf1, Encoder* len, Encoder* ren) {
         // Motor pins
-        pinMode(LEFT_DIR1, OUTPUT);
-        pinMode(LEFT_DIR2, OUTPUT);
         pinMode(LEFT_SPED, OUTPUT);
-        pinMode(RGHT_DIR1, OUTPUT);
-        pinMode(RGHT_DIR2, OUTPUT);
         pinMode(RGHT_SPED, OUTPUT);
 
-        this->com = com;
-        this->pcf1 = pcf1;
-        this->len = len;
-        this->ren = ren;
+        leftMotorController.en = len;
+        rightMotorController.en = ren;
+
+        motorsPCF = pcf1;
     }
 
-    void init(double currentAngle) {
-        if (state != INIT)
-            return;
-
-        angle = currentAngle;
-
-        state = IDLE;
-    }
-
-    bool navigate(double currentAngle, unsigned long distance, bool isFrontCenterBlack, bool isFrontLeftBlack, bool isFrontRightBlack, bool isBackLeftBlack, bool isBackRightBlack, String& logs) {
+    bool navigate(unsigned long distance, bool isFrontCenterBlack, bool isFrontLeftBlack, bool isFrontRightBlack, bool isBackLeftBlack, bool isBackRightBlack, String& logs) {
         if (state == MOVE || state == STRAIGHT || state == STRAIGHT_LEFT || state == STRAIGHT_RIGHT || state == OFFLINE_LEFT || state ==  OFFLINE_RIGHT || state == ALIGNMENT)
-            return move(currentAngle, distance, isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
+            return move(distance, isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
         else if (state == TURN_LEFT || state == TURN_RIGHT || state == PRE_TURN_RIGHT || state == PRE_TURN_LEFT || state == PRE_TURN_RIGHT_2 || state == PRE_TURN_LEFT_2 || state == POST_TURN_RIGHT || state == POST_TURN_LEFT)
-            return turn(currentAngle, isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
-        else if (state == PRE_ROTATE || state == ROTATE) {
+            return turn(isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
+        else if (state == PRE_ROTATE || state == ROTATE)
             return rotate(isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
-        }
+        
         return false;
     }
     
-    void stop(double currentAngle) {
-        if (state == INIT) {
-            return;
-        } else if (state == IDLE) { // ToDo: remove, this is used to reset the angle on double stop commands
-            angle = currentAngle;
-        }
-
+    void stop() {
         state = IDLE;
 
         adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);
     }
     
-    void forward(double currentAngle) {
-        init(currentAngle);
-
+    void prepare() {
         time = millis();
-        pidI = 0;
-        prevDiff = currentAngle - angle;
 
-        leftMotorPID.reset();
-        rightMotorPID.reset();
-
-        noInterrupts();
-        len->reset();
-        ren->reset();
-        interrupts();
-
-        state = MOVE;
+        leftMotorController.reset();
+        rightMotorController.reset();
 
         wasBackRightBlack = false;
         wasBackLeftBlack = false;
+    }
+
+    void forward() {
+        prepare();
+
+        state = MOVE;
 
         distance = STEP;
     }
 
-    void backward(double currentAngle) {
-        init(currentAngle);
-
-        time = millis();
-        pidI = 0;
-        prevDiff = currentAngle - angle;
-
-        leftMotorPID.reset();
-        rightMotorPID.reset();
-
-        noInterrupts();
-        len->reset();
-        ren->reset();
-        interrupts();
+    void backward() {
+        prepare();
 
         state = PRE_ROTATE;
     }
 
-    void left(double currentAngle) {
-        init(currentAngle);
-        
-        time = millis();
-        pidI = 0;
-        i = 0;
-        prevDiff = currentAngle - angle;
-
-        leftMotorPID.reset();
-        rightMotorPID.reset();
-
-        noInterrupts();
-        len->reset();
-        ren->reset();
-        interrupts();
+    void left() {
+        prepare();
 
         state = PRE_TURN_LEFT;
-
-        wasBackRightBlack = false;
-        wasBackLeftBlack = false;
-        
-        angle += -90;
-
-        if (angle < -180) {
-            angle += 360;
-        }
     }
 
-    void right(double currentAngle) {
-        init(currentAngle);
-        
-        time = millis();
-        pidI = 0;
-        i = 0;
-        prevDiff = currentAngle - angle;
-
-        leftMotorPID.reset();
-        rightMotorPID.reset();
-
-        noInterrupts();
-        len->reset();
-        ren->reset();
-        interrupts();
+    void right() {
+        prepare();
 
         state = PRE_TURN_RIGHT;
-        
-        wasBackRightBlack = false;
-        wasBackLeftBlack = false;
-
-        angle += 90;
-
-        if (angle > 180) {
-            angle -= 360;
-        }
     }
 
-    struct MotorPID {
-        double kp, ki, kd;
-        double p = 0, i = 0, d = 0, diff = 0, prevDiff = 0, speed, throttle;
-        
-        MotorPID(double kp, double ki, double kd, double speed, double throttle) : kp(kp), ki(ki), kd(kd) {
-            this->speed = speed;
-            this->throttle = throttle;
-        }
-        
-        double computePWM(double spd, double elapsedTime) {
-            diff = speed - spd;
+    struct MotorController {
+        private: 
 
-            p = diff * kp;
-            i += diff * ki;
-            d = (elapsedTime > 1e-6) ? ((diff - prevDiff) / elapsedTime * kd) : 0;
+            const double kp, ki, kd;
+            double p = 0, i = 0, d = 0, diff = 0, prevDiff = 0, speed;
+            
+            double computePWM(double spd, double elapsedTime) {
+                diff = speed - spd;
 
-            prevDiff = diff;
+                p = diff * kp;
+                i += diff * ki;
+                d = (elapsedTime > EPS) ? ((diff - prevDiff) / elapsedTime * kd) : 0;
 
-            double pid = constrain(p + i + d, -PWMRANGE, PWMRANGE);
+                prevDiff = diff;
 
-            throttle = constrain(PWMRANGE / 5. + pid, 0, PWMRANGE);
+                double pid = constrain(p + i + d, -PWMRANGE, PWMRANGE);
 
-            return throttle;
-        }
+                double throttle = constrain(PWMRANGE / 5. + pid, 0, PWMRANGE);
 
-        double computeRPM(double ticks, double elapsedTime) {
-            return (elapsedTime > 1e-6) ? ((ticks / DISK_SLOTS) * float(60) / elapsedTime) : 0;
-        }
+                return throttle;
+            }
 
-        double computeDistance(double ticks) {
-            return (ticks / DISK_SLOTS) * WHEEL_DIAMETER * M_PI;
-        }
+            double computeRPM(double ticks, double elapsedTime) {
+                return (elapsedTime > EPS) ? ((ticks / DISK_SLOTS) * float(60) / elapsedTime) : 0;
+            }
 
-        void adjustSpeed(double spd) {
-            speed = constrain(spd, 0, MOTORS_MAX_SPEED);
-        }
+            double computeDistance(unsigned long ticks) {
+                return (ticks / DISK_SLOTS) * WHEEL_DIAMETER * M_PI;
+            }
 
-        void reset() {
-            p = i = d = diff = prevDiff = throttle = 0;
-        }
+            unsigned long computeTicks() {
+                unsigned long ticks;
+            
+                noInterrupts();
+                en->readAndReset(ticks);
+                interrupts();
+
+                return ticks;
+            }
+
+        public:
+
+            Encoder* en;
+
+            MotorController(double kp, double ki, double kd, double spd) : kp(kp), ki(ki), kd(kd) {
+                speed = spd;
+            }
+            
+            double compute(double elapsedTime, double newSpeed, double& distance) {
+                adjustSpeed(newSpeed);
+
+                unsigned long ticks = computeTicks();
+                distance = computeDistance(ticks);
+                
+                double RPM = computeRPM(ticks, elapsedTime);
+                double PWM = computePWM(RPM, elapsedTime);
+
+                return PWM;
+            }
+            
+            double compute(double elapsedTime, double newSpeed) {
+                double distance;
+
+                return compute(elapsedTime, newSpeed, distance);
+            }
+
+            void adjustSpeed(double spd) {
+                speed = constrain(spd, 0, MOTORS_MAX_SPEED);
+            }
+
+            void reset() {
+                p = i = d = diff = prevDiff = 0;
+
+                noInterrupts();
+                en->reset();
+                interrupts();
+            }
     };
 
 private:
-    int i = 0;
-
     STATE state = INIT;
 
-    Communicator* com;
-    PCF857x* pcf1;
+    PCF857x* motorsPCF;
     
-    Encoder* len;
-    Encoder* ren;
+    MotorController leftMotorController;
+    MotorController rightMotorController;
 
-    MotorPID leftMotorPID;
-    MotorPID rightMotorPID;
-
-    double angle = 0; // Reference angle
     double distance = 0; // Remaining distance
-
     double time = 0;
-    double prevDiff = 0;
-    double pid = 0, pidP = 0, pidI = 0, pidD = 0;
 
+    // Navigation flags
     bool atNode = true;
-    double atBlackTime = millis();
-
-    int spdDiffI = 0;
-
     bool prevIsFrontRightBlack = false;
     bool prevIsFrontLeftBlack = false;
     bool prevIsBackRightBlack = false;
     bool prevIsBackLeftBlack = false;
     bool prevIsFrontCenterBlack = false;
-    bool prevWasBackRightBlack = false;
-    bool prevWasBackLeftBlack = false;
-
     bool wasBackLeftBlack = false;
     bool wasBackRightBlack = false;
 
-    bool move(double currentAngle, unsigned long obstacleDistance, bool isFrontCenterBlack, bool isFrontLeftBlack, bool isFrontRightBlack, bool isBackLeftBlack, bool isBackRightBlack, String& logs) {
-        // com->send(" ");
-
+    bool move(unsigned long obstacleDistance, bool isFrontCenterBlack, bool isFrontLeftBlack, bool isFrontRightBlack, bool isBackLeftBlack, bool isBackRightBlack, String& logs) {
         // Emergency braking
         // if (obstacleDistance < MIN_DISTANCE) {
-        //     com->send("Error: nearby object!");
+        //     log += ("Error: nearby object!\n");
 
         //     adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);
 
         //     time = millis(); // To avoid large elapsed time after the obstacle is removed
 
-        //     return;
-        // }
-
-        // Reached a black spot
-        // if (isFrontLeftBlack && isFrontRightBlack && millis() - atBlackTime > 250 && !atBlack) {
-        //     com->send("New Black Spot!");
-            
-        //     adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
-
-        //     state = ALIGN;
-
-        //     atBlackTime = millis();
-        //     atBlack = true;
-        // }
-
-        // if (!isFrontLeftBlack || !isFrontRightBlack) {
-        //     atBlack = false;
-        // }
-
-        // if (state == ALIGN) {
         //     return;
         // }
 
@@ -285,24 +204,6 @@ private:
 
         double elapsedTime = (current - time) / 1000.0;
         time = current;
-
-        //
-        // Angle
-        //
-        double diff = currentAngle - angle;
-
-        if (diff > 180) {
-            diff -= 360;
-        } else if (diff < -180) {
-            diff += 360;
-        }
-
-        pidP = KP * diff;
-        pidI += (diff < I_LIMIT && diff > -I_LIMIT) ? (KI * diff) : 0;
-        pidD = (elapsedTime > 1e-6) ? (KD * ((diff - prevDiff) / elapsedTime)) : 0;
-        prevDiff = diff;
-
-        pid = constrain(pidP + pidI + pidD, -MOTORS_MAX_SPEED, MOTORS_MAX_SPEED);
 
         //
         // Line following
@@ -333,16 +234,12 @@ private:
             case STRAIGHT:
                 if (isFrontLeftBlack && !isFrontRightBlack && isFrontCenterBlack) {
                     state = STRAIGHT_RIGHT;
-                    spdDiffI = 0;
                 } else if (isFrontLeftBlack && !isFrontRightBlack && !isFrontCenterBlack) {
                     state = OFFLINE_RIGHT;
-                    spdDiffI = 0;
                 } else if (!isFrontLeftBlack && isFrontRightBlack && isFrontCenterBlack) {
                     state = STRAIGHT_LEFT;
-                    spdDiffI = 0;
                 } else if (!isFrontLeftBlack && isFrontRightBlack && !isFrontCenterBlack) {
                     state = OFFLINE_LEFT;
-                    spdDiffI = 0;
                 } 
 
                 if (!isBackLeftBlack && !isBackRightBlack) {
@@ -355,7 +252,6 @@ private:
                     state = STRAIGHT;
                 } else if (!isFrontCenterBlack) {
                     state = OFFLINE_LEFT;
-                    spdDiffI = 0;
                 } else if (isFrontLeftBlack && isFrontRightBlack) {
                     state = STRAIGHT;
                 }
@@ -401,8 +297,7 @@ private:
             break;
         }
 
-        double spdDiff = 0;
-        double leftSpeed, rightSpeed;
+        double leftSpeed = 0, rightSpeed = 0;
         double leftFactor = 1, rightFactor = 1;
 
         // States actions
@@ -410,76 +305,38 @@ private:
             case STRAIGHT:
                 leftSpeed = MOTORS_INIT_SPEED;
                 rightSpeed = MOTORS_INIT_SPEED;
-                // spdDiff = pid, spdDiffI = 0;
             break;
 
             case STRAIGHT_LEFT:
                 leftSpeed = MOTORS_INIT_SPEED;
                 rightSpeed = MOTORS_INIT_SPEED / 2;
-                // spdDiffI -= 2, spdDiff = -20 * fabs(diff / angle);
-
-                // if (abs(diff) >= 5) { // Stop the wheel to lock the car to the line
-                //     rightFactor = 0;
-                //     leftFactor = 0.75;
-                // }
             break;
 
             case STRAIGHT_RIGHT:
                 leftSpeed = MOTORS_INIT_SPEED / 2;
                 rightSpeed = MOTORS_INIT_SPEED;
-                
-                // spdDiffI -= 2, spdDiff = 20 * fabs(diff / angle);
-
-                // if (abs(diff) >= 5) { // Stop the wheel to lock the car to the line
-                //     rightFactor = 0.75;
-                //     leftFactor = 0;
-                // }
             break;
 
             case OFFLINE_LEFT:
                 leftSpeed = MOTORS_INIT_SPEED / 2;
                 rightSpeed = 0;
                 rightFactor = 0;
-                rightMotorPID.reset();
-            //     spdDiffI -= 4, spdDiff = -40 - spdDiffI;
+                rightMotorController.reset();
             break;
 
             case OFFLINE_RIGHT:
                 leftSpeed = 0;
                 leftFactor = 0;
-                leftMotorPID.reset();
+                leftMotorController.reset();
                 rightSpeed = MOTORS_INIT_SPEED / 2;
-            //     spdDiffI -= 4, spdDiff = 40 + spdDiffI;
             break;
         }
 
-        //
-        // Distance
-        //
-        unsigned long leftTicks, rightTicks;
-        
-        noInterrupts();
-        len->readAndReset(leftTicks);
-        ren->readAndReset(rightTicks);
-        interrupts();
-
-        // Get motors distances
-        double leftDistance = leftMotorPID.computeDistance(leftTicks);
-        double rightDistance = rightMotorPID.computeDistance(rightTicks);
-    
-        // Get motors speeds
-        double leftRPM = leftMotorPID.computeRPM(leftTicks, elapsedTime);
-        double rightRPM = rightMotorPID.computeRPM(rightTicks, elapsedTime);
-
-        // Adjust speed to maintain angle and reduce speed difference
-        // leftMotorPID.adjustSpeed((MOTORS_INIT_SPEED - spdDiff) * leftFactor);
-        // rightMotorPID.adjustSpeed((MOTORS_INIT_SPEED + spdDiff) * rightFactor);
-        leftMotorPID.adjustSpeed(leftSpeed);
-        rightMotorPID.adjustSpeed(rightSpeed);
+        double leftDistance, rightDistance;
 
         // Get motors throttle
-        double leftPWM = leftMotorPID.computePWM(leftRPM, elapsedTime);
-        double rightPWM = rightMotorPID.computePWM(rightRPM, elapsedTime);
+        double leftPWM = leftMotorController.compute(elapsedTime, leftSpeed, leftDistance);
+        double rightPWM = rightMotorController.compute(elapsedTime, rightSpeed, rightDistance);
 
         // Reduce distance
         distance -= max(leftDistance, rightDistance);
@@ -500,40 +357,30 @@ private:
         }
 
         logs += ("MOVE:: elapsedTime: " + String(elapsedTime) + 
-            " - STATE: " + String(state) + 
-            " - atNode: " + String(atNode) + 
-              // " - PID: " + String(pid) + 
-              // " - P: " + String(pidP) + 
-              // " - I: " + String(pidI) + 
-              // " - D: " + String(pidD) + 
-              // " - DIFF: " + String(diff) + 
-              // " - Angle: " + String(angle) + 
-              // " - currentAngle: " + String(currentAngle) + 
-              " - LeftRPM: " + String(leftRPM * rightFactor) + 
-              " - LeftSpeed: " + String(leftMotorPID.speed) + 
-              " - LeftPWM: " + String(leftPWM * leftFactor) + 
-              // " - LeftP: " + String(leftMotorPID.p) +
-              // " - LeftI: " + String(leftMotorPID.i) +
-              // " - LeftD: " + String(leftMotorPID.d) + 
-              " - RightRPM: " + String(rightRPM) +
-              " - RightSpeed: " + String(rightMotorPID.speed) + 
-              " - RightPWM: " + String(rightPWM) +
-              // " - RightP: " + String(rightMotorPID.p) +
-              // " - RightI: " + String(rightMotorPID.i) +
-              // " - RightD: " + String(rightMotorPID.d) + 
-              // " - leftDistance: " + String(leftDistance) + 
-              // " - rightDistance: " + String(rightDistance) + 
-              " - Distance: " + String(distance) + 
-              " - isFrontLeftBlack: " + String(isFrontLeftBlack) +
-              " - isFrontRightBlack: " + String(isFrontRightBlack) +
-              " - isFrontCenterBlack: " + String(isFrontCenterBlack) +
-              " - isBackLeftBlack: " + String(isBackLeftBlack) +
-              " - isBackRightBlack: " + String(isBackRightBlack) +
-              " - wasBackLeftBlack: " + String(wasBackLeftBlack) +
-              " - wasBackRightBlack: " + String(wasBackRightBlack)
-              // " - spdDiff: " + String(spdDiff) +
-              // " - spdDiffI: " + String(spdDiffI)
-              );
+                 " - STATE: " + String(state) + 
+                 " - atNode: " + String(atNode) + 
+                 // " - LeftRPM: " + String(leftRPM) + 
+                 " - LeftSpeed: " + String(leftSpeed) + 
+                 " - LeftPWM: " + String(leftPWM * leftFactor) + 
+                 // " - LeftP: " + String(leftMotorController.p) +
+                 // " - LeftI: " + String(leftMotorController.i) +
+                 // " - LeftD: " + String(leftMotorController.d) + 
+                 // " - RightRPM: " + String(rightRPM) +
+                 " - RightSpeed: " + String(rightSpeed) + 
+                 " - RightPWM: " + String(rightPWM * rightFactor) +
+                 // " - RightP: " + String(rightMotorController.p) +
+                 // " - RightI: " + String(rightMotorController.i) +
+                 // " - RightD: " + String(rightMotorController.d) + 
+                 // " - leftDistance: " + String(leftDistance) + 
+                 // " - rightDistance: " + String(rightDistance) + 
+                 " - Distance: " + String(distance) + 
+                 " - isFrontLeftBlack: " + String(isFrontLeftBlack) +
+                 " - isFrontRightBlack: " + String(isFrontRightBlack) +
+                 " - isFrontCenterBlack: " + String(isFrontCenterBlack) +
+                 " - isBackLeftBlack: " + String(isBackLeftBlack) +
+                 " - isBackRightBlack: " + String(isBackRightBlack) +
+                 " - wasBackLeftBlack: " + String(wasBackLeftBlack) +
+                 " - wasBackRightBlack: " + String(wasBackRightBlack));
 
         if (wasBackLeftBlack && wasBackRightBlack && !atNode && distance < STEP / 2) {
             adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
@@ -546,29 +393,12 @@ private:
             return true;
         }
 
-        // Set directions
-        int lDir1 = HIGH;
-        int lDir2 = LOW;
-        int rDir1 = HIGH;
-        int rDir2 = LOW;
-        
-        if (leftPWM < 0 || leftMotorPID.speed < 0) {
-            leftPWM = -leftPWM;
+        adjustMotors(leftPWM * leftFactor, rightPWM * rightFactor, HIGH, LOW, HIGH, LOW);
 
-            Utils::swap(&lDir1, &lDir2);
-        }
-        
-        if (rightPWM < 0 || rightMotorPID.speed < 0) {
-            rightPWM = -rightPWM;
-
-            Utils::swap(&rDir1, &rDir2);
-        }
-
-        // adjustMotors(leftSpeed == 0 ? 0 : leftPWM, rightSpeed == 0 ? 0 : rightPWM, lDir1, lDir2, rDir1, rDir2);
-        adjustMotors(leftPWM * leftFactor, rightPWM * rightFactor, lDir1, lDir2, rDir1, rDir2);
+        return false;
     }
 
-    bool turn(double currentAngle, bool isFrontCenterBlack, bool isFrontLeftBlack, bool isFrontRightBlack, bool isBackLeftBlack, bool isBackRightBlack, String& logs) {
+    bool turn(bool isFrontCenterBlack, bool isFrontLeftBlack, bool isFrontRightBlack, bool isBackLeftBlack, bool isBackRightBlack, String& logs) {
         //
         // Timer
         //
@@ -586,17 +416,6 @@ private:
         time = current;
 
         //
-        // Angle
-        //
-        double diff = currentAngle - angle;
-
-        if (diff > 180) {
-            diff -= 360;
-        } else if (diff < -180) {
-            diff += 360;
-        }
-
-        //
         // Line following
         //
         prevIsFrontRightBlack = isFrontRightBlack;
@@ -607,40 +426,6 @@ private:
 
         // FSM transitions
         switch (state) {
-            // case PRE_TURN_RIGHT:
-            //     if (!isFrontRightBlack) {
-            //         state = TURN_RIGHT;
-            //     }
-            // break;
-            // case PRE_TURN_LEFT:
-            //     if (!isFrontLeftBlack) {
-            //         state = TURN_LEFT;
-            //     }
-            // break;
-            
-            // case TURN_RIGHT:
-            //     if (isFrontRightBlack) {
-            //         state = POST_TURN_RIGHT;
-            //     }
-            // break;
-            
-            // case TURN_LEFT: 
-            //     if (isFrontLeftBlack) {
-            //         state = POST_TURN_LEFT;
-            //     }
-            // break;
-            
-            // case POST_TURN_RIGHT: 
-            //     if (!isFrontRightBlack) {
-            //         state = IDLE;
-            //     }
-            // break;
-            
-            // case POST_TURN_LEFT: 
-            //     if (!isFrontLeftBlack) {
-            //         state = IDLE;
-            //     }
-            // break;
             case PRE_TURN_RIGHT:
                 if (!isFrontRightBlack) {
                     state = PRE_TURN_RIGHT_2;
@@ -694,68 +479,63 @@ private:
             break;
         }
 
-        double lspd = 0;
-        double rspd = 0;
-
-        int lFactor = 1, rFactor = 1;
+        double leftSpeed = 0, rightSpeed = 0;
+        double leftFactor = 1, rightFactor = 1;
 
         // States actions
         switch (state) {
             case IDLE:
                 adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
             
-                noInterrupts();
-                len->reset();
-                ren->reset();
-                interrupts();
+                leftMotorController.reset();
+                rightMotorController.reset();
 
-                logs += ("TURN:: " + String(i++) + 
-                  " - state: " + String(state) + 
-                  " - isFrontLeftBlack: " + String(isFrontLeftBlack) +
-                  " - isFrontRightBlack: " + String(isFrontRightBlack) +
-                  " - isFrontCenterBlack: " + String(isFrontCenterBlack) +
-                  " - isBackLeftBlack: " + String(isBackLeftBlack) +
-                  " - isBackRightBlack: " + String(isBackRightBlack) +
-                  " - wasBackLeftBlack: " + String(wasBackLeftBlack) +
-                  " - wasBackRightBlack: " + String(wasBackRightBlack) +
-                  " - elapsedTime: " + String(elapsedTime));
+                logs += ("TURN:: - state: " + String(state) + 
+                         " - isFrontLeftBlack: " + String(isFrontLeftBlack) +
+                         " - isFrontRightBlack: " + String(isFrontRightBlack) +
+                         " - isFrontCenterBlack: " + String(isFrontCenterBlack) +
+                         " - isBackLeftBlack: " + String(isBackLeftBlack) +
+                         " - isBackRightBlack: " + String(isBackRightBlack) +
+                         " - wasBackLeftBlack: " + String(wasBackLeftBlack) +
+                         " - wasBackRightBlack: " + String(wasBackRightBlack) +
+                         " - elapsedTime: " + String(elapsedTime));
 
                 return true;
             break;
 
             case PRE_TURN_RIGHT:
-                rspd = -MOTORS_ROTATION_SPEED;
-                lspd = MOTORS_ROTATION_SPEED;
+                rightSpeed = -MOTORS_ROTATION_SPEED;
+                leftSpeed = MOTORS_ROTATION_SPEED;
             break;
 
             case PRE_TURN_LEFT:
-                rspd = MOTORS_ROTATION_SPEED;
-                lspd = -MOTORS_ROTATION_SPEED;
+                rightSpeed = MOTORS_ROTATION_SPEED;
+                leftSpeed = -MOTORS_ROTATION_SPEED;
             break;
 
             case PRE_TURN_RIGHT_2:
-                rspd = -MOTORS_ROTATION_SPEED;
-                lspd = MOTORS_ROTATION_SPEED;
+                rightSpeed = -MOTORS_ROTATION_SPEED;
+                leftSpeed = MOTORS_ROTATION_SPEED;
             break;
 
             case PRE_TURN_LEFT_2:
-                rspd = MOTORS_ROTATION_SPEED;
-                lspd = -MOTORS_ROTATION_SPEED;
+                rightSpeed = MOTORS_ROTATION_SPEED;
+                leftSpeed = -MOTORS_ROTATION_SPEED;
             break;
             
             case TURN_RIGHT:
-                rspd = -MOTORS_ROTATION_SPEED;
-                lspd = MOTORS_ROTATION_SPEED;
+                rightSpeed = -MOTORS_ROTATION_SPEED;
+                leftSpeed = MOTORS_ROTATION_SPEED;
             break;
             
             case TURN_LEFT:
-                rspd = MOTORS_ROTATION_SPEED;
-                lspd = -MOTORS_ROTATION_SPEED;
+                rightSpeed = MOTORS_ROTATION_SPEED;
+                leftSpeed = -MOTORS_ROTATION_SPEED;
             break;
             
             case POST_TURN_RIGHT:
-                rspd = -MOTORS_ROTATION_SPEED;
-                lspd = MOTORS_ROTATION_SPEED;
+                rightSpeed = -MOTORS_ROTATION_SPEED;
+                leftSpeed = MOTORS_ROTATION_SPEED;
 
                 if (isBackLeftBlack) {
                     wasBackLeftBlack = true;
@@ -766,19 +546,19 @@ private:
                 }
 
                 if (wasBackRightBlack) {
-                    rspd = 0;
-                    rFactor = 0;
+                    rightSpeed = 0;
+                    rightFactor = 0;
                 }
 
                 if (wasBackLeftBlack) {
-                    lspd = 0;
-                    lFactor = 0;
+                    leftSpeed = 0;
+                    leftFactor = 0;
                 }
             break;
             
             case POST_TURN_LEFT:
-                rspd = MOTORS_ROTATION_SPEED;
-                lspd = -MOTORS_ROTATION_SPEED;
+                rightSpeed = MOTORS_ROTATION_SPEED;
+                leftSpeed = -MOTORS_ROTATION_SPEED;
 
                 if (isBackLeftBlack) {
                     wasBackLeftBlack = true;
@@ -789,72 +569,43 @@ private:
                 }
 
                 if (wasBackRightBlack) {
-                    rspd = 0;
-                    rFactor = 0;
+                    rightSpeed = 0;
+                    rightFactor = 0;
                 }
 
                 if (wasBackLeftBlack) {
-                    lspd = 0;
-                    lFactor = 0;
+                    leftSpeed = 0;
+                    leftFactor = 0;
                 }
             break;
         }
 
-        //
-        // Distance
-        //
-        unsigned long leftTicks, rightTicks;
-        
-        noInterrupts();
-        len->readAndReset(leftTicks);
-        ren->readAndReset(rightTicks);
-        interrupts();
-
-        // Get motors distances
-        double leftDistance = leftMotorPID.computeDistance(leftTicks);
-        double rightDistance = rightMotorPID.computeDistance(rightTicks);
-    
-        // Get motors speeds
-        double leftRPM = leftMotorPID.computeRPM(leftTicks, elapsedTime);
-        double rightRPM = rightMotorPID.computeRPM(rightTicks, elapsedTime);
-
-        // Adjust speed to maintain angle and reduce speed difference
-        leftMotorPID.adjustSpeed(abs(lspd));
-        rightMotorPID.adjustSpeed(abs(rspd));
-
         // Get motors throttle
-        double leftPWM = leftMotorPID.computePWM(leftRPM, elapsedTime);
-        double rightPWM = rightMotorPID.computePWM(rightRPM, elapsedTime);
+        double leftPWM = leftMotorController.compute(elapsedTime, abs(leftSpeed));
+        double rightPWM = rightMotorController.compute(elapsedTime, abs(rightSpeed));
 
-        logs += ("TURN:: " + String(i++) + 
-                  " - state: " + String(state) + 
-                  " - isFrontLeftBlack: " + String(isFrontLeftBlack) +
-                  " - isFrontRightBlack: " + String(isFrontRightBlack) +
-                  " - isFrontCenterBlack: " + String(isFrontCenterBlack) +
-                  " - isBackLeftBlack: " + String(isBackLeftBlack) +
-                  " - isBackRightBlack: " + String(isBackRightBlack) +
-                  " - wasBackLeftBlack: " + String(wasBackLeftBlack) +
-                  " - wasBackRightBlack: " + String(wasBackRightBlack) +
-                  " - elapsedTime: " + String(elapsedTime) + 
-                  // " - PID: " + String(pid) + 
-                  // " - P: " + String(pidP) + 
-                  // " - I: " + String(pidI) + 
-                  // " - D: " + String(pidD) + 
-                  // " - DIFF: " + String(diff) + 
-                  // " - Angle: " + String(angle) + 
-                  // " - currentAngle: " + String(currentAngle) + 
-                  " - LeftRPM: " + String(leftRPM) + 
-                  " - LeftSpeed: " + String(leftMotorPID.speed) + 
-                  " - LeftPWM: " + String(leftPWM) + 
-                  " - LeftP: " + String(leftMotorPID.p) +
-                  " - LeftI: " + String(leftMotorPID.i) +
-                  " - LeftD: " + String(leftMotorPID.d) + 
-                  " - RightRPM: " + String(rightRPM) +
-                  " - RightSpeed: " + String(rightMotorPID.speed) + 
-                  " - RightPWM: " + String(rightPWM) +
-                  " - RightP: " + String(rightMotorPID.p) +
-                  " - RightI: " + String(rightMotorPID.i) +
-                  " - RightD: " + String(rightMotorPID.d));
+        logs += ("TURN:: - state: " + String(state) + 
+                 " - isFrontLeftBlack: " + String(isFrontLeftBlack) +
+                 " - isFrontRightBlack: " + String(isFrontRightBlack) +
+                 " - isFrontCenterBlack: " + String(isFrontCenterBlack) +
+                 " - isBackLeftBlack: " + String(isBackLeftBlack) +
+                 " - isBackRightBlack: " + String(isBackRightBlack) +
+                 " - wasBackLeftBlack: " + String(wasBackLeftBlack) +
+                 " - wasBackRightBlack: " + String(wasBackRightBlack) +
+                 " - elapsedTime: " + String(elapsedTime) + 
+                 // " - LeftRPM: " + String(leftRPM) + 
+                 " - LeftSpeed: " + String(abs(leftSpeed)) + 
+                 " - LeftPWM: " + String(leftPWM) + 
+                 // " - LeftP: " + String(leftMotorController.p) +
+                 // " - LeftI: " + String(leftMotorController.i) +
+                 // " - LeftD: " + String(leftMotorController.d) + 
+                 // " - RightRPM: " + String(rightRPM) +
+                 " - RightSpeed: " + String(abs(rightSpeed)) + 
+                 " - RightPWM: " + String(rightPWM)
+                 // " - RightP: " + String(rightMotorController.p) +
+                 // " - RightI: " + String(rightMotorController.i) +
+                 // " - RightD: " + String(rightMotorController.d)
+                 );
 
         // Set directions
         int lDir1 = HIGH;
@@ -862,15 +613,15 @@ private:
         int rDir1 = HIGH;
         int rDir2 = LOW;
         
-        if (lspd < 0) {
+        if (leftSpeed < 0) {
             Utils::swap(&lDir1, &lDir2);
         }
         
-        if (rspd < 0) {
+        if (rightSpeed < 0) {
             Utils::swap(&rDir1, &rDir2);
         }
 
-        adjustMotors(leftPWM * lFactor, rightPWM * rFactor, lDir1, lDir2, rDir1, rDir2);
+        adjustMotors(leftPWM * leftFactor, rightPWM * rightFactor, lDir1, lDir2, rDir1, rDir2);
 
         return false;
     }
@@ -900,8 +651,6 @@ private:
         prevIsFrontCenterBlack = isFrontCenterBlack;
         prevIsBackRightBlack = isBackRightBlack;
         prevIsBackLeftBlack = isBackLeftBlack;
-        prevWasBackRightBlack = wasBackRightBlack;
-        prevWasBackLeftBlack = wasBackLeftBlack;
 
         // FSM transitions
         switch (state) {
@@ -918,68 +667,42 @@ private:
             break;
         }
 
-        double lspd = 0;
-        double rspd = 0;
+        double leftSpeed = 0, rightSpeed = 0;
 
         switch (state) {
             case MOVE:
                 adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);        
             
-                noInterrupts();
-                len->reset();
-                ren->reset();
-                interrupts();
+                leftMotorController.reset();
+                rightMotorController.reset();
 
-                logs += ("ROTATE:: " + String(i++) + 
-                  " - state: " + String(state) + 
-                  " - isFrontLeftBlack: " + String(isFrontLeftBlack) +
-                  " - isFrontRightBlack: " + String(isFrontRightBlack) +
-                  " - isFrontCenterBlack: " + String(isFrontCenterBlack) +
-                  " - isBackLeftBlack: " + String(isBackLeftBlack) +
-                  " - isBackRightBlack: " + String(isBackRightBlack) +
-                  " - wasBackLeftBlack: " + String(wasBackLeftBlack) +
-                  " - wasBackRightBlack: " + String(wasBackRightBlack) +
-                  " - elapsedTime: " + String(elapsedTime));
+                logs += ("ROTATE:: - state: " + String(state) + 
+                         " - isFrontLeftBlack: " + String(isFrontLeftBlack) +
+                         " - isFrontRightBlack: " + String(isFrontRightBlack) +
+                         " - isFrontCenterBlack: " + String(isFrontCenterBlack) +
+                         " - isBackLeftBlack: " + String(isBackLeftBlack) +
+                         " - isBackRightBlack: " + String(isBackRightBlack) +
+                         " - wasBackLeftBlack: " + String(wasBackLeftBlack) +
+                         " - wasBackRightBlack: " + String(wasBackRightBlack) +
+                         " - elapsedTime: " + String(elapsedTime));
 
                 return true;
             break;
 
             case PRE_ROTATE:
-                rspd = -MOTORS_ROTATION_SPEED;
-                lspd = MOTORS_ROTATION_SPEED;
+                rightSpeed = -MOTORS_ROTATION_SPEED;
+                leftSpeed = MOTORS_ROTATION_SPEED;
             break;
 
             case ROTATE:
-                rspd = -MOTORS_ROTATION_SPEED;
-                lspd = MOTORS_ROTATION_SPEED;
+                rightSpeed = -MOTORS_ROTATION_SPEED;
+                leftSpeed = MOTORS_ROTATION_SPEED;
             break;
         }
 
-        //
-        // Distance
-        //
-        unsigned long leftTicks, rightTicks;
-        
-        noInterrupts();
-        len->readAndReset(leftTicks);
-        ren->readAndReset(rightTicks);
-        interrupts();
-
-        // Get motors distances
-        double leftDistance = leftMotorPID.computeDistance(leftTicks);
-        double rightDistance = rightMotorPID.computeDistance(rightTicks);
-    
-        // Get motors speeds
-        double leftRPM = leftMotorPID.computeRPM(leftTicks, elapsedTime);
-        double rightRPM = rightMotorPID.computeRPM(rightTicks, elapsedTime);
-
-        // Adjust speed to maintain angle and reduce speed difference
-        leftMotorPID.adjustSpeed(abs(lspd));
-        rightMotorPID.adjustSpeed(abs(rspd));
-
         // Get motors throttle
-        double leftPWM = leftMotorPID.computePWM(leftRPM, elapsedTime);
-        double rightPWM = rightMotorPID.computePWM(rightRPM, elapsedTime);   
+        double leftPWM = leftMotorController.compute(elapsedTime, abs(leftSpeed));
+        double rightPWM = rightMotorController.compute(elapsedTime, abs(rightSpeed));
 
         // Set directions
         int lDir1 = HIGH;
@@ -987,11 +710,11 @@ private:
         int rDir1 = HIGH;
         int rDir2 = LOW;
         
-        if (lspd < 0) {
+        if (leftSpeed < 0) {
             Utils::swap(&lDir1, &lDir2);
         }
         
-        if (rspd < 0) {
+        if (rightSpeed < 0) {
             Utils::swap(&rDir1, &rDir2);
         }
 
@@ -1002,22 +725,23 @@ private:
 
     void adjustMotors(int lSpeed, int rSpeed, int lDir1, int lDir2, int rDir1, int rDir2) {
         // Lock the stopping wheels
-        if (lSpeed < 1e-6) {
+        if (lSpeed < EPS) {
             lDir1 = lDir2 = HIGH;
             lSpeed = PWMRANGE;
         }
 
-        if (rSpeed < 1e-6) {
+        if (rSpeed < EPS) {
             rDir1 = rDir2 = HIGH;
             rSpeed = PWMRANGE;
         }
 
+        // Send motor signals
         analogWrite(LEFT_SPED, lSpeed);
         analogWrite(RGHT_SPED, rSpeed);
 
-        pcf1->write(LEFT_DIR1, lDir1);
-        pcf1->write(LEFT_DIR2, lDir2);
-        pcf1->write(RGHT_DIR1, rDir1);
-        pcf1->write(RGHT_DIR2, rDir2);
+        motorsPCF->write(LEFT_DIR1, lDir1);
+        motorsPCF->write(LEFT_DIR2, lDir2);
+        motorsPCF->write(RGHT_DIR1, rDir1);
+        motorsPCF->write(RGHT_DIR2, rDir2);
     }
 };

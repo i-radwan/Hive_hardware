@@ -4,8 +4,6 @@
 #include "communicator.h"
 #include "navigator.h"
 #include "ota.h"   
-#include "sensors/mpu.h"
-#include "sensors/optical.h"
 #include "sensors/encoder.h"
 #include "sensors/black.h"
 #include "sensors/ultrasonic.h"
@@ -16,7 +14,6 @@
 //
 Communicator com;
 Navigator nav;
-// MPUSensor mpu;
 BlackSensor blblk;
 BlackSensor brblk;
 BlackSensor flblk;
@@ -47,19 +44,11 @@ void rightEncoderISR() {
 // Logic
 //
 void setup() {
-    // Initialize Serial connection
-    // Serial.begin(BAUD_RATE);
-
     // Initialize I2C Bus
     Wire.begin(I2C_SDA, I2C_SCL);
 
     // Initialize connection
     setupState = com.setup();
-    
-    // Dummy check
-    for (int i = 0; i < 10000; ++i) {
-        ota.handle();
-    }
 
     // Initialize PCFs
     pcf1.begin(0xF0); // P0-P3 output, P4-P7 input
@@ -68,7 +57,6 @@ void setup() {
     ota.setup();
 
     // Initialize sensors
-    // mpu.setup();
     uls.setup();
     blblk.setup(&pcf1, BAK_LFT_BLACK_SENSOR_PIN, BAK_LFT_BLACK_SENSOR_INV, BAK_LFT_BLACK_SENSOR_PCF);
     brblk.setup(&pcf1, BAK_RGT_BLACK_SENSOR_PIN, BAK_RGT_BLACK_SENSOR_INV, BAK_RGT_BLACK_SENSOR_PCF);
@@ -83,17 +71,17 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(RGHT_ENC), rightEncoderISR, CHANGE);
 
     // Initialize motors
-    nav.setup(&com, &pcf1, &len, &ren);
+    nav.setup(&pcf1, &len, &ren);
 
     // Initialize servo
     // servo.attach(SERVO_PIN);
     // servo.write(SERVO_DOWN_ANGLE);
 
-    // Send initial ACK
+    // Send initial setup completed signal
     com.send(MSG_SET);
 
     // Setup PWM freq
-    analogWriteFreq(500);
+    analogWriteFreq(PWM_FREQUENCY);
 }
 
 int i = 0;
@@ -109,20 +97,13 @@ void loop() {
     // Read sensors
     //
     
-    // MPU
-    double y = 0, p = 0, r = 0;
-    // mpu.read(y, p, r);
-    //     return;
-
-    // Black sensor
+    // Black sensors
     bool isBackLeftBlack, isBackRightBlack, isFrontLeftBlack, isFrontRightBlack, isFrontCenterBlack;
     blblk.read(isBackLeftBlack);
     brblk.read(isBackRightBlack);
     flblk.read(isFrontLeftBlack);
     frblk.read(isFrontRightBlack);
     fcblk.read(isFrontCenterBlack);
-
-    // com.send(String(isFrontLeftBlack) + " " + String(isFrontRightBlack) + " " + String(isFrontCenterBlack) + " " + String(isBackLeftBlack) + " " + String(isBackRightBlack));
 
     // Ultrasonic
     double distance;
@@ -135,27 +116,27 @@ void loop() {
 
     switch (msg) {
         case STOP:
-            nav.stop(y);
+            nav.stop();
             com.send(String("Stop!"));
         break;
 
         case FORWARD:
-            nav.forward(y);
+            nav.forward();
             com.send(String("Forward!"));
         break;
 
         case BACKWARD:
-            nav.backward(y);
+            nav.backward();
             com.send(String("Backward!"));
         break;
 
         case LEFT:
-            nav.left(y);
+            nav.left();
             com.send(String("Left!"));
         break;
 
         case RIGHT:
-            nav.right(y);
+            nav.right();
             com.send(String("Right!"));
         break;
 
@@ -171,19 +152,20 @@ void loop() {
     }
 
     // Navigation
-    bool finished = nav.navigate(y, distance, isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
+    bool finished = nav.navigate(distance, isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
 
+    // Transmit back to the server
     delay(50);
     
     if (logs.length() > 0) {
-        com.send(String(i++) + " :: " + logs);
+        com.send(logs);
         
         logs = "";
     }
     
-    if (finished)
+    if (finished) {
         com.send(MSG_ACK);
+    }
 
-    // yield();
     delay(10);
 }
