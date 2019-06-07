@@ -5,7 +5,88 @@
 #include "utils/utils.h"
 #include "utils/constants.h"
 
+struct MotorController {
+    
+private: 
+
+    const double kp, ki, kd;
+    double p = 0, i = 0, d = 0, diff = 0, prevDiff = 0, speed;
+    
+    double computePWM(double spd, double elapsedTime) {
+        diff = speed - spd;
+
+        p = diff * kp;
+        i += diff * ki;
+        d = (elapsedTime > EPS) ? ((diff - prevDiff) / elapsedTime * kd) : 0;
+
+        prevDiff = diff;
+
+        double pid = constrain(p + i + d, -PWMRANGE, PWMRANGE);
+
+        double throttle = constrain(PWMRANGE / 5. + pid, 0, PWMRANGE);
+
+        return throttle;
+    }
+
+    double computeRPM(double ticks, double elapsedTime) {
+        return (elapsedTime > EPS) ? ((ticks / DISK_SLOTS) * float(60) / elapsedTime) : 0;
+    }
+
+    double computeDistance(unsigned long ticks) {
+        return (ticks / DISK_SLOTS) * WHEEL_DIAMETER * M_PI;
+    }
+
+    unsigned long computeTicks() {
+        unsigned long ticks;
+    
+        noInterrupts();
+        en->readAndReset(ticks);
+        interrupts();
+
+        return ticks;
+    }
+
+public:
+
+    Encoder* en;
+
+    MotorController(double kp, double ki, double kd, double spd) : kp(kp), ki(ki), kd(kd) {
+        speed = spd;
+    }
+    
+    double compute(double elapsedTime, double newSpeed, double& distance) {
+        adjustSpeed(newSpeed);
+
+        unsigned long ticks = computeTicks();
+        distance = computeDistance(ticks);
+        
+        double RPM = computeRPM(ticks, elapsedTime);
+        double PWM = computePWM(RPM, elapsedTime);
+
+        return PWM;
+    }
+    
+    double compute(double elapsedTime, double newSpeed) {
+        double distance;
+
+        return compute(elapsedTime, newSpeed, distance);
+    }
+
+    void adjustSpeed(double spd) {
+        speed = constrain(spd, 0, MOTORS_MAX_SPEED);
+    }
+
+    void reset() {
+        p = i = d = diff = prevDiff = 0;
+
+        noInterrupts();
+        en->reset();
+        interrupts();
+    }
+};
+
 class Navigator {
+
 public:
 
     // 1.2, 0.1, 0.4
@@ -27,10 +108,10 @@ public:
     bool navigate(unsigned long distance, bool isFrontCenterBlack, bool isFrontLeftBlack, bool isFrontRightBlack, bool isBackLeftBlack, bool isBackRightBlack, String& logs) {
         if (state == MOVE || state == STRAIGHT || state == STRAIGHT_LEFT || state == STRAIGHT_RIGHT || state == OFFLINE_LEFT || state ==  OFFLINE_RIGHT || state == ALIGNMENT)
             return move(distance, isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
-        else if (state == TURN_LEFT || state == TURN_RIGHT || state == PRE_TURN_RIGHT || state == PRE_TURN_LEFT || state == PRE_TURN_RIGHT_2 || state == PRE_TURN_LEFT_2 || state == POST_TURN_RIGHT || state == POST_TURN_LEFT)
-            return turn(isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
-        else if (state == PRE_ROTATE || state == ROTATE)
+        else if (state == ROTATE_LEFT || state == ROTATE_RIGHT || state == PRE_ROTATE_RIGHT || state == PRE_ROTATE_LEFT || state == PRE_ROTATE_RIGHT_2 || state == PRE_ROTATE_LEFT_2 || state == POST_ROTATE_RIGHT || state == POST_ROTATE_LEFT)
             return rotate(isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
+        else if (state == PRE_RETREAT || state == RETREAT)
+            return retreat(isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
         
         return false;
     }
@@ -62,99 +143,20 @@ public:
     void backward() {
         prepare();
 
-        state = PRE_ROTATE;
+        state = PRE_RETREAT;
     }
 
     void left() {
         prepare();
 
-        state = PRE_TURN_LEFT;
+        state = PRE_ROTATE_LEFT;
     }
 
     void right() {
         prepare();
 
-        state = PRE_TURN_RIGHT;
+        state = PRE_ROTATE_RIGHT;
     }
-
-    struct MotorController {
-        private: 
-
-            const double kp, ki, kd;
-            double p = 0, i = 0, d = 0, diff = 0, prevDiff = 0, speed;
-            
-            double computePWM(double spd, double elapsedTime) {
-                diff = speed - spd;
-
-                p = diff * kp;
-                i += diff * ki;
-                d = (elapsedTime > EPS) ? ((diff - prevDiff) / elapsedTime * kd) : 0;
-
-                prevDiff = diff;
-
-                double pid = constrain(p + i + d, -PWMRANGE, PWMRANGE);
-
-                double throttle = constrain(PWMRANGE / 5. + pid, 0, PWMRANGE);
-
-                return throttle;
-            }
-
-            double computeRPM(double ticks, double elapsedTime) {
-                return (elapsedTime > EPS) ? ((ticks / DISK_SLOTS) * float(60) / elapsedTime) : 0;
-            }
-
-            double computeDistance(unsigned long ticks) {
-                return (ticks / DISK_SLOTS) * WHEEL_DIAMETER * M_PI;
-            }
-
-            unsigned long computeTicks() {
-                unsigned long ticks;
-            
-                noInterrupts();
-                en->readAndReset(ticks);
-                interrupts();
-
-                return ticks;
-            }
-
-        public:
-
-            Encoder* en;
-
-            MotorController(double kp, double ki, double kd, double spd) : kp(kp), ki(ki), kd(kd) {
-                speed = spd;
-            }
-            
-            double compute(double elapsedTime, double newSpeed, double& distance) {
-                adjustSpeed(newSpeed);
-
-                unsigned long ticks = computeTicks();
-                distance = computeDistance(ticks);
-                
-                double RPM = computeRPM(ticks, elapsedTime);
-                double PWM = computePWM(RPM, elapsedTime);
-
-                return PWM;
-            }
-            
-            double compute(double elapsedTime, double newSpeed) {
-                double distance;
-
-                return compute(elapsedTime, newSpeed, distance);
-            }
-
-            void adjustSpeed(double spd) {
-                speed = constrain(spd, 0, MOTORS_MAX_SPEED);
-            }
-
-            void reset() {
-                p = i = d = diff = prevDiff = 0;
-
-                noInterrupts();
-                en->reset();
-                interrupts();
-            }
-    };
 
 private:
     STATE state = INIT;
@@ -178,7 +180,7 @@ private:
     bool wasBackRightBlack = false;
 
     bool move(unsigned long obstacleDistance, bool isFrontCenterBlack, bool isFrontLeftBlack, bool isFrontRightBlack, bool isBackLeftBlack, bool isBackRightBlack, String& logs) {
-        // Emergency braking
+        // Emergency braking ToDo
         // if (obstacleDistance < MIN_DISTANCE) {
         //     log += ("Error: nearby object!\n");
 
@@ -398,7 +400,7 @@ private:
         return false;
     }
 
-    bool turn(bool isFrontCenterBlack, bool isFrontLeftBlack, bool isFrontRightBlack, bool isBackLeftBlack, bool isBackRightBlack, String& logs) {
+    bool rotate(bool isFrontCenterBlack, bool isFrontLeftBlack, bool isFrontRightBlack, bool isBackLeftBlack, bool isBackRightBlack, String& logs) {
         //
         // Timer
         //
@@ -426,53 +428,53 @@ private:
 
         // FSM transitions
         switch (state) {
-            case PRE_TURN_RIGHT:
+            case PRE_ROTATE_RIGHT:
                 if (!isFrontRightBlack) {
-                    state = PRE_TURN_RIGHT_2;
+                    state = PRE_ROTATE_RIGHT_2;
                 }
             break;
 
-            case PRE_TURN_LEFT:
+            case PRE_ROTATE_LEFT:
                 if (!isFrontLeftBlack) {
-                    state = PRE_TURN_LEFT_2;
+                    state = PRE_ROTATE_LEFT_2;
                 }
             break;
 
-            case PRE_TURN_RIGHT_2:
+            case PRE_ROTATE_RIGHT_2:
                 if (!isFrontCenterBlack) {
-                    state = TURN_RIGHT;
+                    state = ROTATE_RIGHT;
                 }
             break;
 
-            case PRE_TURN_LEFT_2:
+            case PRE_ROTATE_LEFT_2:
                 if (!isFrontCenterBlack) {
-                    state = TURN_LEFT;
+                    state = ROTATE_LEFT;
                 }
             break;
             
-            case TURN_RIGHT:
+            case ROTATE_RIGHT:
                 if (isFrontRightBlack && !isFrontCenterBlack) {
-                    state = POST_TURN_RIGHT;
+                    state = POST_ROTATE_RIGHT;
                 } else if (isFrontRightBlack && isFrontCenterBlack) {
                     state = IDLE;
                 }
             break;
             
-            case TURN_LEFT: 
+            case ROTATE_LEFT: 
                 if (isFrontLeftBlack && !isFrontCenterBlack) {
-                    state = POST_TURN_LEFT;
+                    state = POST_ROTATE_LEFT;
                 } else if (isFrontLeftBlack && isFrontCenterBlack) {
                     state = IDLE;
                 }
             break;
 
-            case POST_TURN_RIGHT:
+            case POST_ROTATE_RIGHT:
                 if (isFrontCenterBlack || (wasBackLeftBlack && wasBackRightBlack)) {
                     state = IDLE;
                 }
             break;
 
-            case POST_TURN_LEFT:
+            case POST_ROTATE_LEFT:
                 if (isFrontCenterBlack || (wasBackLeftBlack && wasBackRightBlack)) {
                     state = IDLE;
                 }
@@ -503,37 +505,37 @@ private:
                 return true;
             break;
 
-            case PRE_TURN_RIGHT:
+            case PRE_ROTATE_RIGHT:
                 rightSpeed = -MOTORS_ROTATION_SPEED;
                 leftSpeed = MOTORS_ROTATION_SPEED;
             break;
 
-            case PRE_TURN_LEFT:
+            case PRE_ROTATE_LEFT:
                 rightSpeed = MOTORS_ROTATION_SPEED;
                 leftSpeed = -MOTORS_ROTATION_SPEED;
             break;
 
-            case PRE_TURN_RIGHT_2:
+            case PRE_ROTATE_RIGHT_2:
                 rightSpeed = -MOTORS_ROTATION_SPEED;
                 leftSpeed = MOTORS_ROTATION_SPEED;
             break;
 
-            case PRE_TURN_LEFT_2:
+            case PRE_ROTATE_LEFT_2:
                 rightSpeed = MOTORS_ROTATION_SPEED;
                 leftSpeed = -MOTORS_ROTATION_SPEED;
             break;
             
-            case TURN_RIGHT:
+            case ROTATE_RIGHT:
                 rightSpeed = -MOTORS_ROTATION_SPEED;
                 leftSpeed = MOTORS_ROTATION_SPEED;
             break;
             
-            case TURN_LEFT:
+            case ROTATE_LEFT:
                 rightSpeed = MOTORS_ROTATION_SPEED;
                 leftSpeed = -MOTORS_ROTATION_SPEED;
             break;
             
-            case POST_TURN_RIGHT:
+            case POST_ROTATE_RIGHT:
                 rightSpeed = -MOTORS_ROTATION_SPEED;
                 leftSpeed = MOTORS_ROTATION_SPEED;
 
@@ -556,7 +558,7 @@ private:
                 }
             break;
             
-            case POST_TURN_LEFT:
+            case POST_ROTATE_LEFT:
                 rightSpeed = MOTORS_ROTATION_SPEED;
                 leftSpeed = -MOTORS_ROTATION_SPEED;
 
@@ -626,7 +628,7 @@ private:
         return false;
     }
 
-    bool rotate(bool isFrontCenterBlack, bool isFrontLeftBlack, bool isFrontRightBlack, bool isBackLeftBlack, bool isBackRightBlack, String& logs) {
+    bool retreat(bool isFrontCenterBlack, bool isFrontLeftBlack, bool isFrontRightBlack, bool isBackLeftBlack, bool isBackRightBlack, String& logs) {
         //
         // Timer
         //
@@ -654,13 +656,13 @@ private:
 
         // FSM transitions
         switch (state) {
-            case PRE_ROTATE:
+            case PRE_RETREAT:
                 if (!isFrontCenterBlack && isFrontLeftBlack) {
-                    state = ROTATE;
+                    state = RETREAT;
                 }
             break;
 
-            case ROTATE:
+            case RETREAT:
                 if (isFrontCenterBlack) {
                     state = MOVE;
                 }
@@ -676,7 +678,7 @@ private:
                 leftMotorController.reset();
                 rightMotorController.reset();
 
-                logs += ("ROTATE:: - state: " + String(state) + 
+                logs += ("RETREAT:: - state: " + String(state) + 
                          " - isFrontLeftBlack: " + String(isFrontLeftBlack) +
                          " - isFrontRightBlack: " + String(isFrontRightBlack) +
                          " - isFrontCenterBlack: " + String(isFrontCenterBlack) +
@@ -689,12 +691,12 @@ private:
                 return true;
             break;
 
-            case PRE_ROTATE:
+            case PRE_RETREAT:
                 rightSpeed = -MOTORS_ROTATION_SPEED;
                 leftSpeed = MOTORS_ROTATION_SPEED;
             break;
 
-            case ROTATE:
+            case RETREAT:
                 rightSpeed = -MOTORS_ROTATION_SPEED;
                 leftSpeed = MOTORS_ROTATION_SPEED;
             break;
@@ -723,21 +725,21 @@ private:
         return false;
     }
 
-    void adjustMotors(int lSpeed, int rSpeed, int lDir1, int lDir2, int rDir1, int rDir2) {
+    void adjustMotors(int leftPWM, int rightPWM, int lDir1, int lDir2, int rDir1, int rDir2) {
         // Lock the stopping wheels
-        if (lSpeed < EPS) {
+        if (leftPWM < EPS) {
             lDir1 = lDir2 = HIGH;
-            lSpeed = PWMRANGE;
+            leftPWM = PWMRANGE;
         }
 
-        if (rSpeed < EPS) {
+        if (rightPWM < EPS) {
             rDir1 = rDir2 = HIGH;
-            rSpeed = PWMRANGE;
+            rightPWM = PWMRANGE;
         }
 
         // Send motor signals
-        analogWrite(LEFT_SPED, lSpeed);
-        analogWrite(RGHT_SPED, rSpeed);
+        analogWrite(LEFT_SPED, leftPWM);
+        analogWrite(RGHT_SPED, rightPWM);
 
         motorsPCF->write(LEFT_DIR1, lDir1);
         motorsPCF->write(LEFT_DIR2, lDir2);

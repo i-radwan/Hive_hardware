@@ -120,16 +120,16 @@ enum STATE {
     STRAIGHT_RIGHT,     // 5
     OFFLINE_LEFT,       // 6
     OFFLINE_RIGHT,      // 7
-    TURN_RIGHT,         // 8
-    TURN_LEFT,          // 9
-    PRE_TURN_RIGHT,     // 10
-    PRE_TURN_LEFT,      // 11
-    PRE_TURN_RIGHT_2,   // 12
-    PRE_TURN_LEFT_2,    // 13
-    POST_TURN_RIGHT,    // 14
-    POST_TURN_LEFT,     // 15
-    ALIGNMENT,          // 16
-    PRE_ROTATE,         // 17
-    ROTATE              // 18
+    ROTATE_RIGHT,       // 8
+    ROTATE_LEFT,        // 9
+    PRE_ROTATE_RIGHT,   // 10
+    PRE_ROTATE_LEFT,    // 11
+    PRE_ROTATE_RIGHT_2, // 12
+    PRE_ROTATE_LEFT_2,  // 13
+    POST_ROTATE_RIGHT,  // 14
+    POST_ROTATE_LEFT,   // 15
+    ALIGNMENT,          // 16 ToDo: remove this not-used state
+    PRE_RETREAT,        // 17
+    RETREAT             // 18
 };
 
