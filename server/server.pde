@@ -9,7 +9,7 @@ final String MSG_SET = "0";
 final String MSG_ACK = "1";
 final String MSG_ERR = "2";
 
-String ip = "192.168.1.10"; // The remote IP address
+String ip = "192.168.1.3"; // The remote IP address
 int port = 12345; // The destination port
 double time;
 boolean ack = false;
@@ -26,7 +26,7 @@ final int xLimit = 3;
 final int yLimit = 1;
 
 int i = 0;
-final int iLimit = 3000;
+final int iLimit = 000;
 
 boolean started = false;
 
@@ -119,7 +119,7 @@ void draw() {
 
 void keyPressed() {
     if (key == CODED) {
-        if (keyCode == UP && x + dir[dirIdx][0] >= 0 && x + dir[dirIdx][0] <= xLimit && y + dir[dirIdx][1] >= 0 && y + dir[dirIdx][1] <= yLimit) {            
+        if (keyCode == UP/* && x + dir[dirIdx][0] >= 0 && x + dir[dirIdx][0] <= xLimit && y + dir[dirIdx][1] >= 0 && y + dir[dirIdx][1] <= yLimit*/) {
             byte[] message = new byte[1];
             message[0] = 1;
             udp.send(message, ip, port);

@@ -10,7 +10,7 @@ public:
     	pinMode(pin, INPUT);
     }
 
-	void ticksHandler() {
+	void ICACHE_RAM_ATTR ticksHandler() {
 		unsigned long current = micros();
 		if (current - debounce > DEBOUNCE_DELTA) {
 		    debounce = current;

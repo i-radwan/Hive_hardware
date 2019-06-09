@@ -23,7 +23,7 @@ public:
     MSG receive() {
         int packetSize = UDP.parsePacket();
         
-        if(packetSize) {
+        if (packetSize) {
             // Serial.print("Received packet of size " + (String) packetSize + " From ");
             
             // IPAddress remote = UDP.remoteIP();

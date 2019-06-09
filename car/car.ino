@@ -32,11 +32,11 @@ bool setupState = false;
 //
 // ISRs
 //
-void leftEncoderISR() {
+void ICACHE_RAM_ATTR leftEncoderISR() {
     len.ticksHandler();
 } 
 
-void rightEncoderISR() {
+void ICACHE_RAM_ATTR rightEncoderISR() {
     ren.ticksHandler();
 } 
 
