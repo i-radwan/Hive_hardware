@@ -1,0 +1,26 @@
+type: data
+
+----------------
+TO SERVER:
+----------------
+ACK: { # Sent when the robot completes the last sent action.
+}
+
+BATTERY: { # Sent whenever the battery state changes
+    status: [LOW|MEDIUM|FULL]
+}
+
+BLOCKED: { # Sent when the robot cannot move forward because it's blocked by another object.
+}
+
+----------------
+FROM SERVER:
+----------------
+ACTION: {
+    type: [STOP|MOVE|]
+}
+
+----------------
+----------------
+----------------
+Note: all above constants have to match the hardware constant.js file
