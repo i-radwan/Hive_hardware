@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ESP8266WiFi.h>
+#include <WebSocketClient.h>
 #include <WiFiUDP.h>
 #include <string.h>
 
@@ -15,12 +16,24 @@ public:
         // Only proceed if wifi connection successful
         if(wifiConnected) {
             udpConnected = connectUDP();
+            tcpConnected = connectTCP();
         }
 
-        return wifiConnected && udpConnected;
+        return wifiConnected && udpConnected && tcpConnected;
     }
 
-    MSG receive() {
+    MSG receive(bool tcp = false) {
+        if (tcp) {
+            String data;
+            webSocketClient.getData(data);
+
+            if (data.length() > 0) {
+
+            }
+
+            return MSG::NONE;
+        }
+
         int packetSize = UDP.parsePacket();
 
         if (packetSize) {
@@ -59,7 +72,11 @@ public:
         send(MSG_ACK);
     }
 
-    inline void send(String str) {
+    inline void send(String str, bool tcp = false) {
+        if (tcp) {
+            webSocketClient.sendData(str);
+        }
+
         UDP.beginPacket(UDP.remoteIP(), UDP.remotePort());
         UDP.write(str.c_str());
         UDP.endPacket();
@@ -73,6 +90,11 @@ private:
     bool udpConnected = false;
     char packetBuffer[UDP_TX_PACKET_MAX_SIZE]; // Buffer to hold incoming packet.
 
+    // TCP variables
+    WebSocketClient webSocketClient;
+    WiFiClient client;
+    bool tcpConnected = false;
+
     bool connectUDP() {
         bool state = false;
 
@@ -85,6 +107,17 @@ private:
         } else {
             // Serial.println("Connection failed");
         }
+
+        return state;
+    }
+
+    bool connectTCP() {
+        bool state = client.connect(SERVER, TCP_PORT);
+
+        strcpy(webSocketClient.path, "/");
+        strcpy(webSocketClient.host, SERVER);
+
+        state &= webSocketClient.handshake(client);
 
         return state;
     }

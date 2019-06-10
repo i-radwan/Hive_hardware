@@ -6,7 +6,9 @@ const int PWM_FREQUENCY = 500; // In range 1-1000 KHz
 // WIFI
 const char* NET_NAME = "Radwan";
 const char* NET_PASS = "9992009a";
+const char* SERVER = "192.168.1.4";
 const int PORT = 12345;
+const int TCP_PORT = 1337;
 const String MSG_SET = "0";
 const String MSG_ACK = "1";
 const String MSG_ERR = "2";

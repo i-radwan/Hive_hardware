@@ -92,6 +92,10 @@ void setup() {
     pinMode(BLUE_LED_PIN, OUTPUT);
     pinMode(RED_LED_PIN, FUNCTION_3);
     pinMode(RED_LED_PIN, OUTPUT);
+
+    for(int i = 0; i < 3000; ++i) {
+        ota.handle();
+    }
 }
 
 int i = 0;
