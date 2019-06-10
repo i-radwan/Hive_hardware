@@ -1,29 +1,28 @@
-type: data
+** Note: this protocol will be as minimal as possible. This is due to the limitations of the web socket library and to reduce the controller overhead.
 
 ----------------
 TO SERVER:
 ----------------
-ACK: { # Sent when the robot completes the last sent action.
-}
 
-BATTERY: { # Sent whenever the battery state changes
-    status: [LOW|MEDIUM|FULL]
-}
+ACK = "0"              # Sent when the robot completes the last sent action.
 
-BLOCKED: { # Sent when the robot cannot move forward because it's blocked by another object.
-}
+BATTERY = "1_L"        # Sent whenever the battery state changes
+L = [0:LOW|1:Normal]
+
+BLOCKED = "2"          # Sent when the robot cannot move forward because it's blocked by another object.
 
 ----------------
 FROM SERVER:
 ----------------
-ACTION: {
-    type: [STOP|MOVE|RETREAT|ROTATE_LEFT|ROTATE_RIGHT]
-}
+STOP = "0"
+MOVE = "1"
+RETREAT = "2"
+ROTATE_LEFT = "3"
+ROTATE_RIGHT = "4"
+RED = "5_S"             # Light: for any error from the server!
+BLUE = "6_S"            # Light: when the robot is actually moving to server a task.
 
-LIGHTS: {
-    red: [true|false]                           # For any error from the server!
-    blue: [true|false]                          # When the robot is actually moving to server a task.
-}
+S = [0:OFF|1:ON]
 
 ----------------
 ----------------

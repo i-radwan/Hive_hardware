@@ -16,7 +16,7 @@ public:
         // Only proceed if wifi connection successful
         if(wifiConnected) {
             udpConnected = connectUDP();
-            tcpConnected = connectTCP();
+            tcpConnected = true || connectTCP(); // ToDo
         }
 
         return wifiConnected && udpConnected && tcpConnected;
