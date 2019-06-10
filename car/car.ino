@@ -126,42 +126,32 @@ void loop() {
     //
     // Server commands
     //
-    int msg = com.receive();
+    MSG msg = com.receive();
 
     switch (msg) {
-        case STOP:
+        case MSG::STOP:
             nav.stop();
             com.send(String("Stop!"));
         break;
 
-        case FORWARD:
-            nav.forward();
+        case MSG::MOVE:
+            nav.move();
             com.send(String("Forward!"));
         break;
 
-        case BACKWARD:
-            nav.backward();
+        case MSG::RETREAT:
+            nav.retreat();
             com.send(String("Backward!"));
         break;
 
-        case LEFT:
-            nav.left();
+        case MSG::ROTATE_LEFT:
+            nav.rotateLeft();
             com.send(String("Left!"));
         break;
 
-        case RIGHT:
-            nav.right();
+        case MSG::ROTATE_RIGHT:
+            nav.rotateRight();
             com.send(String("Right!"));
-        break;
-
-        case UP:
-            servo.write(SERVO_UP_ANGLE);
-            com.send(String("Up!"));
-        break;
-
-        case DOWN:
-            servo.write(SERVO_DOWN_ANGLE);
-            com.send(String("Down!"));
         break;
     }
 

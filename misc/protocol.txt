@@ -17,7 +17,12 @@ BLOCKED: { # Sent when the robot cannot move forward because it's blocked by ano
 FROM SERVER:
 ----------------
 ACTION: {
-    type: [STOP|MOVE|]
+    type: [STOP|MOVE|RETREAT|ROTATE_LEFT|ROTATE_RIGHT]
+}
+
+LIGHTS: {
+    red: [true|false]                           # For any error from the server!
+    blue: [true|false]                          # When the robot is actually moving to server a task.
 }
 
 ----------------

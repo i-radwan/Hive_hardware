@@ -39,24 +39,20 @@ public:
             // Read the packet into packetBufffer
             UDP.read(packetBuffer,UDP_TX_PACKET_MAX_SIZE);
 
-            if (packetBuffer[0] == STOP) {
-                return STOP;
-            } else if (packetBuffer[0] == FORWARD) {
-                return FORWARD;
-            } else if (packetBuffer[0] == BACKWARD) {
-                return BACKWARD;
-            } else if (packetBuffer[0] == LEFT) {
-                return LEFT;
-            } else if (packetBuffer[0] == RIGHT) {
-                return RIGHT;
-            } else if (packetBuffer[0] == UP) {
-                return UP;
-            } else if (packetBuffer[0] == DOWN) {
-                return DOWN;
+            if (packetBuffer[0] == (int) MSG::STOP) {
+                return MSG::STOP;
+            } else if (packetBuffer[0] == (int) MSG::MOVE) {
+                return MSG::MOVE;
+            } else if (packetBuffer[0] == (int) MSG::RETREAT) {
+                return MSG::RETREAT;
+            } else if (packetBuffer[0] == (int) MSG::ROTATE_LEFT) {
+                return MSG::ROTATE_LEFT;
+            } else if (packetBuffer[0] == (int) MSG::ROTATE_RIGHT) {
+                return MSG::ROTATE_RIGHT;
             }
         }
 
-        return NONE;
+        return MSG::NONE;
     }
 
     void sendACK() {

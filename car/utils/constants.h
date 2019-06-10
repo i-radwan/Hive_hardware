@@ -15,15 +15,13 @@ const String MSG_ERR = "2";
 const int BAUD_RATE = 115200;
 
 // Communication
-enum MSG {
+enum class MSG {
     NONE = -1,
     STOP = 0,
-    FORWARD = 1,
-    BACKWARD = 2,
-    LEFT = 3,
-    RIGHT = 4,
-    UP = 5,
-    DOWN = 6
+    MOVE = 1,
+    RETREAT = 2,
+    ROTATE_LEFT = 3,
+    ROTATE_RIGHT = 4
 };
 
 // Motors pins
