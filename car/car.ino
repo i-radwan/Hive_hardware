@@ -3,9 +3,10 @@
 
 #include "communicator.h"
 #include "navigator.h"
-#include "ota.h"   
+#include "ota.h"
 #include "sensors/encoder.h"
 #include "sensors/black.h"
+#include "sensors/battery.h"
 #include "sensors/ultrasonic.h"
 #include "utils/constants.h"
 
@@ -20,6 +21,7 @@ BlackSensor flblk;
 BlackSensor frblk;
 BlackSensor fcblk;
 UltrasonicSensor uls;
+BatterySensor bat;
 OTAHandler ota;
 Encoder len;
 Encoder ren;
@@ -28,17 +30,19 @@ Servo servo;
 PCF857x pcf1(PCF1_ADDRESS, &Wire);
 
 bool setupState = false;
+bool active = false;
+bool failure = false;
 
 //
 // ISRs
 //
 void ICACHE_RAM_ATTR leftEncoderISR() {
     len.ticksHandler();
-} 
+}
 
 void ICACHE_RAM_ATTR rightEncoderISR() {
     ren.ticksHandler();
-} 
+}
 
 //
 // Logic
@@ -58,6 +62,7 @@ void setup() {
 
     // Initialize sensors
     uls.setup();
+    bat.setup(BATTERY_SENSOR_PIN);
     blblk.setup(&pcf1, BAK_LFT_BLACK_SENSOR_PIN, BAK_LFT_BLACK_SENSOR_INV, BAK_LFT_BLACK_SENSOR_PCF);
     brblk.setup(&pcf1, BAK_RGT_BLACK_SENSOR_PIN, BAK_RGT_BLACK_SENSOR_INV, BAK_RGT_BLACK_SENSOR_PCF);
     flblk.setup(&pcf1, FRT_LFT_BLACK_SENSOR_PIN, FRT_LFT_BLACK_SENSOR_INV, FRT_LFT_BLACK_SENSOR_PCF);
@@ -82,6 +87,11 @@ void setup() {
 
     // Setup PWM freq
     analogWriteFreq(PWM_FREQUENCY);
+
+    // LEDs
+    pinMode(BLUE_LED_PIN, OUTPUT);
+    pinMode(RED_LED_PIN, FUNCTION_3);
+    pinMode(RED_LED_PIN, OUTPUT);
 }
 
 int i = 0;
@@ -92,11 +102,11 @@ void loop() {
 
     if(!setupState)
         return;
-    
+
     //
     // Read sensors
     //
-    
+
     // Black sensors
     bool isBackLeftBlack, isBackRightBlack, isFrontLeftBlack, isFrontRightBlack, isFrontCenterBlack;
     blblk.read(isBackLeftBlack);
@@ -107,7 +117,11 @@ void loop() {
 
     // Ultrasonic
     double distance;
-    // uls.read(distance);
+    // uls.read(distance); // ToDo
+
+    // Battery
+    bool isLow;
+    // bat.read(isLow); // ToDo
 
     //
     // Server commands
@@ -154,15 +168,19 @@ void loop() {
     // Navigation
     bool finished = nav.navigate(distance, isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
 
+    // Update LEDs, ToDo: read battery level
+    digitalWrite(BLUE_LED_PIN, active ? HIGH : LOW);
+    digitalWrite(RED_LED_PIN, isLow || failure ? HIGH : LOW);
+
     // Transmit back to the server
     delay(50);
-    
+
     if (logs.length() > 0) {
         com.send(logs);
-        
+
         logs = "";
     }
-    
+
     if (finished) {
         com.send(MSG_ACK);
     }

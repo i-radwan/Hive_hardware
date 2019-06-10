@@ -85,6 +85,12 @@ const int SERVO_PIN = D3;
 const int SERVO_DOWN_ANGLE = 20;
 const int SERVO_UP_ANGLE = 110;
 
+const int BATTERY_SENSOR_PIN = A0;
+const double BATTERY_REF_VOLT = 12.4;
+const double BATTERY_DIVIDED_REF_VOLT = 3.1; // Divided by 15kΩ & [5kΩ]
+const double BATTERY_WARNING_PERCENTAGE = 0.2;
+const double BATTERY_RESISTORS_RATIO = 20 / 5; // (15 + 5) / 5
+
 const int FRT_LFT_BLACK_SENSOR_PIN = 6;
 const int FRT_RGT_BLACK_SENSOR_PIN = 7;
 const int FRT_CNT_BLACK_SENSOR_PIN = D8;
@@ -102,6 +108,10 @@ const bool FRT_RGT_BLACK_SENSOR_PCF = true;
 const bool FRT_CNT_BLACK_SENSOR_PCF = false;
 const bool BAK_LFT_BLACK_SENSOR_PCF = true;
 const bool BAK_RGT_BLACK_SENSOR_PCF = true;
+
+// LEDs
+const int BLUE_LED_PIN = D3;
+const int RED_LED_PIN = D10;
 
 // General
 const double MOTORS_ADJUST_DELTA = 150; // ms
