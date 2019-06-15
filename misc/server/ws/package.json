@@ -1,0 +1,18 @@
+{
+  "name": "Hive",
+  "version": "1.0.0",
+  "description": "A dummy server for the Hive system hardware",
+  "main": "server.js",
+  "keywords": [
+    "Hive",
+    "Multi-Agent Path Planning",
+    "Hardware"
+  ],
+  "author": "GitHub",
+  "license": "CC0-1.0",
+  "dependencies": {
+    "readlines": "^0.2.0",
+    "websocket": "^1.0.28",
+    "ws": "^6.1.4"
+  }
+}

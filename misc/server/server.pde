@@ -9,7 +9,7 @@ final String MSG_SET = "0";
 final String MSG_ACK = "1";
 final String MSG_ERR = "2";
 
-String ip = "192.168.1.3"; // The remote IP address
+String ip = "192.168.1.2"; // The remote IP address
 int port = 12345; // The destination port
 double time;
 boolean ack = false;

@@ -16,19 +16,31 @@ public:
         // Only proceed if wifi connection successful
         if(wifiConnected) {
             udpConnected = connectUDP();
-            tcpConnected = true || connectTCP(); // ToDo
+            tcpConnected = connectTCP();
         }
 
         return wifiConnected && udpConnected && tcpConnected;
     }
 
-    MSG receive(bool tcp = false) {
+    MSG receive(bool tcp = true) {
         if (tcp) {
             String data;
             webSocketClient.getData(data);
 
             if (data.length() > 0) {
+                int m = data.toInt();
 
+                if (m == (int) MSG::STOP) {
+                    return MSG::STOP;
+                } else if (m == (int) MSG::MOVE) {
+                   return MSG::MOVE;
+                } else if (m == (int) MSG::ROTATE_LEFT) {
+                    return MSG::ROTATE_LEFT;
+                } else if (m == (int) MSG::ROTATE_RIGHT) {
+                    return MSG::ROTATE_RIGHT;
+                } else if (m == (int) MSG::RETREAT) {
+                    return MSG::RETREAT;
+                }
             }
 
             return MSG::NONE;
@@ -37,19 +49,6 @@ public:
         int packetSize = UDP.parsePacket();
 
         if (packetSize) {
-            // Serial.print("Received packet of size " + (String) packetSize + " From ");
-
-            // IPAddress remote = UDP.remoteIP();
-            // for (int i = 0; i < 4; i++)
-            // {
-            //     Serial.print(remote[i], DEC);
-            //     if (i < 3)
-            //     {
-            //         Serial.print(".");
-            //     }
-            // }
-
-            // Read the packet into packetBufffer
             UDP.read(packetBuffer,UDP_TX_PACKET_MAX_SIZE);
 
             if (packetBuffer[0] == (int) MSG::STOP) {
@@ -72,7 +71,7 @@ public:
         send(MSG_ACK);
     }
 
-    inline void send(String str, bool tcp = false) {
+    inline void send(String str, bool tcp = true) {
         if (tcp) {
             webSocketClient.sendData(str);
         }
@@ -96,26 +95,14 @@ private:
     bool tcpConnected = false;
 
     bool connectUDP() {
-        bool state = false;
-
-        // Serial.println("");
-        // Serial.println("Connecting to UDP");
-
-        if(UDP.begin(PORT) == 1) {
-            // Serial.println("Connection successful");
-            state = true;
-        } else {
-            // Serial.println("Connection failed");
-        }
-
-        return state;
+        return UDP.begin(PORT) == 1;
     }
 
     bool connectTCP() {
         bool state = client.connect(SERVER, TCP_PORT);
 
-        strcpy(webSocketClient.path, "/");
-        strcpy(webSocketClient.host, SERVER);
+        webSocketClient.path = "/";
+        webSocketClient.host = (char *) SERVER;
 
         state &= webSocketClient.handshake(client);
 
