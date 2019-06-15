@@ -16,13 +16,13 @@ public:
         // Only proceed if wifi connection successful
         if(wifiConnected) {
             udpConnected = connectUDP();
-            tcpConnected = connectTCP();
+            tcpConnected = true || connectTCP();
         }
 
         return wifiConnected && udpConnected && tcpConnected;
     }
 
-    MSG receive(bool tcp = true) {
+    MSG receive(bool tcp = false) {
         if (tcp) {
             String data;
             webSocketClient.getData(data);
@@ -71,7 +71,7 @@ public:
         send(MSG_ACK);
     }
 
-    inline void send(String str, bool tcp = true) {
+    inline void send(String str, bool tcp = false) {
         if (tcp) {
             webSocketClient.sendData(str);
         }

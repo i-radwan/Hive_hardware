@@ -35,6 +35,6 @@ wsServer.on('request', function (request) {
     stdin.addListener("data", function (d) {
         let i = d.toString().trim().split(" ");
 
-        con.sendUTF(i[0].toUpperCase());
+        con.sendUTF(i[0]);
     });
 });

@@ -4,14 +4,16 @@
 const int PWM_FREQUENCY = 500; // In range 1-1000 KHz
 
 // WIFI
-const char* NET_NAME = "Radwan";
-const char* NET_PASS = "9992009a";
-const char* SERVER = "192.168.1.3";
+const char* NET_NAME = "Ibrahim's iPhone";
+const char* NET_PASS = "20061996";
+const char* SERVER = "172.20.10.5";
 const int PORT = 12345;
 const int TCP_PORT = 12344;
 const String MSG_SET = "0";
-const String MSG_ACK = "1";
-const String MSG_ERR = "2";
+const String MSG_HEARTBEAT = "1";
+const String MSG_ACK = "2";
+const String MSG_BATTERY = "3_";
+const String MSG_BLOCKED = "4";
 
 // Serial
 const int BAUD_RATE = 115200;

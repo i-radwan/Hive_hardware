@@ -181,15 +181,17 @@ private:
 
     bool move(unsigned long obstacleDistance, bool isFrontCenterBlack, bool isFrontLeftBlack, bool isFrontRightBlack, bool isBackLeftBlack, bool isBackRightBlack, String& logs) {
         // Emergency braking ToDo
-        // if (obstacleDistance < MIN_DISTANCE) {
-        //     log += ("Error: nearby object!\n");
+        if (obstacleDistance < MIN_DISTANCE) {
+            logs += ("Error: nearby object!\n");
 
-        //     adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);
+            adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);
 
-        //     time = millis(); // To avoid large elapsed time after the obstacle is removed
+            time = millis(); // To avoid large elapsed time after the obstacle is removed
 
-        //     return;
-        // }
+            logs += (String(MSG_BLOCKED) + "\n");
+
+            return false;
+        }
 
         //
         // Timer

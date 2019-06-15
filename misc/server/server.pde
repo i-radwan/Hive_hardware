@@ -9,7 +9,7 @@ final String MSG_SET = "0";
 final String MSG_ACK = "1";
 final String MSG_ERR = "2";
 
-String ip = "192.168.1.2"; // The remote IP address
+String ip = "172.20.10.3"; // The remote IP address
 int port = 12345; // The destination port
 double time;
 boolean ack = false;
@@ -20,10 +20,10 @@ final String dirStr[] = {"Right", "Up", "Left", "Down"};
 
 boolean moving = false;
 
-int x = 0, y = 0;
+int x = 4, y = 3;
 int dirIdx = 0;
-final int xLimit = 3;
-final int yLimit = 1;
+final int xLimit = 4;
+final int yLimit = 3;
 
 int i = 0;
 final int iLimit = 000;
@@ -51,7 +51,7 @@ void draw() {
           time = millis();
     }
 
-    if (started && millis() - ackTime > 20000) {
+    if (started && millis() - ackTime > 5000) {
         ack = true;
         ackTime = millis();
     }
