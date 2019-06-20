@@ -1,28 +1,43 @@
 ** Note: this protocol will be as minimal as possible. This is due to the limitations of the web socket library and to reduce the controller overhead.
 
+Configs that we should agree on:
+    - Reconnect interval.
+    - Ping the server every .... ms, expect pong from the server after .... ms, consider server down after .... trials.
+    - We have to send/receive bytes array.
+    - When the robot gets blocked, it will stay in the same state. After unblocking it, you may override the action or let the last action continue. The RETREAT/ROTATE_X/STOP actions can be done while the robot is blocked.
+    - In case of deactivation signal received from the front end, you have to send STOP, then send another signal that flashes the RED light.
+    - When the robot is assigned a new task, you have to send the signal that turns on the BLUE light.
+    - When the pause button is clicked, you can send me only the STOP signal.
+    - When the activate signal is received from the front end, or the resume button has been clicked, you can send me the RESUME signal. This signal resumes the last action, then it sends ACK.
+    - Any stopped agent during its action execution won't send you the DONE signal.
+    - If any action gets overriden, this action won't have its own DONE signal.
+    - If the robot lost contact with the server, it will stop in its position. (Hopefully, I can do this).
+
+
 ----------------
 TO SERVER:
 ----------------
 
-ACK = "0"              # Sent when the robot completes the last sent action.
+DONE            = [0]               # Sent when the robot completes the last sent action.
 
-BATTERY = "1_L"        # Sent whenever the battery state changes
-L = [0:LOW|1:Normal]
+BATTERY         = [1, L]            # Sent whenever the battery state changes.
+L               = [0:LOW|1|2|3|4|5|6|7|8|9:HIGH]
 
-BLOCKED = "2"          # Sent when the robot cannot move forward because it's blocked by another object.
+BLOCKING        = [2, B]            # Sent when the robot view has been blocked/unblocked.
+B               = [0:UNBLOCKED|1:BLOCKED]
 
 ----------------
 FROM SERVER:
 ----------------
-STOP = "0"
-MOVE = "1"
-RETREAT = "2"
-ROTATE_LEFT = "3"
-ROTATE_RIGHT = "4"
-RED = "5_S"             # Light: for any error from the server!
-BLUE = "6_S"            # Light: when the robot is actually moving to server a task.
+CONFIG          = [0]
 
-S = [0:OFF|1:ON]
+ACTION          = [1, T]
+T               = [0:STOP, 1:MOVE, 2:RETREAT, 3:ROTATE_LEFT, 4:ROTATE_RIGHT]
+
+LIGHTS          = [2, C, S]
+C               = [0:RED, 1:BLUE]   # RED: for any error from the server!
+                                    # BLUE: when the robot is actually moving to serve a task.
+S               = [0:OFF|1:ON|2:FLASH]
 
 ----------------
 ----------------

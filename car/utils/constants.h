@@ -11,24 +11,65 @@ const int PORT = 12345;
 const int WS_PORT = 12344;
 const int RECONNECT_INTERVAL = 5000;
 
-
-const String MSG_SET = "0";
-const String MSG_HEARTBEAT = "1";
-const String MSG_ACK = "2";
-const String MSG_BATTERY = "3_";
-const String MSG_BLOCKED = "4";
-
 // Serial
 const int BAUD_RATE = 115200;
 
+//
 // Communication
-enum class MSG {
-    NONE = -1,
+//
+
+// From server
+enum class MSG_FROM_SERVER {
+    CONFIG = 0,
+    ACTION = 1,
+    LIGHTS = 2
+};
+
+enum class ACTIONS {
     STOP = 0,
     MOVE = 1,
     RETREAT = 2,
     ROTATE_LEFT = 3,
     ROTATE_RIGHT = 4
+};
+
+enum class LIGHTS {
+    RED = 0,
+    BLUE = 1
+};
+
+enum class LIGHT_MODE {
+    OFF = 0,
+    ON = 1,
+    FLASH = 2
+};
+
+// To server
+enum class MSG_TO_SERVER {
+    DONE = 0,
+    BATTERY = 1,
+    BLOCKING = 2
+};
+
+enum class BLOCKING_MODE {
+    UNBLOCKED = 0,
+    BLOCKED = 1
+};
+
+enum class SERVER_TASKS {
+    OTHER = -1,
+    CONFIG = 0,
+    STOP = 1,
+    MOVE = 2,
+    RETREAT = 3,
+    ROTATE_LEFT = 4,
+    ROTATE_RIGHT = 5,
+    RED_LED_OFF = 6,
+    RED_LED_ON = 7,
+    RED_LED_FLASH = 8,
+    BLUE_LED_OFF = 9,
+    BLUE_LED_ON = 10,
+    BLUE_LED_FLASH = 11
 };
 
 // Motors pins
@@ -113,6 +154,8 @@ const bool FRT_RGT_BLACK_SENSOR_PCF = true;
 const bool FRT_CNT_BLACK_SENSOR_PCF = false;
 const bool BAK_LFT_BLACK_SENSOR_PCF = true;
 const bool BAK_RGT_BLACK_SENSOR_PCF = true;
+
+const int BATTERY_LEVEL_SIZE = 10;  // Each level represents 10% of the battery life.
 
 // LEDs
 const int BLUE_LED_PIN = D3;

@@ -53,31 +53,59 @@ void ICACHE_RAM_ATTR rightEncoderISR() {
 //
 // Logic
 //
-void receive(MSG msg) {
-    switch (msg) {
-        case MSG::STOP:
+void receive(SERVER_TASKS task) { // ToDo
+    switch (task) {
+        case SERVER_TASKS::CONFIG:
+            com.sendStr(String("Config!"));
+        break;
+
+        case SERVER_TASKS::STOP:
             nav.stop();
-            com.send(String("Stop!"));
+            com.sendStr(String("Stop!"));
         break;
 
-        case MSG::MOVE:
+        case SERVER_TASKS::MOVE:
             nav.move();
-            com.send(String("Forward!"));
+            com.sendStr(String("Forward!"));
         break;
 
-        case MSG::RETREAT:
+        case SERVER_TASKS::RETREAT:
             nav.retreat();
-            com.send(String("Backward!"));
+            com.sendStr(String("Backward!"));
         break;
 
-        case MSG::ROTATE_LEFT:
+        case SERVER_TASKS::ROTATE_LEFT:
             nav.rotateLeft();
-            com.send(String("Left!"));
+            com.sendStr(String("Left!"));
         break;
 
-        case MSG::ROTATE_RIGHT:
+        case SERVER_TASKS::ROTATE_RIGHT:
             nav.rotateRight();
-            com.send(String("Right!"));
+            com.sendStr(String("Right!"));
+        break;
+
+        case SERVER_TASKS::RED_LED_OFF:
+            com.sendStr(String("Red LED off!"));
+        break;
+
+        case SERVER_TASKS::RED_LED_ON:
+            com.sendStr(String("Red LED on!"));
+        break;
+
+        case SERVER_TASKS::RED_LED_FLASH:
+            com.sendStr(String("Red LED flash!"));
+        break;
+
+        case SERVER_TASKS::BLUE_LED_OFF:
+            com.sendStr(String("Blue LED off!"));
+        break;
+
+        case SERVER_TASKS::BLUE_LED_ON:
+            com.sendStr(String("Blue LED on!"));
+        break;
+
+        case SERVER_TASKS::BLUE_LED_FLASH:
+            com.sendStr(String("Blue LED flash!"));
         break;
     }
 }
@@ -118,7 +146,7 @@ void setup() {
     // servo.write(SERVO_DOWN_ANGLE);
 
     // Send initial setup completed signal
-    com.send(MSG_SET);
+    // com.send(MSG_SET);
 
     // Setup PWM freq
     analogWriteFreq(PWM_FREQUENCY);

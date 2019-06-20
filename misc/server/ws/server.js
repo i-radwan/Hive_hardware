@@ -38,7 +38,11 @@ wsServer.on('request', function (request) {
 
         s = new Date();
 
-        con.sendUTF(i[0]);
+        var msg = Buffer.alloc(i.length);
 
+        for(var j = 0; j < i.length; j++)
+            msg[j] = parseInt(i[j]);
+
+        con.sendBytes(msg);
     });
 });
