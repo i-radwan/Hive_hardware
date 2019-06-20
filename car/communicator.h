@@ -2,7 +2,7 @@
 
 #include <ESP8266WiFi.h>
 #include <WebSocketClient.h>
-#include <WiFiUDP.h>
+#include <WebSocketsClient.h>
 #include <string.h>
 
 #include "utils/constants.h"
@@ -10,117 +10,104 @@
 class Communicator {
 public:
 
-    bool setup() {
+    bool setup(void (*receive)(MSG)) {
+        receiveCallback = receive;
+
         wifiConnected = connectWifi();
 
         // Only proceed if wifi connection successful
         if(wifiConnected) {
-            udpConnected = connectUDP();
-            tcpConnected = true || connectTCP();
+            WSConnected = connectWS();
         }
 
-        return wifiConnected && udpConnected && tcpConnected;
-    }
-
-    MSG receive(bool tcp = false) {
-        if (tcp) {
-            String data;
-            webSocketClient.getData(data);
-
-            if (data.length() > 0) {
-                int m = data.toInt();
-
-                if (m == (int) MSG::STOP) {
-                    return MSG::STOP;
-                } else if (m == (int) MSG::MOVE) {
-                   return MSG::MOVE;
-                } else if (m == (int) MSG::ROTATE_LEFT) {
-                    return MSG::ROTATE_LEFT;
-                } else if (m == (int) MSG::ROTATE_RIGHT) {
-                    return MSG::ROTATE_RIGHT;
-                } else if (m == (int) MSG::RETREAT) {
-                    return MSG::RETREAT;
-                }
-            }
-
-            return MSG::NONE;
-        }
-
-        int packetSize = UDP.parsePacket();
-
-        if (packetSize) {
-            UDP.read(packetBuffer,UDP_TX_PACKET_MAX_SIZE);
-
-            if (packetBuffer[0] == (int) MSG::STOP) {
-                return MSG::STOP;
-            } else if (packetBuffer[0] == (int) MSG::MOVE) {
-                return MSG::MOVE;
-            } else if (packetBuffer[0] == (int) MSG::RETREAT) {
-                return MSG::RETREAT;
-            } else if (packetBuffer[0] == (int) MSG::ROTATE_LEFT) {
-                return MSG::ROTATE_LEFT;
-            } else if (packetBuffer[0] == (int) MSG::ROTATE_RIGHT) {
-                return MSG::ROTATE_RIGHT;
-            }
-        }
-
-        return MSG::NONE;
+        return wifiConnected && WSConnected;
     }
 
     void sendACK() {
         send(MSG_ACK);
     }
 
-    inline void send(String str, bool tcp = false) {
-        if (tcp) {
-            webSocketClient.sendData(str);
-        }
+    inline void send(String str) {
+        webSocket.sendTXT(str);
+    }
 
-        UDP.beginPacket(UDP.remoteIP(), UDP.remotePort());
-        UDP.write(str.c_str());
-        UDP.endPacket();
+    void loop() {
+        webSocket.loop();
     }
 
 private:
     bool wifiConnected = false;
 
-    // UDP variables
-    WiFiUDP UDP;
-    bool udpConnected = false;
-    char packetBuffer[UDP_TX_PACKET_MAX_SIZE]; // Buffer to hold incoming packet.
+    // Websocket
+    bool WSConnected = false;
+    static WebSocketsClient webSocket;
+    static void (*receiveCallback)(MSG);
 
-    // TCP variables
-    WebSocketClient webSocketClient;
-    WiFiClient client;
-    bool tcpConnected = false;
+    static void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
+        switch(type) {
+            case WStype_DISCONNECTED:
+                break;
+            case WStype_CONNECTED:
+                webSocket.sendTXT("Connected");
+                break;
+            case WStype_TEXT:
+            {
+                *payload -= '0';
 
-    bool connectUDP() {
-        return UDP.begin(PORT) == 1;
+                MSG msg = MSG::NONE;
+
+                if (*payload == (int) MSG::STOP) {
+                    msg = MSG::STOP;
+                } else if (*payload == (int) MSG::MOVE) {
+                    msg = MSG::MOVE;
+                } else if (*payload == (int) MSG::ROTATE_LEFT) {
+                    msg = MSG::ROTATE_LEFT;
+                } else if (*payload == (int) MSG::ROTATE_RIGHT) {
+                    msg = MSG::ROTATE_RIGHT;
+                } else if (*payload == (int) MSG::RETREAT) {
+                    msg = MSG::RETREAT;
+                }
+
+                receiveCallback(msg);
+            }
+                break;
+            case WStype_BIN:
+                break;
+            case WStype_PING:
+                break;
+            case WStype_PONG:
+                break;
+        }
     }
 
-    bool connectTCP() {
-        bool state = client.connect(SERVER, TCP_PORT);
+    bool connectWS() {
+        // Server address, port and URL
+        webSocket.begin(SERVER, WS_PORT, "/");
 
-        webSocketClient.path = "/";
-        webSocketClient.host = (char *) SERVER;
+        // Event handler
+        webSocket.onEvent(webSocketEvent);
 
-        state &= webSocketClient.handshake(client);
+        // Try every RECONNECT_INTERVAL again if the connection has failed.
+        webSocket.setReconnectInterval(RECONNECT_INTERVAL);
 
-        return state;
+        // Start heartbeat (optional)
+        // ping server every 15000 ms
+        // expect pong from server within 3000 ms
+        // consider connection disconnected if pong is not received 2 times
+
+        // webSocket.enableHeartbeat(15000, 3000, 2);
+
+        return true;
     }
 
     bool connectWifi() {
         WiFi.mode(WIFI_STA);
         WiFi.begin(NET_NAME, NET_PASS);
 
-        // Serial.println("");
-        // Serial.print("Connecting to WiFi ");
-
         bool state = true;
         int i = 0;
         while (WiFi.status() != WL_CONNECTED) {
             delay(500);
-            // Serial.print(".");
 
             if (i > 10) {
                 state = false;
@@ -130,14 +117,9 @@ private:
             i++;
         }
 
-        // Serial.println("");
-        // if (state) {
-        //     Serial.print("Connected to " + (String) NET_NAME + "IP address: ");
-        //     Serial.println(WiFi.localIP());
-        // } else {
-        //     Serial.println("Connection failed.");
-        // }
-
         return state;
     }
 };
+
+WebSocketsClient Communicator::webSocket;
+void (*Communicator::receiveCallback)(MSG) = NULL;

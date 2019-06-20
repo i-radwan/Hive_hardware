@@ -16,6 +16,7 @@ wsServer = new WebSocketServer({
 
 // WebSocket server
 wsServer.on('request', function (request) {
+    let s;
     let con = request.accept(null, request.origin);
 
     console.log("Connected!");
@@ -23,7 +24,7 @@ wsServer.on('request', function (request) {
     con.on('message', function (message) {
         let m = message.utf8Data;
 
-        console.log("Received::\n" + m);
+        console.log("Received::\n" + m + "\nRoundtrip time: " + (new Date() - s));
     });
 
     con.on('close', function (con) {
@@ -35,6 +36,9 @@ wsServer.on('request', function (request) {
     stdin.addListener("data", function (d) {
         let i = d.toString().trim().split(" ");
 
+        s = new Date();
+
         con.sendUTF(i[0]);
+
     });
 });

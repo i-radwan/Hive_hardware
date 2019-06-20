@@ -1,14 +1,17 @@
 #pragma once
 
 // PWM
-const int PWM_FREQUENCY = 500; // In range 1-1000 KHz
+const int PWM_FREQUENCY = 300; // In range 1-1000 KHz
 
 // WIFI
 const char* NET_NAME = "Ibrahim's iPhone";
 const char* NET_PASS = "20061996";
 const char* SERVER = "172.20.10.5";
 const int PORT = 12345;
-const int TCP_PORT = 12344;
+const int WS_PORT = 12344;
+const int RECONNECT_INTERVAL = 5000;
+
+
 const String MSG_SET = "0";
 const String MSG_HEARTBEAT = "1";
 const String MSG_ACK = "2";
@@ -117,8 +120,8 @@ const int RED_LED_PIN = D10;
 
 // General
 const double MOTORS_ADJUST_DELTA = 150; // ms
-const double MOTORS_INIT_SPEED = 55; // rpm
-const double MOTORS_MAX_SPEED = 85; // rpm
+const double MOTORS_INIT_SPEED = 50; // rpm
+const double MOTORS_MAX_SPEED = 75; // rpm
 const double MOTORS_ROTATION_SPEED = 35;
 const double STEP = 300; // mm
 const double EPS = 1e-6;

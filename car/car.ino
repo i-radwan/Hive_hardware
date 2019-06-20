@@ -10,6 +10,10 @@
 #include "sensors/ultrasonic.h"
 #include "utils/constants.h"
 
+extern "C" {
+  #include "user_interface.h"
+}
+
 //
 // Variables & Objects
 //
@@ -33,6 +37,8 @@ bool setupState = false;
 bool active = false;
 bool failure = false;
 
+String logs = "";
+
 //
 // ISRs
 //
@@ -47,12 +53,41 @@ void ICACHE_RAM_ATTR rightEncoderISR() {
 //
 // Logic
 //
+void receive(MSG msg) {
+    switch (msg) {
+        case MSG::STOP:
+            nav.stop();
+            com.send(String("Stop!"));
+        break;
+
+        case MSG::MOVE:
+            nav.move();
+            com.send(String("Forward!"));
+        break;
+
+        case MSG::RETREAT:
+            nav.retreat();
+            com.send(String("Backward!"));
+        break;
+
+        case MSG::ROTATE_LEFT:
+            nav.rotateLeft();
+            com.send(String("Left!"));
+        break;
+
+        case MSG::ROTATE_RIGHT:
+            nav.rotateRight();
+            com.send(String("Right!"));
+        break;
+    }
+}
+
 void setup() {
     // Initialize I2C Bus
     Wire.begin(I2C_SDA, I2C_SCL);
 
     // Initialize connection
-    setupState = com.setup();
+    setupState = com.setup(&receive);
 
     // Initialize PCFs
     pcf1.begin(0xF0); // P0-P3 output, P4-P7 input
@@ -96,10 +131,9 @@ void setup() {
     for(int i = 0; i < 3000; ++i) {
         ota.handle();
     }
-}
 
-int i = 0;
-String logs = "";
+    wifi_set_sleep_type(NONE_SLEEP_T);
+}
 
 void loop() {
     ota.handle();
@@ -121,43 +155,18 @@ void loop() {
 
     // Ultrasonic
     double distance;
-    uls.read(distance); // ToDo
+    // uls.read(distance); // ToDo
 
     // Battery
     bool isLow;
     // bat.read(isLow); // ToDo
 
     //
-    // Server commands
+    // Logic
     //
-    MSG msg = com.receive();
 
-    switch (msg) {
-        case MSG::STOP:
-            nav.stop();
-            com.send(String("Stop!"));
-        break;
-
-        case MSG::MOVE:
-            nav.move();
-            com.send(String("Forward!"));
-        break;
-
-        case MSG::RETREAT:
-            nav.retreat();
-            com.send(String("Backward!"));
-        break;
-
-        case MSG::ROTATE_LEFT:
-            nav.rotateLeft();
-            com.send(String("Left!"));
-        break;
-
-        case MSG::ROTATE_RIGHT:
-            nav.rotateRight();
-            com.send(String("Right!"));
-        break;
-    }
+    // Server commands
+    com.loop();
 
     // Navigation
     bool finished = nav.navigate(distance, isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
@@ -167,17 +176,18 @@ void loop() {
     digitalWrite(RED_LED_PIN, isLow || failure ? HIGH : LOW);
 
     // Transmit back to the server
-    delay(50);
+    // delay(50);
 
     if (logs.length() > 0) {
-        com.send(logs);
+        // com.send(logs);
 
         logs = "";
     }
 
     if (finished) {
-        com.send(MSG_ACK);
+        // com.send(MSG_ACK);
     }
 
-    delay(10);
+
+    // delay(10);
 }
