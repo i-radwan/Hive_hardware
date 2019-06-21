@@ -125,7 +125,9 @@ const double OPTICAL_DPI_TO_MM = 1 / 39.0;
 
 const int ULTRA_SONIC_TRIGGER_PIN = D9;
 const int ULTRA_SONIC_ECHO_PIN = D5;
-const int MIN_DISTANCE = 15; // cm. Min distance ahead of the robot
+const int ULTRA_SONIC_REFRESH_TIME = 500; // ms
+const int ULTRA_SONIC_TIMEOUT = 2000; // us ... 2cm * 2 = 40cm = ~0.5m takes the sound 300 m/s -> 0.001666666667 seconds to travel = 1666.667us
+const int MIN_DISTANCE = 20; // cm. Min distance ahead of the robot
 
 const int SERVO_PIN = D3;
 const int SERVO_DOWN_ANGLE = 20;

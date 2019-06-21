@@ -183,7 +183,11 @@ void loop() {
 
     // Ultrasonic
     double distance;
-    // uls.read(distance); // ToDo
+    uls.read(distance); // ToDo
+
+    if (distance < MIN_DISTANCE) { // ToDo
+        com.sendStr("Object detected" + String(distance));
+    }
 
     // Battery
     bool isLow;

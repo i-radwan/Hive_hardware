@@ -4,6 +4,10 @@
 #include "../utils/constants.h"
 
 class UltrasonicSensor {
+
+private:
+    double lastRead = millis();
+
 public:
 
     UltrasonicSensor() {}
@@ -16,6 +20,16 @@ public:
     }
 
     void read(double& distance) {
+        double current = millis();
+
+        if (current - lastRead < ULTRA_SONIC_REFRESH_TIME) {
+            distance = MIN_DISTANCE + 1; // Keeping it zero will cause the robot to stop.
+
+            return;
+        }
+
+        lastRead = current;
+
         // Clears the trigger pin
         digitalWrite(ULTRA_SONIC_TRIGGER_PIN, LOW);
         delayMicroseconds(2);
@@ -26,9 +40,13 @@ public:
         digitalWrite(ULTRA_SONIC_TRIGGER_PIN, LOW);
 
         // Reads the ULTRA_SONIC_ECHO_PIN, returns the sound wave travel time in microseconds
-        unsigned long duration = pulseIn(ULTRA_SONIC_ECHO_PIN, HIGH);
+        double sentTime = micros();
+        unsigned long duration = pulseIn(ULTRA_SONIC_ECHO_PIN, HIGH, ULTRA_SONIC_TIMEOUT);
 
         // Calculating the cm distance (via sound speed 343 m/s == 0.034 cm/microsecond)
         distance = duration * 0.034 / 2;
+
+        if (micros() - sentTime >= ULTRA_SONIC_TIMEOUT) // In case pulseIn timed out, we don't want a zero value, this will stop the robot.
+            distance = MIN_DISTANCE + 1;
     }
 };
