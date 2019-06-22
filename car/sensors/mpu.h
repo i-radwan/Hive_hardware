@@ -15,7 +15,7 @@ public:
 
         // Serial.println("Testing device connections...");
         // Serial.println(mpu.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
-    
+
         // Serial.println(F("Initializing DMP..."));
         devStatus = mpu.dmpInitialize();
 
@@ -40,9 +40,15 @@ public:
             // Serial.println("DMP Initialization failed (code " + String(devStatus) + ")");
         }
     }
-    
+
     bool read(double& y, double& p, double& r) {
         if (!dmpReady) return false;
+
+        double current = millis();
+
+        if (current - lastRead < MPU_REFRESH_RATE) return false;
+
+        lastRead = current;
 
         mpuIntStatus = mpu.getIntStatus();
         fifoCount = mpu.getFIFOCount();
@@ -67,9 +73,9 @@ public:
             mpu.dmpGetGravity(&gravity, &q);
             mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
 
-            y = ypr[0] * 180 / M_PI;
-            p = ypr[1] * 180 / M_PI;
-            r = ypr[2] * 180 / M_PI;
+            y = int((ypr[0] * 180 / M_PI) + 360) % 360;
+            p = int((ypr[1] * 180 / M_PI) + 360) % 360;
+            r = int((ypr[2] * 180 / M_PI) + 360) % 360;
 
             return true;
         }
@@ -79,7 +85,7 @@ public:
 
 private:
     MPU6050 mpu;
-    
+
     // MPU control/status vars
     bool dmpReady = false;  // Set true if DMP init was successful
     uint8_t mpuIntStatus;   // Holds actual interrupt status byte from MPU
@@ -90,5 +96,7 @@ private:
 
     Quaternion q;
     VectorFloat gravity;
-    float ypr[3]; 
+    float ypr[3];
+
+    double lastRead = millis();
 };

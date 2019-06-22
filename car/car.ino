@@ -8,6 +8,7 @@
 #include "sensors/black.h"
 #include "sensors/battery.h"
 #include "sensors/ultrasonic.h"
+#include "sensors/mpu.h"
 #include "utils/constants.h"
 
 extern "C" {
@@ -30,12 +31,15 @@ OTAHandler ota;
 Encoder len;
 Encoder ren;
 Servo servo;
+MPUSensor mpu;
 
 PCF857x pcf1(PCF1_ADDRESS, &Wire);
 
 bool setupState = false;
 bool active = false;
 bool failure = false;
+
+double y, p, r;
 
 String logs = "";
 
@@ -70,17 +74,17 @@ void receive(SERVER_TASKS task) { // ToDo
         break;
 
         case SERVER_TASKS::RETREAT:
-            nav.retreat();
+            nav.retreat(y);
             com.sendStr(String("Backward!"));
         break;
 
         case SERVER_TASKS::ROTATE_LEFT:
-            nav.rotateLeft();
+            nav.rotateLeft(y);
             com.sendStr(String("Left!"));
         break;
 
         case SERVER_TASKS::ROTATE_RIGHT:
-            nav.rotateRight();
+            nav.rotateRight(y);
             com.sendStr(String("Right!"));
         break;
 
@@ -116,6 +120,9 @@ void setup() {
 
     // Initialize connection
     setupState = com.setup(&receive);
+
+    // MPU setup
+    mpu.setup();
 
     // Initialize PCFs
     pcf1.begin(0xF0); // P0-P3 output, P4-P7 input
@@ -173,6 +180,10 @@ void loop() {
     // Read sensors
     //
 
+    // MPU
+    mpu.read(y, p, r);
+
+
     // Black sensors
     bool isBackLeftBlack, isBackRightBlack, isFrontLeftBlack, isFrontRightBlack, isFrontCenterBlack;
     blblk.read(isBackLeftBlack);
@@ -183,11 +194,7 @@ void loop() {
 
     // Ultrasonic
     double distance;
-    uls.read(distance); // ToDo
-
-    if (distance < MIN_DISTANCE) { // ToDo
-        com.sendStr("Object detected" + String(distance));
-    }
+    uls.read(distance);
 
     // Battery
     bool isLow;
@@ -201,17 +208,17 @@ void loop() {
     com.loop();
 
     // Navigation
-    bool finished = nav.navigate(distance, isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
+    bool finished = nav.navigate(distance, y, isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
 
     // Update LEDs, ToDo: read battery level
-    digitalWrite(BLUE_LED_PIN, active ? HIGH : LOW);
-    digitalWrite(RED_LED_PIN, isLow || failure ? HIGH : LOW);
+    // digitalWrite(BLUE_LED_PIN, active ? HIGH : LOW);
+    // digitalWrite(RED_LED_PIN, isLow || failure ? HIGH : LOW);
 
     // Transmit back to the server
     // delay(50);
 
     if (logs.length() > 0) {
-        // com.send(logs);
+        com.sendStr(logs);
 
         logs = "";
     }

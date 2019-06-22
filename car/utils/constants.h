@@ -1,7 +1,7 @@
 #pragma once
 
 // PWM
-const int PWM_FREQUENCY = 300; // In range 1-1000 KHz
+const int PWM_FREQUENCY = 500; // In range 1-1000 KHz
 
 // WIFI
 const char* NET_NAME = "Ibrahim's iPhone";
@@ -125,7 +125,7 @@ const double OPTICAL_DPI_TO_MM = 1 / 39.0;
 
 const int ULTRA_SONIC_TRIGGER_PIN = D9;
 const int ULTRA_SONIC_ECHO_PIN = D5;
-const int ULTRA_SONIC_REFRESH_TIME = 500; // ms
+const int ULTRA_SONIC_REFRESH_TIME = 100; // ms
 const int ULTRA_SONIC_TIMEOUT = 2000; // us ... 2cm * 2 = 40cm = ~0.5m takes the sound 300 m/s -> 0.001666666667 seconds to travel = 1666.667us
 const int MIN_DISTANCE = 20; // cm. Min distance ahead of the robot
 
@@ -165,31 +165,37 @@ const int RED_LED_PIN = D10;
 
 // General
 const double MOTORS_ADJUST_DELTA = 150; // ms
-const double MOTORS_INIT_SPEED = 50; // rpm
-const double MOTORS_MAX_SPEED = 75; // rpm
-const double MOTORS_ROTATION_SPEED = 35;
+const double MOTORS_INIT_SPEED = 25; // rpm
+const double MOTORS_MAX_SPEED = 40; // rpm
+const double MOTORS_ROTATION_SPEED = 15;
+const double RETREAT_MOTORS_SPEED_FACTOR = 0.6;
 const double STEP = 300; // mm
 const double EPS = 1e-6;
+const double MPU_REFRESH_RATE = 100; // ms
 
 enum STATE {
-    INIT,               // 0
-    IDLE,               // 1
-    MOVE,               // 2
-    STRAIGHT,           // 3
-    STRAIGHT_LEFT,      // 4
-    STRAIGHT_RIGHT,     // 5
-    OFFLINE_LEFT,       // 6
-    OFFLINE_RIGHT,      // 7
-    ROTATE_RIGHT,       // 8
-    ROTATE_LEFT,        // 9
-    PRE_ROTATE_RIGHT,   // 10
-    PRE_ROTATE_LEFT,    // 11
-    PRE_ROTATE_RIGHT_2, // 12
-    PRE_ROTATE_LEFT_2,  // 13
-    POST_ROTATE_RIGHT,  // 14
-    POST_ROTATE_LEFT,   // 15
-    ALIGNMENT,          // 16 ToDo: remove this not-used state
-    PRE_RETREAT,        // 17
-    RETREAT             // 18
+    INIT,                       // 0
+    IDLE,                       // 1
+    MOVE,                       // 2
+    STRAIGHT,                   // 3
+    STRAIGHT_LEFT,              // 4
+    STRAIGHT_RIGHT,             // 5
+    OFFLINE_LEFT,               // 6
+    OFFLINE_RIGHT,              // 7
+    ROTATE_RIGHT,               // 8
+    ROTATE_LEFT,                // 9
+    PRE_ROTATE_RIGHT,           // 10
+    PRE_ROTATE_LEFT,            // 11
+    PRE_ROTATE_RIGHT_2,         // 12
+    PRE_ROTATE_LEFT_2,          // 13
+    POST_ROTATE_RIGHT,          // 14
+    POST_ROTATE_LEFT,           // 15
+    ALIGNMENT,                  // 16 ToDo: remove this not-used state
+    PRE_RETREAT,                // 17
+    RETREAT,                    // 18
+    RETREAT_LEFT,               // 19
+    RETREAT_RIGHT,              // 20
+    RETREAT_OFFLINE_LEFT,       // 21
+    RETREAT_OFFLINE_RIGHT       // 22
 };
 
