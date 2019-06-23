@@ -90,8 +90,8 @@ class Navigator {
 public:
 
     // 1.2, 0.1, 0.4
-    Navigator() : leftMotorController(1.2, 0.2, 0, MOTORS_INIT_SPEED),
-                  rightMotorController(1.2, 0.2, 0, MOTORS_INIT_SPEED) {
+    Navigator() : leftMotorController(1.2, 0.1, 0, MOTORS_INIT_SPEED),
+                  rightMotorController(1.2, 0.1, 0, MOTORS_INIT_SPEED) {
     }
 
     void setup(PCF857x* pcf1, Encoder* len, Encoder* ren) {
@@ -151,7 +151,9 @@ public:
 
         remainingDistance = movedDistance;
 
-        preRetreatAngle = angle;
+        remainingAngle = 180;
+
+        prevAngle = angle;
 
         state = PRE_RETREAT;
     }
@@ -159,7 +161,9 @@ public:
     void rotateLeft(double angle) {
         prepare();
 
-        preRotateAngle = angle;
+        remainingAngle = 90;
+
+        prevAngle = angle;
 
         state = PRE_ROTATE_LEFT;
     }
@@ -167,7 +171,9 @@ public:
     void rotateRight(double angle) {
         prepare();
 
-        preRotateAngle = angle;
+        remainingAngle = 90;
+
+        prevAngle = angle;
 
         state = PRE_ROTATE_RIGHT;
     }
@@ -183,8 +189,8 @@ private:
     double remainingDistance = 0; // Remaining distance
     double time = 0;
     double movedDistance = 0;
-    double preRetreatAngle = 0;
-    double preRotateAngle = 0;
+    double remainingAngle = 0;
+    double prevAngle = 0;
 
     // Navigation flags
     bool retreating = false;
@@ -237,22 +243,29 @@ private:
         // FSM transitions
         switch (state) {
             case MOVE:
-                if (isFrontLeftBlack && isFrontRightBlack && isFrontCenterBlack)
+                if (retreating && remainingAngle < 40) {
                     state = STRAIGHT;
-                else if (!isFrontLeftBlack && !isFrontRightBlack && isFrontCenterBlack)
+                } else if (isFrontLeftBlack && isFrontRightBlack && isFrontCenterBlack) {
                     state = STRAIGHT;
-                else if (!isFrontLeftBlack && isFrontRightBlack && isFrontCenterBlack)
+                } else if (!isFrontLeftBlack && !isFrontRightBlack && isFrontCenterBlack) {
+                    state = STRAIGHT;
+                } else if (!isFrontLeftBlack && isFrontRightBlack && isFrontCenterBlack) {
                     state = STRAIGHT_LEFT;
-                else if (isFrontLeftBlack && !isFrontRightBlack && isFrontCenterBlack)
+                } else if (isFrontLeftBlack && !isFrontRightBlack && isFrontCenterBlack) {
                     state = STRAIGHT_RIGHT;
-                else if (!isFrontLeftBlack && isFrontRightBlack && !isFrontCenterBlack)
+                } else if (!isFrontLeftBlack && isFrontRightBlack && !isFrontCenterBlack) {
                     state = OFFLINE_LEFT;
-                else if (isFrontLeftBlack && !isFrontRightBlack && !isFrontCenterBlack)
+                } else if (isFrontLeftBlack && !isFrontRightBlack && !isFrontCenterBlack) {
                     state = OFFLINE_RIGHT;
+                }
             break;
 
             case STRAIGHT:
-                if (isFrontLeftBlack && !isFrontRightBlack && isFrontCenterBlack) {
+                if (retreating && remainingAngle < 20) {
+                    state = STRAIGHT;
+                } else if (isFrontLeftBlack && isFrontRightBlack) {
+                    state = STRAIGHT;
+                } else if (isFrontLeftBlack && !isFrontRightBlack && isFrontCenterBlack) {
                     state = STRAIGHT_RIGHT;
                 } else if (isFrontLeftBlack && !isFrontRightBlack && !isFrontCenterBlack) {
                     state = OFFLINE_RIGHT;
@@ -286,7 +299,6 @@ private:
                     state = STRAIGHT;
                 } else if (!isFrontCenterBlack) {
                     state = OFFLINE_RIGHT;
-                    // spdDiffI = 0;
                 } else if (isFrontLeftBlack && isFrontRightBlack) {
                     state = STRAIGHT;
                 }
@@ -297,8 +309,12 @@ private:
             break;
 
             case OFFLINE_LEFT:
-                if (isFrontCenterBlack) {
+                if (isFrontCenterBlack && isFrontRightBlack) {
                     state = STRAIGHT_LEFT;
+                } else if (isFrontCenterBlack && isFrontLeftBlack) {
+                    state = STRAIGHT_RIGHT;
+                } else if (isFrontCenterBlack) {
+                    state = STRAIGHT;
                 }
 
                 if (!isBackLeftBlack && !isBackRightBlack) {
@@ -307,8 +323,12 @@ private:
             break;
 
             case OFFLINE_RIGHT:
-                if (isFrontCenterBlack) {
+                if (isFrontCenterBlack && isFrontLeftBlack) {
                     state = STRAIGHT_RIGHT;
+                } else if (isFrontCenterBlack && isFrontRightBlack) {
+                    state = STRAIGHT_LEFT;
+                } else if (isFrontCenterBlack) {
+                    state = STRAIGHT;
                 }
 
                 if (!isBackLeftBlack && !isBackRightBlack) {
@@ -381,6 +401,7 @@ private:
 
         logs += ("MOVE:: elapsedTime: " + String(elapsedTime) +
                  " - STATE: " + String(state) +
+                 " - Retreating: " + String(retreating) +
                  " - atNode: " + String(atNode) +
                  // " - LeftRPM: " + String(leftRPM) +
                  " - LeftSpeed: " + String(leftSpeed) +
@@ -433,6 +454,13 @@ private:
     }
 
     bool rotate(double angle, bool isFrontCenterBlack, bool isFrontLeftBlack, bool isFrontRightBlack, bool isBackLeftBlack, bool isBackRightBlack, String& logs) {
+        remainingAngle -= min(abs(angle - prevAngle), 360 - abs(angle - prevAngle));
+        prevAngle = angle;
+
+        if (remainingAngle <= 0) {
+            // state = IDLE;
+        }
+
         //
         // Timer
         //
@@ -457,25 +485,6 @@ private:
         prevIsFrontCenterBlack = isFrontCenterBlack;
         prevIsBackRightBlack = isBackRightBlack;
         prevIsBackLeftBlack = isBackLeftBlack;
-
-        // Prevent the car from rotating more than 180 degrees if it's retreating
-        if (retreating) {
-            double diff = min(abs(angle - preRetreatAngle), 360 - abs(angle - preRetreatAngle));
-
-            if (diff > 170) {
-                logs += ("\n\nAngles1 " + String(angle) + " " + String(preRotateAngle) + "\n\n");
-
-                state = IDLE;
-            }
-        } else {
-            double diff = min(abs(angle - preRotateAngle), 360 - abs(angle - preRotateAngle));
-
-            if (diff > 100) {
-                logs += ("\n\nAngles2 " + String(angle) + " " + String(preRotateAngle) + "\n\n");
-
-                state = IDLE;
-            }
-        }
 
         // FSM transitions
         switch (state) {
@@ -533,7 +542,7 @@ private:
         }
 
         double leftSpeed = 0, rightSpeed = 0;
-        double leftFactor = 1, rightFactor = 1;
+        double leftFactor = 1, rightFactor = 1; // Rotation should be slower than normal movement.
 
         // States actions
         switch (state) {
@@ -546,7 +555,6 @@ private:
                 logs += ("TURN:: - state: " + String(state) +
                          " - Retreating: " + String(retreating) +
                          " - Angle: " + String(angle) +
-                         " - preRotateAngle: " + String(preRotateAngle) +
                          " - isFrontLeftBlack: " + String(isFrontLeftBlack) +
                          " - isFrontRightBlack: " + String(isFrontRightBlack) +
                          " - isFrontCenterBlack: " + String(isFrontCenterBlack) +
@@ -649,7 +657,7 @@ private:
         logs += ("TURN:: - state: " + String(state) +
                  " - Retreating: " + String(retreating) +
                  " - Angle: " + String(angle) +
-                 " - preRotateAngle: " + String(preRotateAngle) +
+                 " - remainingAngle: " + String(remainingAngle) +
                  " - isFrontLeftBlack: " + String(isFrontLeftBlack) +
                  " - isFrontRightBlack: " + String(isFrontRightBlack) +
                  " - isFrontCenterBlack: " + String(isFrontCenterBlack) +
@@ -692,6 +700,15 @@ private:
     }
 
     bool retreat(double angle, bool isFrontCenterBlack, bool isFrontLeftBlack, bool isFrontRightBlack, bool isBackLeftBlack, bool isBackRightBlack, String& logs) {
+        remainingAngle -= min(abs(angle - prevAngle), 360 - abs(angle - prevAngle));
+        prevAngle = angle;
+
+        if (remainingAngle <= 0) {
+            logs += "RAngle: " + String(remainingAngle);
+
+            state = MOVE;
+        }
+
         //
         // Timer
         //
@@ -727,9 +744,9 @@ private:
 
             case RETREAT:
                 if (isFrontCenterBlack) {
-                    logs += ("\n\nANGLES DIFF:: " + String(angle) + " " + String(preRetreatAngle));
+                    logs += "Front center: " + String(remainingAngle);
 
-                    if (abs(angle - preRetreatAngle) > 130) {
+                    if (remainingAngle < 40) {
                         state = MOVE;
                     } else {
                         state = PRE_ROTATE_RIGHT;
@@ -741,6 +758,8 @@ private:
         double leftSpeed = 0, rightSpeed = 0;
 
         logs += ("RETREAT:: - state: " + String(state) +
+                         " - Angle: " + String(angle) +
+                         " - remainingAngle: " + String(remainingAngle) +
                          " - isFrontLeftBlack: " + String(isFrontLeftBlack) +
                          " - isFrontRightBlack: " + String(isFrontRightBlack) +
                          " - isFrontCenterBlack: " + String(isFrontCenterBlack) +

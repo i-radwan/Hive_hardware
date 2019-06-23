@@ -40,6 +40,9 @@ bool active = false;
 bool failure = false;
 
 double y, p, r;
+double distance;
+
+double lastSend = millis(); // ToDo: remove
 
 String logs = "";
 
@@ -183,7 +186,6 @@ void loop() {
     // MPU
     mpu.read(y, p, r);
 
-
     // Black sensors
     bool isBackLeftBlack, isBackRightBlack, isFrontLeftBlack, isFrontRightBlack, isFrontCenterBlack;
     blblk.read(isBackLeftBlack);
@@ -193,12 +195,34 @@ void loop() {
     fcblk.read(isFrontCenterBlack);
 
     // Ultrasonic
-    double distance;
     uls.read(distance);
 
     // Battery
     bool isLow;
     // bat.read(isLow); // ToDo
+
+    // if (millis() - lastSend > 150) {
+    //     unsigned long lTicks, rTicks;
+
+    //     noInterrupts();
+    //     len.read(lTicks);
+    //     ren.read(rTicks);
+    //     interrupts();
+
+    //     com.sendStr(
+    //         "DEBUG:\nAngle: " + String(y) +
+    //         "\nSensors: " + String(isFrontLeftBlack) +
+    //         " " + String(isFrontCenterBlack) +
+    //         " " + String(isFrontRightBlack) +
+    //         " " + String(isBackLeftBlack) +
+    //         " " + String(isBackRightBlack) +
+    //         " Lticks: " + lTicks +
+    //         " Rticks: " + rTicks +
+    //         " Sonic: " + distance +
+    //         "\n\n");
+
+    //     lastSend = millis();
+    // }
 
     //
     // Logic

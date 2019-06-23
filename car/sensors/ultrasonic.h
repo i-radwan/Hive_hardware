@@ -23,8 +23,6 @@ public:
         double current = millis();
 
         if (current - lastRead < ULTRA_SONIC_REFRESH_TIME) {
-            distance = MIN_DISTANCE + 1; // Keeping it zero will cause the robot to stop.
-
             return;
         }
 

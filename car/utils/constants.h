@@ -1,7 +1,7 @@
 #pragma once
 
 // PWM
-const int PWM_FREQUENCY = 500; // In range 1-1000 KHz
+const int PWM_FREQUENCY = 1; // In range 1-1000 KHz
 
 // WIFI
 const char* NET_NAME = "Ibrahim's iPhone";
@@ -100,7 +100,7 @@ const double I_LIMIT2 = 3;
 const int LEFT_ENC = D1;
 const int RGHT_ENC = D2;
 
-const double DISK_SLOTS = 20.0;
+const double DISK_SLOTS = 12.0;
 const int WHEEL_DIAMETER = 67; // mm
 const int DEBOUNCE_DELTA = 1000; // us
 
@@ -164,14 +164,14 @@ const int BLUE_LED_PIN = D3;
 const int RED_LED_PIN = D10;
 
 // General
-const double MOTORS_ADJUST_DELTA = 150; // ms
-const double MOTORS_INIT_SPEED = 25; // rpm
-const double MOTORS_MAX_SPEED = 40; // rpm
-const double MOTORS_ROTATION_SPEED = 15;
+const double MOTORS_ADJUST_DELTA = 100; // ms
+const double MOTORS_INIT_SPEED = 35; // rpm
+const double MOTORS_MAX_SPEED = 60; // rpm
+const double MOTORS_ROTATION_SPEED = 25;
 const double RETREAT_MOTORS_SPEED_FACTOR = 0.6;
 const double STEP = 300; // mm
 const double EPS = 1e-6;
-const double MPU_REFRESH_RATE = 100; // ms
+const double MPU_REFRESH_RATE = 0; // ms
 
 enum STATE {
     INIT,                       // 0
