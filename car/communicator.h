@@ -24,17 +24,17 @@ public:
 
     void sendDone() {
         uint8_t msg[1] = {(uint8_t) MSG_TO_SERVER::DONE};
-        send(msg);
+        send(msg, 1);
     }
 
     void sendBatteryLevel(uint8_t level) {
         uint8_t msg[2] = {(uint8_t) MSG_TO_SERVER::BATTERY, level};
-        send(msg);
+        send(msg, 2);
     }
 
     void sendBlockingState(BLOCKING_MODE mode) {
         uint8_t msg[2] = {(uint8_t) MSG_TO_SERVER::BLOCKING, (uint8_t) mode};
-        send(msg);
+        send(msg, 2);
     }
 
     inline void sendStr(String str) { // For debugging!
@@ -84,11 +84,11 @@ private:
         webSocket.setReconnectInterval(RECONNECT_INTERVAL);
 
         // Start heartbeat (optional)
-        // ping server every 15000 ms
-        // expect pong from server within 3000 ms
-        // consider connection disconnected if pong is not received 2 times
+        // ping server every PING_INTERVAL ms
+        // expect pong from server within PONG_TIMEOUT ms
+        // consider connection disconnected if pong is not received RETRIES_COUNT times
 
-        // webSocket.enableHeartbeat(15000, 3000, 2);
+        webSocket.enableHeartbeat(PING_INTERVAL, PONG_TIMEOUT, RETRIES_COUNT);
 
         return true;
     }
@@ -154,8 +154,8 @@ private:
         }
     }
 
-    inline void send(uint8_t msg[]) {
-        webSocket.sendBIN(msg, sizeof msg);
+    inline void send(uint8_t msg[], int length) {
+        webSocket.sendBIN(msg, length);
     }
 };
 

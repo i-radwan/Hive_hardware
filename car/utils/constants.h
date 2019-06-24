@@ -9,7 +9,10 @@ const char* NET_PASS = "20061996";
 const char* SERVER = "172.20.10.9";
 const int PORT = 12345;
 const int WS_PORT = 12344;
-const int RECONNECT_INTERVAL = 5000;
+const int RECONNECT_INTERVAL = 5000; // ms
+const int PING_INTERVAL = 100; // ms
+const int PONG_TIMEOUT = 1000; // ms
+const int RETRIES_COUNT = 2; // ms
 
 // Serial
 const int BAUD_RATE = 115200;

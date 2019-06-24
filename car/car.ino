@@ -152,14 +152,17 @@ void loop() {
 
     // Ultrasonic
     uls.read(distance);
+
     if (!blocked && distance <= MIN_DISTANCE) {
         blocked = true;
 
         com.sendBlockingState(BLOCKING_MODE::BLOCKED);
+        com.sendStr(String("Blocked!"));
     } else if (blocked && distance > MIN_DISTANCE) {
         blocked = false;
 
         com.sendBlockingState(BLOCKING_MODE::UNBLOCKED);
+        com.sendStr(String("UnBlocked!"));
     }
 
     // Battery
@@ -228,6 +231,7 @@ void receive(SERVER_TASKS task) {
         break;
 
         case SERVER_TASKS::STOP:
+            moving = false;
             nav.stop();
             com.sendStr(String("Stop!"));
         break;
@@ -257,10 +261,12 @@ void receive(SERVER_TASKS task) {
         break;
 
         case SERVER_TASKS::LOAD:
+            com.sendDone();
             com.sendStr(String("Load!"));
         break;
 
         case SERVER_TASKS::OFFLOAD:
+            com.sendDone();
             com.sendStr(String("Offload!"));
         break;
 
