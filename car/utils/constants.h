@@ -6,7 +6,7 @@ const int PWM_FREQUENCY = 1; // In range 1-1000 KHz
 // WIFI
 const char* NET_NAME = "Ibrahim's iPhone";
 const char* NET_PASS = "20061996";
-const char* SERVER = "172.20.10.5";
+const char* SERVER = "172.20.10.9";
 const int PORT = 12345;
 const int WS_PORT = 12344;
 const int RECONNECT_INTERVAL = 5000;
@@ -28,9 +28,11 @@ enum class MSG_FROM_SERVER {
 enum class ACTIONS {
     STOP = 0,
     MOVE = 1,
-    RETREAT = 2,
+    ROTATE_RIGHT = 2,
     ROTATE_LEFT = 3,
-    ROTATE_RIGHT = 4
+    RETREAT = 4,
+    LOAD = 5,
+    OFFLOAD = 6
 };
 
 enum class LIGHTS {
@@ -48,7 +50,8 @@ enum class LIGHT_MODE {
 enum class MSG_TO_SERVER {
     DONE = 0,
     BATTERY = 1,
-    BLOCKING = 2
+    BLOCKING = 2,
+    ERROR = 3
 };
 
 enum class BLOCKING_MODE {
@@ -61,15 +64,17 @@ enum class SERVER_TASKS {
     CONFIG = 0,
     STOP = 1,
     MOVE = 2,
-    RETREAT = 3,
+    ROTATE_RIGHT = 3,
     ROTATE_LEFT = 4,
-    ROTATE_RIGHT = 5,
-    RED_LED_OFF = 6,
-    RED_LED_ON = 7,
-    RED_LED_FLASH = 8,
-    BLUE_LED_OFF = 9,
-    BLUE_LED_ON = 10,
-    BLUE_LED_FLASH = 11
+    RETREAT = 5,
+    LOAD = 6,
+    OFFLOAD = 7,
+    RED_LED_OFF = 8,
+    RED_LED_ON = 9,
+    RED_LED_FLASH = 10,
+    BLUE_LED_OFF = 11,
+    BLUE_LED_ON = 12,
+    BLUE_LED_FLASH = 13
 };
 
 // Motors pins
@@ -145,11 +150,26 @@ const int FRT_CNT_BLACK_SENSOR_PIN = D8;
 const int BAK_LFT_BLACK_SENSOR_PIN = 4;
 const int BAK_RGT_BLACK_SENSOR_PIN = 5;
 
+// Car 1 --> IP : .3
 const bool FRT_LFT_BLACK_SENSOR_INV = false;
 const bool FRT_RGT_BLACK_SENSOR_INV = false;
 const bool FRT_CNT_BLACK_SENSOR_INV = false;
 const bool BAK_LFT_BLACK_SENSOR_INV = true;
 const bool BAK_RGT_BLACK_SENSOR_INV = true;
+
+// Car 2 --> IP : .2
+// const bool FRT_LFT_BLACK_SENSOR_INV = true;
+// const bool FRT_RGT_BLACK_SENSOR_INV = true;
+// const bool FRT_CNT_BLACK_SENSOR_INV = false;
+// const bool BAK_LFT_BLACK_SENSOR_INV = false;
+// const bool BAK_RGT_BLACK_SENSOR_INV = false;
+
+// Car 3 --> IP : .4
+// const bool FRT_LFT_BLACK_SENSOR_INV = true;
+// const bool FRT_RGT_BLACK_SENSOR_INV = true;
+// const bool FRT_CNT_BLACK_SENSOR_INV = false;
+// const bool BAK_LFT_BLACK_SENSOR_INV = false;
+// const bool BAK_RGT_BLACK_SENSOR_INV = false;
 
 const bool FRT_LFT_BLACK_SENSOR_PCF = true;
 const bool FRT_RGT_BLACK_SENSOR_PCF = true;
@@ -162,6 +182,7 @@ const int BATTERY_LEVEL_SIZE = 10;  // Each level represents 10% of the battery 
 // LEDs
 const int BLUE_LED_PIN = D3;
 const int RED_LED_PIN = D10;
+const int FLASH_PERIOD = 500; // ms
 
 // General
 const double MOTORS_ADJUST_DELTA = 100; // ms

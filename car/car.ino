@@ -36,8 +36,18 @@ MPUSensor mpu;
 PCF857x pcf1(PCF1_ADDRESS, &Wire);
 
 bool setupState = false;
-bool active = false;
-bool failure = false;
+bool moving = false;
+bool blocked = false;
+
+uint8_t batteryLevel;
+
+LIGHT_MODE redLed = LIGHT_MODE::OFF;
+LIGHT_MODE blueLed = LIGHT_MODE::OFF;
+
+int lastRedLedValue = LOW;
+int lastBlueLedValue = LOW;
+double lastRedLedChange = millis();
+double lastBlueLedChange = millis();
 
 double y, p, r;
 double distance;
@@ -60,62 +70,8 @@ void ICACHE_RAM_ATTR rightEncoderISR() {
 //
 // Logic
 //
-void receive(SERVER_TASKS task) { // ToDo
-    switch (task) {
-        case SERVER_TASKS::CONFIG:
-            com.sendStr(String("Config!"));
-        break;
-
-        case SERVER_TASKS::STOP:
-            nav.stop();
-            com.sendStr(String("Stop!"));
-        break;
-
-        case SERVER_TASKS::MOVE:
-            nav.move();
-            com.sendStr(String("Forward!"));
-        break;
-
-        case SERVER_TASKS::RETREAT:
-            nav.retreat(y);
-            com.sendStr(String("Backward!"));
-        break;
-
-        case SERVER_TASKS::ROTATE_LEFT:
-            nav.rotateLeft(y);
-            com.sendStr(String("Left!"));
-        break;
-
-        case SERVER_TASKS::ROTATE_RIGHT:
-            nav.rotateRight(y);
-            com.sendStr(String("Right!"));
-        break;
-
-        case SERVER_TASKS::RED_LED_OFF:
-            com.sendStr(String("Red LED off!"));
-        break;
-
-        case SERVER_TASKS::RED_LED_ON:
-            com.sendStr(String("Red LED on!"));
-        break;
-
-        case SERVER_TASKS::RED_LED_FLASH:
-            com.sendStr(String("Red LED flash!"));
-        break;
-
-        case SERVER_TASKS::BLUE_LED_OFF:
-            com.sendStr(String("Blue LED off!"));
-        break;
-
-        case SERVER_TASKS::BLUE_LED_ON:
-            com.sendStr(String("Blue LED on!"));
-        break;
-
-        case SERVER_TASKS::BLUE_LED_FLASH:
-            com.sendStr(String("Blue LED flash!"));
-        break;
-    }
-}
+void receive(SERVER_TASKS task);
+void updateLights();
 
 void setup() {
     // Initialize I2C Bus
@@ -196,12 +152,30 @@ void loop() {
 
     // Ultrasonic
     uls.read(distance);
+    if (!blocked && distance <= MIN_DISTANCE) {
+        blocked = true;
+
+        com.sendBlockingState(BLOCKING_MODE::BLOCKED);
+    } else if (blocked && distance > MIN_DISTANCE) {
+        blocked = false;
+
+        com.sendBlockingState(BLOCKING_MODE::UNBLOCKED);
+    }
 
     // Battery
-    bool isLow;
-    // bat.read(isLow); // ToDo
+    uint8_t level;
+    bat.read(level);
 
-    // if (millis() - lastSend > 150) {
+    if (level != batteryLevel) {
+        batteryLevel = level;
+
+        com.sendBatteryLevel(batteryLevel);
+    }
+
+    // Light LEDs
+    updateLights();
+
+    // if (millis() - lastSend > 1000) {
     //     unsigned long lTicks, rTicks;
 
     //     noInterrupts();
@@ -232,25 +206,122 @@ void loop() {
     com.loop();
 
     // Navigation
-    bool finished = nav.navigate(distance, y, isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
+    nav.navigate(distance, y, isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
 
-    // Update LEDs, ToDo: read battery level
-    // digitalWrite(BLUE_LED_PIN, active ? HIGH : LOW);
-    // digitalWrite(RED_LED_PIN, isLow || failure ? HIGH : LOW);
+    if (moving && nav.getState() == IDLE) {
+        moving = false;
 
-    // Transmit back to the server
-    // delay(50);
+        com.sendDone();
+    }
 
     if (logs.length() > 0) {
         com.sendStr(logs);
 
         logs = "";
     }
+}
 
-    if (finished) {
-        // com.send(MSG_ACK);
+void receive(SERVER_TASKS task) {
+    switch (task) {
+        case SERVER_TASKS::CONFIG:
+            com.sendStr(String("Config!"));
+        break;
+
+        case SERVER_TASKS::STOP:
+            nav.stop();
+            com.sendStr(String("Stop!"));
+        break;
+
+        case SERVER_TASKS::MOVE:
+            moving = true;
+            nav.move();
+            com.sendStr(String("Forward!"));
+        break;
+
+        case SERVER_TASKS::ROTATE_RIGHT:
+            moving = true;
+            nav.rotateRight(y);
+            com.sendStr(String("Right!"));
+        break;
+
+        case SERVER_TASKS::ROTATE_LEFT:
+            moving = true;
+            nav.rotateLeft(y);
+            com.sendStr(String("Left!"));
+        break;
+
+        case SERVER_TASKS::RETREAT:
+            moving = true;
+            nav.retreat(y);
+            com.sendStr(String("Backward!"));
+        break;
+
+        case SERVER_TASKS::LOAD:
+            com.sendStr(String("Load!"));
+        break;
+
+        case SERVER_TASKS::OFFLOAD:
+            com.sendStr(String("Offload!"));
+        break;
+
+        case SERVER_TASKS::RED_LED_OFF:
+            redLed = LIGHT_MODE::OFF;
+            com.sendStr(String("Red LED off!"));
+        break;
+
+        case SERVER_TASKS::RED_LED_ON:
+            redLed = LIGHT_MODE::ON;
+            com.sendStr(String("Red LED on!"));
+        break;
+
+        case SERVER_TASKS::RED_LED_FLASH:
+            redLed = LIGHT_MODE::FLASH;
+            com.sendStr(String("Red LED flash!"));
+        break;
+
+        case SERVER_TASKS::BLUE_LED_OFF:
+            blueLed = LIGHT_MODE::OFF;
+            com.sendStr(String("Blue LED off!"));
+        break;
+
+        case SERVER_TASKS::BLUE_LED_ON:
+            blueLed = LIGHT_MODE::ON;
+            com.sendStr(String("Blue LED on!"));
+        break;
+
+        case SERVER_TASKS::BLUE_LED_FLASH:
+            blueLed = LIGHT_MODE::FLASH;
+            com.sendStr(String("Blue LED flash!"));
+        break;
+    }
+}
+
+void updateLights() {
+    if (redLed == LIGHT_MODE::OFF && lastRedLedValue != LOW) {
+        lastRedLedValue = LOW;
+
+        digitalWrite(RED_LED_PIN, lastRedLedValue);
+    } else if (redLed == LIGHT_MODE::ON && lastRedLedValue != HIGH) {
+        lastRedLedValue = HIGH;
+
+        digitalWrite(RED_LED_PIN, lastRedLedValue);
+    } else if (redLed == LIGHT_MODE::FLASH && millis() - lastRedLedChange > FLASH_PERIOD) {
+        lastRedLedValue = !lastRedLedValue;
+
+        digitalWrite(RED_LED_PIN, lastRedLedValue);
     }
 
+    if (blueLed == LIGHT_MODE::OFF && lastBlueLedValue != LOW) {
+        lastBlueLedValue = LOW;
 
-    // delay(10);
+        digitalWrite(BLUE_LED_PIN, lastBlueLedValue);
+    } else if (blueLed == LIGHT_MODE::ON && lastBlueLedValue != HIGH) {
+        lastBlueLedValue = HIGH;
+
+        digitalWrite(BLUE_LED_PIN, lastBlueLedValue);
+    } else if (blueLed == LIGHT_MODE::FLASH && millis() - lastBlueLedChange > FLASH_PERIOD) {
+        lastBlueLedValue = !lastBlueLedValue;
+
+        digitalWrite(BLUE_LED_PIN, lastBlueLedValue);
+    }
 }

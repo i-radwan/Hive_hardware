@@ -105,6 +105,10 @@ public:
         motorsPCF = pcf1;
     }
 
+    STATE getState() {
+        return state;
+    }
+
     bool navigate(unsigned long distance, double angle, bool isFrontCenterBlack, bool isFrontLeftBlack, bool isFrontRightBlack, bool isBackLeftBlack, bool isBackRightBlack, String& logs) {
         if (state == MOVE || state == STRAIGHT || state == STRAIGHT_LEFT || state == STRAIGHT_RIGHT || state == OFFLINE_LEFT || state ==  OFFLINE_RIGHT || state == ALIGNMENT)
             return move(distance, isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
@@ -114,12 +118,6 @@ public:
             return retreat(angle, isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
 
         return false;
-    }
-
-    void stop() {
-        state = IDLE;
-
-        adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);
     }
 
     void prepare() {
@@ -132,6 +130,12 @@ public:
         wasBackLeftBlack = false;
 
         retreating = false;
+    }
+
+    void stop() {
+        state = IDLE;
+
+        adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);
     }
 
     void move() {

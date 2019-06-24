@@ -14,12 +14,12 @@ public:
         pinMode(pin, INPUT);
     }
 
-    void read(bool& isLow) {
+    void read(uint8_t& batteryLevel) {
         int val = analogRead(pin);
 
         double remaining = (val / 1023) * BATTERY_DIVIDED_REF_VOLT * BATTERY_RESISTORS_RATIO;
 
-        isLow = remaining < (BATTERY_REF_VOLT * BATTERY_WARNING_PERCENTAGE);
+        batteryLevel = (uint8_t) ((remaining - EPS) / BATTERY_REF_VOLT) * 10; // 0 - 9 levels
     }
 
 private:

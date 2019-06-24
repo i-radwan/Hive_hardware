@@ -32,7 +32,7 @@ FROM SERVER:
 CONFIG          = [0]
 
 ACTION          = [1, T]
-T               = [0:STOP, 1:MOVE, 2:RETREAT, 3:ROTATE_LEFT, 4:ROTATE_RIGHT]
+T               = [0:STOP, 1:MOVE, 2:ROTATE_RIGHT, 3:ROTATE_LEFT, 4:RETREAT, 5: LOAD, 6: OFFLOAD]
 
 LIGHTS          = [2, C, S]
 C               = [0:RED, 1:BLUE]   # RED: for any error from the server!

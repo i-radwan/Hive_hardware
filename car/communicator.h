@@ -119,6 +119,10 @@ private:
                             task = SERVER_TASKS::ROTATE_LEFT;
                         } else if (payload[1] == (int) ACTIONS::ROTATE_RIGHT) {
                             task = SERVER_TASKS::ROTATE_RIGHT;
+                        } else if (payload[1] == (int) ACTIONS::LOAD) {
+                            task = SERVER_TASKS::LOAD;
+                        } else if (payload[1] == (int) ACTIONS::OFFLOAD) {
+                            task = SERVER_TASKS::OFFLOAD;
                         }
                     } else if (payload[0] == (int) MSG_FROM_SERVER::LIGHTS) {
                         if (payload[1] == (int) LIGHTS::RED) {
