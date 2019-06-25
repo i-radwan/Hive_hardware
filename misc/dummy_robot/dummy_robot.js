@@ -23,6 +23,8 @@
 //  - Rotate right
 //  - Rotate left
 //  - Retreat
+//  - Load
+//  - Offload
 
 // =================
 // Constants
