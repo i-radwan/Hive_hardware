@@ -104,11 +104,7 @@ client.on('connect', function(connection) {
 
     // =================
     // Initial Config
-    let msg = Buffer.alloc(2);
-    msg[0] = 3;
-    msg[1] = id;
-
-    connection.sendBytes(msg);
+    connection.sendBytes(Buffer.from([3, id]));
 
     // =================
     // Handle user input
@@ -142,36 +138,25 @@ client.on('connect', function(connection) {
     let sendDone = function() {
         console.log("Sending Done...");
 
-        let msg = Buffer.alloc(1);
-        msg[0] = 0;
-        connection.sendBytes(msg);
+        connection.sendBytes(Buffer.from([0]));
     };
 
     let sendBatteryLevel = function(l) {
         console.log("Sending Battery Level...");
 
-        let msg = Buffer.alloc(2);
-        msg[0] = 1;
-        msg[1] = l;
-        connection.sendBytes(msg);
+        connection.sendBytes(Buffer.from([1, l]));
     };
 
     let sendBlocked = function() {
         console.log("Sending Blocked...");
 
-        let msg = Buffer.alloc(2);
-        msg[0] = 2;
-        msg[1] = 1;
-        connection.sendBytes(msg);
+        connection.sendBytes(Buffer.from([2, 1]));
     };
 
     let sendUnblocked = function() {
         console.log("Sending Unblocked...");
 
-        let msg = Buffer.alloc(2);
-        msg[0] = 2;
-        msg[1] = 0;
-        connection.sendBytes(msg);
+        connection.sendBytes(Buffer.from([2, 0]));
     };
 
     // =================
