@@ -147,6 +147,15 @@ client.on('connect', function(connection) {
         connection.sendBytes(msg);
     };
 
+    let sendBatteryLevel = function(l) {
+        console.log("Sending Battery Level...");
+
+        let msg = Buffer.alloc(2);
+        msg[0] = 1;
+        msg[1] = l;
+        connection.sendBytes(msg);
+    };
+
     let sendBlocked = function() {
         console.log("Sending Blocked...");
 
@@ -162,15 +171,6 @@ client.on('connect', function(connection) {
         let msg = Buffer.alloc(2);
         msg[0] = 2;
         msg[1] = 0;
-        connection.sendBytes(msg);
-    };
-
-    let sendBatteryLevel = function(l) {
-        console.log("Sending Battery Level...");
-
-        let msg = Buffer.alloc(2);
-        msg[0] = 2;
-        msg[1] = l;
         connection.sendBytes(msg);
     };
 
