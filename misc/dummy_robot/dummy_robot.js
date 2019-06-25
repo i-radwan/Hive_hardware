@@ -10,12 +10,11 @@
 // =================
 // These commands and actions have to follow the agreed server/HW protocol.
 
-// Input: Agent# Command
-//  - Command:
-//      • 1: Done
-//      • 2: Blocked
-//      • 3: Unblocked
-//      • 4: Battery level (followed by the battery level, e.g. (1 4 6):: Agnet#1 battery level is now 6)
+// Input Commands:
+//  - 1: Done
+//  - 2: Blocked
+//  - 3: Unblocked
+//  - 4: Battery level (followed by the battery level, e.g. (1 4 6):: Agnet#1 battery level is now 6)
 
 // =================
 // Possible server actions:
