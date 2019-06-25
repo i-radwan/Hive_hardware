@@ -1,4 +1,6 @@
 .DS_Store
 
-*/node_modules/
-*/package-lock.json
+misc/dummy_robot/node_modules/
+misc/dummy_robot/package-lock.json
+misc/server/ws/node_modules/
+misc/server/ws/package-lock.json
