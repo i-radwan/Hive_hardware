@@ -31,6 +31,7 @@ wsServer.on('request', function (request) {
     });
 
     console.log("0: STOP\n1: Move\n2: Retreat\n3: Rotate left\n4: Rotate right")
+
     // Take my input as orders
     let stdin = process.openStdin();
     stdin.addListener("data", function (d) {

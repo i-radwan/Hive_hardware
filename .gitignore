@@ -1,4 +1,4 @@
 .DS_Store
 
-misc/server/ws/node_modules/
-misc/server/ws/package-lock.json
+*/node_modules/
+*/package-lock.json
