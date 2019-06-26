@@ -1,5 +1,7 @@
 #pragma once
 
+#include <math.h>
+
 #include "../utils/utils.h"
 #include "../utils/constants.h"
 
@@ -19,7 +21,7 @@ public:
 
         double remaining = (val / 1023) * BATTERY_DIVIDED_REF_VOLT * BATTERY_RESISTORS_RATIO;
 
-        batteryLevel = (uint8_t) ((remaining - EPS) / BATTERY_REF_VOLT) * 10; // 0 - 9 levels
+        batteryLevel = (uint8_t) round((remaining / BATTERY_REF_VOLT) * 10); // [0 - 10] levels
     }
 
 private:

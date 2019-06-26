@@ -72,6 +72,8 @@ void ICACHE_RAM_ATTR rightEncoderISR() {
 //
 void receive(SERVER_TASKS task);
 void updateLights();
+void serverDisconnected();
+void serverConnected();
 
 void setup() {
     // Initialize I2C Bus
@@ -178,28 +180,34 @@ void loop() {
     // Light LEDs
     updateLights();
 
-    // if (millis() - lastSend > 500) {
-    //     unsigned long lTicks, rTicks;
+    if (millis() - lastSend > 1000) {
+        // unsigned long lTicks, rTicks;
 
-    //     noInterrupts();
-    //     len.read(lTicks);
-    //     ren.read(rTicks);
-    //     interrupts();
+        // noInterrupts();
+        // len.read(lTicks);
+        // ren.read(rTicks);
+        // interrupts();
 
-    //     com.sendStr(
-    //         "DEBUG:\nAngle: " + String(y) +
-    //         "\nSensors: " + String(isFrontLeftBlack) +
-    //         " " + String(isFrontCenterBlack) +
-    //         " " + String(isFrontRightBlack) +
-    //         " " + String(isBackLeftBlack) +
-    //         " " + String(isBackRightBlack) +
-    //         " Lticks: " + lTicks +
-    //         " Rticks: " + rTicks +
-    //         " Sonic: " + distance +
-    //         "\n\n");
+        // com.sendStr(
+        //     "DEBUG:\nAngle: " + String(y) +
+        //     "\nSensors: " + String(isFrontLeftBlack) +
+        //     " " + String(isFrontCenterBlack) +
+        //     " " + String(isFrontRightBlack) +
+        //     " " + String(isBackLeftBlack) +
+        //     " " + String(isBackRightBlack) +
+        //     " Lticks: " + lTicks +
+        //     " Rticks: " + rTicks +
+        //     " Sonic: " + distance +
+        //     "\n\n");
 
-    //     lastSend = millis();
-    // }
+        if (logs.length() > 0) {
+            com.sendStr(logs + "\n\n");
+
+            logs = "";
+        }
+
+        lastSend = millis();
+    }
 
     // Server commands
     com.loop();
@@ -211,12 +219,6 @@ void loop() {
         moving = false;
 
         com.sendDone();
-    }
-
-    if (logs.length() > 0) {
-        com.sendStr(logs);
-
-        logs = "";
     }
 }
 
@@ -309,6 +311,7 @@ void updateLights() {
         digitalWrite(RED_LED_PIN, lastRedLedValue);
     } else if (redLed == LIGHT_MODE::FLASH && millis() - lastRedLedChange > FLASH_PERIOD) {
         lastRedLedValue = !lastRedLedValue;
+        lastRedLedChange = millis();
 
         digitalWrite(RED_LED_PIN, lastRedLedValue);
     }
@@ -323,6 +326,7 @@ void updateLights() {
         digitalWrite(BLUE_LED_PIN, lastBlueLedValue);
     } else if (blueLed == LIGHT_MODE::FLASH && millis() - lastBlueLedChange > FLASH_PERIOD) {
         lastBlueLedValue = !lastBlueLedValue;
+        lastBlueLedChange = millis();
 
         digitalWrite(BLUE_LED_PIN, lastBlueLedValue);
     }

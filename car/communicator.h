@@ -109,23 +109,23 @@ private:
                     if (payload[0] == (int) MSG_FROM_SERVER::CONFIG) {
                         task = SERVER_TASKS::CONFIG;
                     } else if (payload[0] == (int) MSG_FROM_SERVER::ACTION) {
-                        if (payload[1] == (int) ACTIONS::STOP) {
+                        if (payload[1] == (int) ACTION::STOP) {
                             task = SERVER_TASKS::STOP;
-                        } else if (payload[1] == (int) ACTIONS::MOVE) {
+                        } else if (payload[1] == (int) ACTION::MOVE) {
                             task = SERVER_TASKS::MOVE;
-                        } else if (payload[1] == (int) ACTIONS::RETREAT) {
+                        } else if (payload[1] == (int) ACTION::RETREAT) {
                             task = SERVER_TASKS::RETREAT;
-                        } else if (payload[1] == (int) ACTIONS::ROTATE_LEFT) {
+                        } else if (payload[1] == (int) ACTION::ROTATE_LEFT) {
                             task = SERVER_TASKS::ROTATE_LEFT;
-                        } else if (payload[1] == (int) ACTIONS::ROTATE_RIGHT) {
+                        } else if (payload[1] == (int) ACTION::ROTATE_RIGHT) {
                             task = SERVER_TASKS::ROTATE_RIGHT;
-                        } else if (payload[1] == (int) ACTIONS::LOAD) {
+                        } else if (payload[1] == (int) ACTION::LOAD) {
                             task = SERVER_TASKS::LOAD;
-                        } else if (payload[1] == (int) ACTIONS::OFFLOAD) {
+                        } else if (payload[1] == (int) ACTION::OFFLOAD) {
                             task = SERVER_TASKS::OFFLOAD;
                         }
-                    } else if (payload[0] == (int) MSG_FROM_SERVER::LIGHTS) {
-                        if (payload[1] == (int) LIGHTS::RED) {
+                    } else if (payload[0] == (int) MSG_FROM_SERVER::LIGHT) {
+                        if (payload[1] == (int) LIGHT::RED) {
                             if (payload[2] == (int) LIGHT_MODE::OFF) {
                                 task = SERVER_TASKS::RED_LED_OFF;
                             } else if (payload[2] == (int) LIGHT_MODE::ON) {
@@ -133,7 +133,7 @@ private:
                             } else if (payload[2] == (int) LIGHT_MODE::FLASH) {
                                 task = SERVER_TASKS::RED_LED_FLASH;
                             }
-                        } else if (payload[1] == (int) LIGHTS::BLUE) {
+                        } else if (payload[1] == (int) LIGHT::BLUE) {
                             if (payload[2] == (int) LIGHT_MODE::OFF) {
                                 task = SERVER_TASKS::BLUE_LED_OFF;
                             } else if (payload[2] == (int) LIGHT_MODE::ON) {

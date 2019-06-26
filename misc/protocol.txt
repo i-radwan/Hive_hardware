@@ -34,7 +34,7 @@ CONFIG          = [0]
 ACTION          = [1, T]
 T               = [0:STOP, 1:MOVE, 2:ROTATE_RIGHT, 3:ROTATE_LEFT, 4:RETREAT, 5: LOAD, 6: OFFLOAD]
 
-LIGHTS          = [2, C, S]
+LIGHT           = [2, C, S]
 C               = [0:RED, 1:BLUE]   # RED: for any error from the server!
                                     # BLUE: when the robot is actually moving to serve a task.
 S               = [0:OFF|1:ON|2:FLASH]

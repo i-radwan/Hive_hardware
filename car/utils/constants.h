@@ -29,10 +29,11 @@ const int BAUD_RATE = 115200;
 enum class MSG_FROM_SERVER {
     CONFIG = 0,
     ACTION = 1,
-    LIGHTS = 2
+    LIGHT = 2
 };
 
-enum class ACTIONS {
+enum class ACTION {
+    NONE = -1,
     STOP = 0,
     MOVE = 1,
     ROTATE_RIGHT = 2,
@@ -42,7 +43,7 @@ enum class ACTIONS {
     OFFLOAD = 6
 };
 
-enum class LIGHTS {
+enum class LIGHT {
     RED = 0,
     BLUE = 1
 };
@@ -216,7 +217,7 @@ const int BATTERY_LEVEL_SIZE = 10;  // Each level represents 10% of the battery 
 // LEDs
 const int BLUE_LED_PIN = D3;
 const int RED_LED_PIN = D10;
-const int FLASH_PERIOD = 500; // ms
+const int FLASH_PERIOD = 750; // ms
 
 // General
 const double MOTORS_ADJUST_DELTA = 100; // ms
@@ -236,20 +237,19 @@ enum STATE {
     STRAIGHT_RIGHT,             // 5
     OFFLINE_LEFT,               // 6
     OFFLINE_RIGHT,              // 7
-    ROTATE_RIGHT,               // 8
-    ROTATE_LEFT,                // 9
-    PRE_ROTATE_RIGHT,           // 10
-    PRE_ROTATE_LEFT,            // 11
-    PRE_ROTATE_RIGHT_2,         // 12
-    PRE_ROTATE_LEFT_2,          // 13
+    PRE_ROTATE_RIGHT,           // 8
+    PRE_ROTATE_LEFT,            // 9
+    PRE_ROTATE_RIGHT_2,         // 10
+    PRE_ROTATE_LEFT_2,          // 11
+    ROTATE_RIGHT,               // 12
+    ROTATE_LEFT,                // 13
     POST_ROTATE_RIGHT,          // 14
     POST_ROTATE_LEFT,           // 15
-    ALIGNMENT,                  // 16 ToDo: remove this not-used state
-    PRE_RETREAT,                // 17
-    RETREAT,                    // 18
-    RETREAT_LEFT,               // 19
-    RETREAT_RIGHT,              // 20
-    RETREAT_OFFLINE_LEFT,       // 21
-    RETREAT_OFFLINE_RIGHT       // 22
+    PRE_RETREAT,                // 16
+    RETREAT,                    // 17
+    RETREAT_LEFT,               // 18
+    RETREAT_RIGHT,              // 19
+    RETREAT_OFFLINE_LEFT,       // 20
+    RETREAT_OFFLINE_RIGHT       // 21
 };
 
