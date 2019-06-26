@@ -10,7 +10,8 @@ struct MotorController {
 private:
 
     const double kp, ki, kd;
-    double p = 0, i = 0, d = 0, diff = 0, prevDiff = 0, speed;
+
+    double lastPWM = 0;
 
     double computePWM(double spd, double elapsedTime) {
         diff = speed - spd;
@@ -47,6 +48,7 @@ private:
     }
 
 public:
+    double p = 0, i = 0, d = 0, diff = 0, prevDiff = 0, speed;
 
     Encoder* en;
 
@@ -54,8 +56,14 @@ public:
         speed = spd;
     }
 
-    double compute(double elapsedTime, double newSpeed, double& distance) {
+    double compute(double elapsedTime, double newSpeed, double& distance, String& logs) {
         adjustSpeed(newSpeed);
+
+        if (elapsedTime < MOTORS_ADJUST_DELTA / 1000.0) {
+            distance = 0;
+
+            return lastPWM;
+        }
 
         unsigned long ticks = computeTicks();
         distance = computeDistance(ticks);
@@ -63,17 +71,19 @@ public:
         double RPM = computeRPM(ticks, elapsedTime);
         double PWM = computePWM(RPM, elapsedTime);
 
-        return PWM;
+        logs += ("\nTicks: " + String(ticks) + ", RPM: " + String(RPM) + "\n");
+
+        return (lastPWM = PWM);
     }
 
-    double compute(double elapsedTime, double newSpeed) {
+    double compute(double elapsedTime, double newSpeed, String logs) {
         double distance;
 
-        return compute(elapsedTime, newSpeed, distance);
+        return compute(elapsedTime, newSpeed, distance, logs);
     }
 
     void adjustSpeed(double spd) {
-        speed = constrain(spd, 0, MOTORS_MAX_SPEED);
+        speed = constrain(spd, 0, spd);
     }
 
     void reset() {
@@ -90,8 +100,8 @@ class Navigator {
 public:
 
     // 1.2, 0.1, 0.4
-    Navigator() : leftMotorController(1.2, 0.1, 0, MOTORS_INIT_SPEED),
-                  rightMotorController(1.2, 0.1, 0, MOTORS_INIT_SPEED) {
+    Navigator() : leftMotorController(1.2, 0.1, 0, MOTORS_SPEED),
+                  rightMotorController(1.2, 0.1, 0, MOTORS_SPEED) {
     }
 
     void setup(PCF857x* pcf1, Encoder* len, Encoder* ren) {
@@ -134,17 +144,19 @@ public:
     }
 
     void stop() {
-        preIdleState = state;
-        preIdleAction = action;
-        preIdleRemainingDistance = remainingDistance;
-        preIdleRemainingAngle = remainingAngle;
+        if (state != IDLE) { // Keep data of last real action to continue it later
+            preIdleState = state;
+            preIdleAction = action;
+            preIdleRemainingDistance = remainingDistance;
+            preIdleRemainingAngle = remainingAngle;
+        }
 
         leftMotorController.reset();
         rightMotorController.reset();
 
         state = IDLE;
 
-        action = ACTION::NONE;
+        action = ACTION::STOP;
 
         adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);
     }
@@ -250,6 +262,15 @@ private:
             return;
         }
 
+        if (remainingDistance < - STEP / 4.0) {
+            logs += ("Error: the robot is going beyond the required distance!\n");
+
+            // ToDo: throw error.
+            stop();
+
+            return;
+        }
+
         //
         // Timer
         //
@@ -264,7 +285,10 @@ private:
             return;
 
         double elapsedTime = (current - time) / 1000.0;
-        time = current;
+
+        if (elapsedTime >= MOTORS_ADJUST_DELTA / 1000.0) {
+            time = current;
+        }
 
         //
         // Line following
@@ -312,9 +336,9 @@ private:
                     state = OFFLINE_LEFT;
                 }
 
-                if (!isBackLeftBlack && !isBackRightBlack) {
-                    atNode = false;
-                }
+                // if (!isBackLeftBlack && !isBackRightBlack) {
+                //     atNode = false;
+                // }
             break;
 
             case STRAIGHT_LEFT:
@@ -326,9 +350,9 @@ private:
                     state = STRAIGHT;
                 }
 
-                if (!isBackLeftBlack && !isBackRightBlack) {
-                    atNode = false;
-                }
+                // if (!isBackLeftBlack && !isBackRightBlack) {
+                //     atNode = false;
+                // }
             break;
 
             case STRAIGHT_RIGHT:
@@ -340,9 +364,9 @@ private:
                     state = STRAIGHT;
                 }
 
-                if (!isBackLeftBlack && !isBackRightBlack) {
-                    atNode = false;
-                }
+                // if (!isBackLeftBlack && !isBackRightBlack) {
+                //     atNode = false;
+                // }
             break;
 
             case OFFLINE_LEFT:
@@ -354,9 +378,9 @@ private:
                     state = STRAIGHT;
                 }
 
-                if (!isBackLeftBlack && !isBackRightBlack) {
-                    atNode = false;
-                }
+                // if (!isBackLeftBlack && !isBackRightBlack) {
+                //     atNode = false;
+                // }
             break;
 
             case OFFLINE_RIGHT:
@@ -368,9 +392,9 @@ private:
                     state = STRAIGHT;
                 }
 
-                if (!isBackLeftBlack && !isBackRightBlack) {
-                    atNode = false;
-                }
+                // if (!isBackLeftBlack && !isBackRightBlack) {
+                //     atNode = false;
+                // }
             break;
         }
 
@@ -380,22 +404,22 @@ private:
         // States actions
         switch (state) {
             case STRAIGHT:
-                leftSpeed = MOTORS_INIT_SPEED;
-                rightSpeed = MOTORS_INIT_SPEED;
+                leftSpeed = MOTORS_SPEED;
+                rightSpeed = MOTORS_SPEED;
             break;
 
             case STRAIGHT_LEFT:
-                leftSpeed = MOTORS_INIT_SPEED;
-                rightSpeed = MOTORS_INIT_SPEED / 2;
+                leftSpeed = MOTORS_SPEED;
+                rightSpeed = MOTORS_SPEED / 2;
             break;
 
             case STRAIGHT_RIGHT:
-                leftSpeed = MOTORS_INIT_SPEED / 2;
-                rightSpeed = MOTORS_INIT_SPEED;
+                leftSpeed = MOTORS_SPEED / 2;
+                rightSpeed = MOTORS_SPEED;
             break;
 
             case OFFLINE_LEFT:
-                leftSpeed = MOTORS_INIT_SPEED / 2;
+                leftSpeed = MOTORS_SPEED / 2;
                 rightSpeed = 0;
                 rightFactor = 0;
                 rightMotorController.reset();
@@ -405,37 +429,37 @@ private:
                 leftSpeed = 0;
                 leftFactor = 0;
                 leftMotorController.reset();
-                rightSpeed = MOTORS_INIT_SPEED / 2;
+                rightSpeed = MOTORS_SPEED / 2;
             break;
         }
 
         double leftDistance, rightDistance;
 
         // Get motors throttle
-        double leftPWM = leftMotorController.compute(elapsedTime, leftSpeed, leftDistance);
-        double rightPWM = rightMotorController.compute(elapsedTime, rightSpeed, rightDistance);
+        double leftPWM = leftMotorController.compute(elapsedTime, leftSpeed, leftDistance, logs);
+        double rightPWM = rightMotorController.compute(elapsedTime, rightSpeed, rightDistance, logs);
 
         // Update distances
-        remainingDistance -= max(leftDistance, rightDistance);
+        remainingDistance -= (leftDistance + rightDistance) / 2.0;
 
-        if (action != ACTION::RETREAT)
-            movedDistance += max(leftDistance, rightDistance);
+        // if (action != ACTION::RETREAT)
+        movedDistance += (leftDistance + rightDistance) / 2.0;
 
         int thresholdDistance = STEP / 2;
 
-        if (action == ACTION::RETREAT) {
-            thresholdDistance = movedDistance * 0.75;
-        }
+        // if (action == ACTION::RETREAT) {
+            // thresholdDistance = movedDistance * 0.75;
+        // }
 
         // Stopping at nodes
-        if ((isBackLeftBlack || wasBackLeftBlack) && !atNode && remainingDistance < thresholdDistance) {
+        if ((isBackLeftBlack || wasBackLeftBlack) && /*!atNode &&*/ remainingDistance < thresholdDistance) {
             if (state != 6) // Prevent stuck when state == 6 && right tire on black line
                 leftPWM = 0;
 
             wasBackLeftBlack = true;
         }
 
-        if ((isBackRightBlack || wasBackRightBlack) && !atNode && remainingDistance < thresholdDistance) {
+        if ((isBackRightBlack || wasBackRightBlack) && /*!atNode &&*/ remainingDistance < thresholdDistance) {
             if (state != 7)
                 rightPWM = 0;
 
@@ -448,17 +472,17 @@ private:
                  // " - LeftRPM: " + String(leftRPM) +
                  " - LeftSpeed: " + String(leftSpeed) +
                  " - LeftPWM: " + String(leftPWM * leftFactor) +
-                 // " - LeftP: " + String(leftMotorController.p) +
-                 // " - LeftI: " + String(leftMotorController.i) +
-                 // " - LeftD: " + String(leftMotorController.d) +
+                 " - LeftP: " + String(leftMotorController.p) +
+                 " - LeftI: " + String(leftMotorController.i) +
+                 " - LeftD: " + String(leftMotorController.d) +
                  // " - RightRPM: " + String(rightRPM) +
                  " - RightSpeed: " + String(rightSpeed) +
                  " - RightPWM: " + String(rightPWM * rightFactor) +
-                 // " - RightP: " + String(rightMotorController.p) +
-                 // " - RightI: " + String(rightMotorController.i) +
-                 // " - RightD: " + String(rightMotorController.d) +
-                 // " - leftDistance: " + String(leftDistance) +
-                 // " - rightDistance: " + String(rightDistance) +
+                 " - RightP: " + String(rightMotorController.p) +
+                 " - RightI: " + String(rightMotorController.i) +
+                 " - RightD: " + String(rightMotorController.d) +
+                 " - leftDistance: " + String(leftDistance) +
+                 " - rightDistance: " + String(rightDistance) +
                  " - Remaining Distance: " + String(remainingDistance) +
                  " - Moved Distance: " + String(movedDistance / 2) +
                  " - isFrontLeftBlack: " + String(isFrontLeftBlack) +
@@ -469,7 +493,7 @@ private:
                  " - wasBackLeftBlack: " + String(wasBackLeftBlack) +
                  " - wasBackRightBlack: " + String(wasBackRightBlack) + "\n\n");
 
-        if (wasBackLeftBlack && wasBackRightBlack && remainingDistance < thresholdDistance && (!atNode || action == ACTION::RETREAT)) {
+        if (wasBackLeftBlack && wasBackRightBlack && remainingDistance < thresholdDistance /*&& (!atNode || action == ACTION::RETREAT)*/) {
             // We've arrived sucessfully without interruptions.
             preIdleActionCompleted = true;
 
@@ -679,8 +703,8 @@ private:
         }
 
         // Get motors throttle
-        double leftPWM = leftMotorController.compute(elapsedTime, abs(leftSpeed));
-        double rightPWM = rightMotorController.compute(elapsedTime, abs(rightSpeed));
+        double leftPWM = leftMotorController.compute(elapsedTime, abs(leftSpeed), logs);
+        double rightPWM = rightMotorController.compute(elapsedTime, abs(rightSpeed), logs);
 
         logs += ("TURN:: - state: " + String(state) +
                  " - Angle: " + String(angle) +
@@ -696,16 +720,16 @@ private:
                  // " - LeftRPM: " + String(leftRPM) +
                  " - LeftSpeed: " + String(abs(leftSpeed)) +
                  " - LeftPWM: " + String(leftPWM) +
-                 // " - LeftP: " + String(leftMotorController.p) +
-                 // " - LeftI: " + String(leftMotorController.i) +
-                 // " - LeftD: " + String(leftMotorController.d) +
+                 " - LeftP: " + String(leftMotorController.p) +
+                 " - LeftI: " + String(leftMotorController.i) +
+                 " - LeftD: " + String(leftMotorController.d) +
                  // " - RightRPM: " + String(rightRPM) +
                  " - RightSpeed: " + String(abs(rightSpeed)) +
-                 " - RightPWM: " + String(rightPWM)
-                 // " - RightP: " + String(rightMotorController.p) +
-                 // " - RightI: " + String(rightMotorController.i) +
-                 // " - RightD: " + String(rightMotorController.d)
-                 + "\n\n");
+                 " - RightPWM: " + String(rightPWM) +
+                 " - RightP: " + String(rightMotorController.p) +
+                 " - RightI: " + String(rightMotorController.i) +
+                 " - RightD: " + String(rightMotorController.d) +
+                 "\n\n");
 
         // Set directions
         int lDir1 = HIGH;
@@ -819,8 +843,8 @@ private:
         }
 
         // Get motors throttle
-        double leftPWM = leftMotorController.compute(elapsedTime, abs(leftSpeed));
-        double rightPWM = rightMotorController.compute(elapsedTime, abs(rightSpeed));
+        double leftPWM = leftMotorController.compute(elapsedTime, abs(leftSpeed), logs);
+        double rightPWM = rightMotorController.compute(elapsedTime, abs(rightSpeed), logs);
 
         // Set directions
         int lDir1 = HIGH;

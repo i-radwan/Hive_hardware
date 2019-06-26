@@ -1,5 +1,7 @@
 #pragma once
 
+#include <math.h>
+
 #include "../utils/utils.h"
 #include "../utils/constants.h"
 
@@ -19,11 +21,11 @@ public:
 	}
 
     void read(unsigned long& ticks) {
-		ticks = this->ticks / 2;
+		ticks = ceil(this->ticks / 2.0);
     }
 
     void readAndReset(unsigned long& ticks) {
-		ticks = this->ticks / 2;
+		ticks = ceil(this->ticks / 2.0);
 		this->ticks = 0;
     }
 

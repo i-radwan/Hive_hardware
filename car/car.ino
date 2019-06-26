@@ -124,6 +124,9 @@ void setup() {
     pinMode(RED_LED_PIN, FUNCTION_3);
     pinMode(RED_LED_PIN, OUTPUT);
 
+    digitalWrite(RED_LED_PIN, LOW);
+    digitalWrite(BLUE_LED_PIN, LOW);
+
     for(int i = 0; i < 3000; ++i) {
         ota.handle();
     }
@@ -200,11 +203,11 @@ void loop() {
         //     " Sonic: " + distance +
         //     "\n\n");
 
-        if (logs.length() > 0) {
-            com.sendStr(logs + "\n\n");
+        // if (logs.length() > 0) {
+        //     com.sendStr(logs + "\n\n");
 
-            logs = "";
-        }
+        //     logs = "";
+        // }
 
         lastSend = millis();
     }
@@ -219,6 +222,12 @@ void loop() {
         moving = false;
 
         com.sendDone();
+
+        if (logs.length() > 0) {
+            com.sendStr(logs + "\n\n");
+
+            logs = "";
+        }
     }
 }
 
