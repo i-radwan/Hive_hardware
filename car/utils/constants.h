@@ -1,12 +1,16 @@
 #pragma once
 
+#define CAR1
+// #define CAR2
+// #define CAR3
+
 // PWM
 const int PWM_FREQUENCY = 1; // In range 1-1000 KHz
 
 // WIFI
 const char* NET_NAME = "Ibrahim's iPhone";
 const char* NET_PASS = "20061996";
-const char* SERVER = "172.20.10.9";
+const char* SERVER = "172.20.10.5";
 const int PORT = 12345;
 const int WS_PORT = 12344;
 const int RECONNECT_INTERVAL = 5000; // ms
@@ -120,12 +124,33 @@ const int MPU_ADDRESS = 0x68;
 const int I2C_SCL = D6;
 const int I2C_SDA = D7;
 const int MPU_INTR = D8;
+
+#ifdef CAR1
 const double MPU_ACCEL_X_OFF = -24280 / 8.8;
 const double MPU_ACCEL_Y_OFF = -1100 / 6.3;
 const double MPU_ACCEL_Z_OFF = 7000 / 6.9;
 const double MPU_GYRO_X_OFF = -78 / 3.5;
 const double MPU_GYRO_Y_OFF = -391 / 4.05;
 const double MPU_GYRO_Z_OFF = -185 / 3.5;
+#endif
+
+#ifdef CAR2
+const double MPU_ACCEL_X_OFF = 3810 / 8.8;
+const double MPU_ACCEL_Y_OFF = 4499.03 / 6.3;
+const double MPU_ACCEL_Z_OFF = 7130 / 6.9;
+const double MPU_GYRO_X_OFF = 145.85 / 3.5;
+const double MPU_GYRO_Y_OFF = -175.27 / 4.05;
+const double MPU_GYRO_Z_OFF = -32 / 3.5;
+#endif
+
+#ifdef CAR3
+const double MPU_ACCEL_X_OFF = -17530 / 8.8;
+const double MPU_ACCEL_Y_OFF = 200 / 6.3;
+const double MPU_ACCEL_Z_OFF = 9806 / 6.9;
+const double MPU_GYRO_X_OFF = 342.55 / 3.5;
+const double MPU_GYRO_Y_OFF = 144.27 / 4.05;
+const double MPU_GYRO_Z_OFF = -141 / 3.5;
+#endif
 
 const int OPTICAL_CLCK = 1;
 const int OPTICAL_DATA = 3;
@@ -154,25 +179,31 @@ const int BAK_LFT_BLACK_SENSOR_PIN = 4;
 const int BAK_RGT_BLACK_SENSOR_PIN = 5;
 
 // Car 1 --> IP : .3
+#ifdef CAR1
 const bool FRT_LFT_BLACK_SENSOR_INV = false;
 const bool FRT_RGT_BLACK_SENSOR_INV = false;
 const bool FRT_CNT_BLACK_SENSOR_INV = false;
 const bool BAK_LFT_BLACK_SENSOR_INV = true;
 const bool BAK_RGT_BLACK_SENSOR_INV = true;
+#endif
 
 // Car 2 --> IP : .2
-// const bool FRT_LFT_BLACK_SENSOR_INV = true;
-// const bool FRT_RGT_BLACK_SENSOR_INV = true;
-// const bool FRT_CNT_BLACK_SENSOR_INV = false;
-// const bool BAK_LFT_BLACK_SENSOR_INV = false;
-// const bool BAK_RGT_BLACK_SENSOR_INV = false;
+#ifdef CAR2
+const bool FRT_LFT_BLACK_SENSOR_INV = true;
+const bool FRT_RGT_BLACK_SENSOR_INV = true;
+const bool FRT_CNT_BLACK_SENSOR_INV = false;
+const bool BAK_LFT_BLACK_SENSOR_INV = false;
+const bool BAK_RGT_BLACK_SENSOR_INV = false;
+#endif
 
 // Car 3 --> IP : .4
-// const bool FRT_LFT_BLACK_SENSOR_INV = true;
-// const bool FRT_RGT_BLACK_SENSOR_INV = true;
-// const bool FRT_CNT_BLACK_SENSOR_INV = false;
-// const bool BAK_LFT_BLACK_SENSOR_INV = false;
-// const bool BAK_RGT_BLACK_SENSOR_INV = false;
+#ifdef CAR3
+const bool FRT_LFT_BLACK_SENSOR_INV = true;
+const bool FRT_RGT_BLACK_SENSOR_INV = true;
+const bool FRT_CNT_BLACK_SENSOR_INV = false;
+const bool BAK_LFT_BLACK_SENSOR_INV = false;
+const bool BAK_RGT_BLACK_SENSOR_INV = false;
+#endif
 
 const bool FRT_LFT_BLACK_SENSOR_PCF = true;
 const bool FRT_RGT_BLACK_SENSOR_PCF = true;
@@ -189,10 +220,9 @@ const int FLASH_PERIOD = 500; // ms
 
 // General
 const double MOTORS_ADJUST_DELTA = 100; // ms
-const double MOTORS_INIT_SPEED = 35; // rpm
-const double MOTORS_MAX_SPEED = 60; // rpm
-const double MOTORS_ROTATION_SPEED = 25;
-const double RETREAT_MOTORS_SPEED_FACTOR = 0.6;
+const double MOTORS_INIT_SPEED = 25; // rpm
+const double MOTORS_MAX_SPEED = 30; // rpm
+const double MOTORS_ROTATION_SPEED = 15;
 const double STEP = 300; // mm
 const double EPS = 1e-6;
 const double MPU_REFRESH_RATE = 0; // ms

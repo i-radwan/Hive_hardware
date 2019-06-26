@@ -21,9 +21,9 @@ private:
 
         prevDiff = diff;
 
-        double pid = constrain(p + i + d, -PWMRANGE, PWMRANGE);
+        double pid = constrain(PWMRANGE / 7. + p + i + d, -PWMRANGE, PWMRANGE);
 
-        double throttle = constrain(PWMRANGE / 5.5 + pid, 0, PWMRANGE);
+        double throttle = constrain(pid, 0, PWMRANGE);
 
         return throttle;
     }
@@ -462,7 +462,7 @@ private:
         prevAngle = angle;
 
         if (remainingAngle <= 0) {
-            // state = IDLE;
+            state = IDLE;
         }
 
         //

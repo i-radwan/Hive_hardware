@@ -1,3 +1,7 @@
+extern "C" {
+  #include "user_interface.h"
+}
+
 #include <pcf8574_esp.h>
 #include <Servo.h>
 
@@ -10,10 +14,6 @@
 #include "sensors/ultrasonic.h"
 #include "sensors/mpu.h"
 #include "utils/constants.h"
-
-extern "C" {
-  #include "user_interface.h"
-}
 
 //
 // Variables & Objects
@@ -178,7 +178,7 @@ void loop() {
     // Light LEDs
     updateLights();
 
-    // if (millis() - lastSend > 1000) {
+    // if (millis() - lastSend > 500) {
     //     unsigned long lTicks, rTicks;
 
     //     noInterrupts();
@@ -200,10 +200,6 @@ void loop() {
 
     //     lastSend = millis();
     // }
-
-    //
-    // Logic
-    //
 
     // Server commands
     com.loop();

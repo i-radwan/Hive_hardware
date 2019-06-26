@@ -22,9 +22,11 @@ wsServer.on('request', function (request) {
     console.log("Connected!");
 
     con.on('message', function (message) {
-        let m = message.utf8Data;
+        if (message.type === 'utf8') {
+            let m = message.utf8Data;
 
-        console.log("Received::\n" + m + "\nRoundtrip time: " + (new Date() - s));
+            console.log("Received::\n" + m + "\nRoundtrip time: " + (new Date() - s));
+        }
     });
 
     con.on('close', function (con) {
