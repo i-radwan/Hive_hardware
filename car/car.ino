@@ -224,7 +224,7 @@ void loop() {
         com.sendDone();
 
         if (logs.length() > 0) {
-            // com.sendStr(logs + "\n\n");
+            com.sendStr(logs + "\n\n");
 
             logs = "";
         }

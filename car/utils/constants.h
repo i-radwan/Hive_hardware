@@ -220,8 +220,8 @@ const int RED_LED_PIN = D10;
 const int FLASH_PERIOD = 750; // ms
 
 // General
-const double MOTORS_ADJUST_DELTA = 200; // ms
-const double MOTORS_SPEED = 50; // rpm
+const double MOTORS_ADJUST_DELTA = 180; // ms
+const double MOTORS_SPEED = 40; // rpm
 const double MOTORS_ROTATION_SPEED = 50;
 const double STEP = 300; // mm
 const double EPS = 1e-6;
