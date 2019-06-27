@@ -183,7 +183,7 @@ void loop() {
     // Light LEDs
     updateLights();
 
-    if (millis() - lastSend > 1000) {
+    // if (millis() - lastSend > 1000) {
         // unsigned long lTicks, rTicks;
 
         // noInterrupts();
@@ -209,8 +209,8 @@ void loop() {
         //     logs = "";
         // }
 
-        lastSend = millis();
-    }
+    //     lastSend = millis();
+    // }
 
     // Server commands
     com.loop();

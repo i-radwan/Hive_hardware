@@ -22,7 +22,7 @@ private:
 
         prevDiff = diff;
 
-        double pid = constrain(PWMRANGE / 6. + p + i + d, -PWMRANGE, PWMRANGE);
+        double pid = constrain(PWMRANGE / 7. + p + i + d, -PWMRANGE, PWMRANGE);
 
         double throttle = constrain(pid, 0, PWMRANGE);
 
@@ -71,7 +71,7 @@ public:
         double RPM = computeRPM(ticks, elapsedTime);
         double PWM = computePWM(RPM, elapsedTime);
 
-        logs += ("\nTicks: " + String(ticks) + ", RPM: " + String(RPM) + "\n");
+        logs += ("Ticks: " + String(ticks) + ", RPM: " + String(RPM) + "\n");
 
         return (lastPWM = PWM);
     }
@@ -265,7 +265,7 @@ private:
         if (remainingDistance < - STEP / 4.0) {
             logs += ("Error: the robot is going beyond the required distance!\n");
 
-            // ToDo: throw error.
+            // ToDo: throw an error.
             stop();
 
             return;

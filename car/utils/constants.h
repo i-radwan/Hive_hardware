@@ -221,8 +221,8 @@ const int FLASH_PERIOD = 750; // ms
 
 // General
 const double MOTORS_ADJUST_DELTA = 200; // ms
-const double MOTORS_SPEED = 60; // rpm
-const double MOTORS_ROTATION_SPEED = 60;
+const double MOTORS_SPEED = 50; // rpm
+const double MOTORS_ROTATION_SPEED = 40;
 const double STEP = 300; // mm
 const double EPS = 1e-6;
 const double MPU_REFRESH_RATE = 0; // ms
@@ -251,4 +251,3 @@ enum STATE {
     RETREAT_OFFLINE_LEFT,       // 20
     RETREAT_OFFLINE_RIGHT       // 21
 };
-
