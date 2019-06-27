@@ -15,8 +15,8 @@ const int PORT = 12345;
 const int WS_PORT = 12344;
 const int RECONNECT_INTERVAL = 5000; // ms
 const int PING_INTERVAL = 100; // ms
-const int PONG_TIMEOUT = 1000; // ms
-const int RETRIES_COUNT = 2; // ms
+const int PONG_TIMEOUT = 3000; // ms
+const int RETRIES_COUNT = 10; // ms
 
 // Serial
 const int BAUD_RATE = 115200;
@@ -114,7 +114,7 @@ const int LEFT_ENC = D1;
 const int RGHT_ENC = D2;
 
 const double DISK_SLOTS = 12.0;
-const int WHEEL_DIAMETER = 67; // mm
+const int WHEEL_DIAMETER = 65; // mm
 const int DEBOUNCE_DELTA = 1000; // us
 
 // PCF8574
@@ -222,7 +222,7 @@ const int FLASH_PERIOD = 750; // ms
 // General
 const double MOTORS_ADJUST_DELTA = 200; // ms
 const double MOTORS_SPEED = 50; // rpm
-const double MOTORS_ROTATION_SPEED = 40;
+const double MOTORS_ROTATION_SPEED = 50;
 const double STEP = 300; // mm
 const double EPS = 1e-6;
 const double MPU_REFRESH_RATE = 0; // ms
@@ -244,10 +244,12 @@ enum STATE {
     ROTATE_LEFT,                // 13
     POST_ROTATE_RIGHT,          // 14
     POST_ROTATE_LEFT,           // 15
-    PRE_RETREAT,                // 16
-    RETREAT,                    // 17
-    RETREAT_LEFT,               // 18
-    RETREAT_RIGHT,              // 19
-    RETREAT_OFFLINE_LEFT,       // 20
-    RETREAT_OFFLINE_RIGHT       // 21
+    POST_ROTATE_RIGHT_2,        // 16
+    POST_ROTATE_LEFT_2,         // 17
+    PRE_RETREAT,                // 18
+    RETREAT,                    // 19
+    RETREAT_LEFT,               // 20
+    RETREAT_RIGHT,              // 21
+    RETREAT_OFFLINE_LEFT,       // 22
+    RETREAT_OFFLINE_RIGHT       // 23
 };
