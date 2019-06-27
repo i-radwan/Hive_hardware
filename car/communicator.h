@@ -22,6 +22,11 @@ public:
         return wifiConnected && WSConnected;
     }
 
+    void issueDone() {
+        doneIssued = true;
+        doneIssueTime = millis();
+    }
+
     void sendDone() {
         uint8_t msg[1] = {(uint8_t) MSG_TO_SERVER::DONE};
         send(msg, 1);
@@ -43,9 +48,19 @@ public:
 
     void loop() {
         webSocket.loop();
+
+        if (doneIssued && millis() - doneIssueTime > DONE_DELAY) {
+            sendDone();
+
+            doneIssued = false;
+        }
     }
 
 private:
+
+    bool doneIssued = false;
+    double doneIssueTime = 0;
+
     bool wifiConnected = false;
 
     // Websocket

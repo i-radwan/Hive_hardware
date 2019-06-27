@@ -17,6 +17,7 @@ const int RECONNECT_INTERVAL = 5000; // ms
 const int PING_INTERVAL = 100; // ms
 const int PONG_TIMEOUT = 3000; // ms
 const int RETRIES_COUNT = 10; // ms
+const int DONE_DELAY = 1000; // ms
 
 // Serial
 const int BAUD_RATE = 115200;
@@ -159,7 +160,7 @@ const double OPTICAL_DPI_TO_MM = 1 / 39.0;
 
 const int ULTRA_SONIC_TRIGGER_PIN = D9;
 const int ULTRA_SONIC_ECHO_PIN = D5;
-const int ULTRA_SONIC_REFRESH_TIME = 100; // ms
+const int ULTRA_SONIC_REFRESH_TIME = 200; // ms
 const int ULTRA_SONIC_TIMEOUT = 2000; // us ... 2cm * 2 = 40cm = ~0.5m takes the sound 300 m/s -> 0.001666666667 seconds to travel = 1666.667us
 const int MIN_DISTANCE = 20; // cm. Min distance ahead of the robot
 
@@ -222,7 +223,7 @@ const int FLASH_PERIOD = 750; // ms
 // General
 const double MOTORS_ADJUST_DELTA = 180; // ms
 const double MOTORS_SPEED = 40; // rpm
-const double MOTORS_ROTATION_SPEED = 50;
+const double MOTORS_ROTATION_SPEED = 60; // rpm
 const double STEP = 300; // mm
 const double EPS = 1e-6;
 const double MPU_REFRESH_RATE = 0; // ms
@@ -253,5 +254,6 @@ enum STATE {
     RETREAT_LEFT,               // 22
     RETREAT_RIGHT,              // 23
     RETREAT_OFFLINE_LEFT,       // 24
-    RETREAT_OFFLINE_RIGHT       // 25
+    RETREAT_OFFLINE_RIGHT,      // 25
+    ERROR                       // 26
 };

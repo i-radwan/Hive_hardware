@@ -218,17 +218,19 @@ void loop() {
     // Navigation
     nav.navigate(distance, y, isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
 
-    if (/*moving &&*/ nav.getState() == IDLE) {
+    if (moving && nav.getState() == IDLE) {
         moving = false;
 
-        com.sendDone();
+        com.issueDone();
 
         if (logs.length() > 0) {
-            com.sendStr(logs + "\n\n");
+            com.sendStr("LOGS::\n\n" + logs + "\n\n");
 
             logs = "";
         }
     }
+
+    yield();
 }
 
 void receive(SERVER_TASKS task) {
