@@ -218,7 +218,7 @@ void loop() {
     // Navigation
     nav.navigate(distance, y, isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
 
-    if (moving && nav.getState() == IDLE) {
+    if (/*moving &&*/ nav.getState() == IDLE) {
         moving = false;
 
         com.sendDone();

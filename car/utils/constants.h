@@ -236,20 +236,22 @@ enum STATE {
     STRAIGHT_RIGHT,             // 5
     OFFLINE_LEFT,               // 6
     OFFLINE_RIGHT,              // 7
-    PRE_ROTATE_RIGHT,           // 8
-    PRE_ROTATE_LEFT,            // 9
-    PRE_ROTATE_RIGHT_2,         // 10
-    PRE_ROTATE_LEFT_2,          // 11
-    ROTATE_RIGHT,               // 12
-    ROTATE_LEFT,                // 13
-    POST_ROTATE_RIGHT,          // 14
-    POST_ROTATE_LEFT,           // 15
-    POST_ROTATE_RIGHT_2,        // 16
-    POST_ROTATE_LEFT_2,         // 17
-    PRE_RETREAT,                // 18
-    RETREAT,                    // 19
-    RETREAT_LEFT,               // 20
-    RETREAT_RIGHT,              // 21
-    RETREAT_OFFLINE_LEFT,       // 22
-    RETREAT_OFFLINE_RIGHT       // 23
+    ONLINE_LEFT,                // 8
+    ONLINE_RIGHT,               // 9
+    PRE_ROTATE_RIGHT,           // 10
+    PRE_ROTATE_LEFT,            // 11
+    PRE_ROTATE_RIGHT_2,         // 12
+    PRE_ROTATE_LEFT_2,          // 13
+    ROTATE_RIGHT,               // 14
+    ROTATE_LEFT,                // 15
+    POST_ROTATE_RIGHT,          // 16
+    POST_ROTATE_LEFT,           // 17
+    POST_ROTATE_RIGHT_2,        // 18
+    POST_ROTATE_LEFT_2,         // 19
+    PRE_RETREAT,                // 20
+    RETREAT,                    // 21
+    RETREAT_LEFT,               // 22
+    RETREAT_RIGHT,              // 23
+    RETREAT_OFFLINE_LEFT,       // 24
+    RETREAT_OFFLINE_RIGHT       // 25
 };

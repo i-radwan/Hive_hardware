@@ -10,6 +10,7 @@ struct MotorController {
 private:
 
     const double kp, ki, kd;
+    double p = 0, i = 0, d = 0, diff = 0, prevDiff = 0, speed;
 
     double lastPWM = 0;
 
@@ -48,7 +49,6 @@ private:
     }
 
 public:
-    double p = 0, i = 0, d = 0, diff = 0, prevDiff = 0, speed;
 
     Encoder* en;
 
@@ -181,6 +181,9 @@ public:
         action = ACTION::MOVE;
 
         preIdleActionCompleted = false;
+
+        wasNotBackRightBlack = false;
+        wasNotBackLeftBlack = false;
     }
 
     void retreat(double angle) {
@@ -212,7 +215,7 @@ public:
 
         action = ACTION::ROTATE_LEFT;
 
-        preIdleActionCompleted = false;;
+        preIdleActionCompleted = false;
 
         wasNotBackRightBlack = false;
         wasNotBackLeftBlack = false;
@@ -393,7 +396,7 @@ private:
 
             case OFFLINE_LEFT:
                 if (isFrontCenterBlack && isFrontRightBlack) {
-                    state = STRAIGHT_LEFT;
+                    state = ONLINE_LEFT;
                 } else if (isFrontCenterBlack && isFrontLeftBlack) {
                     state = STRAIGHT_RIGHT;
                 } else if (isFrontCenterBlack) {
@@ -404,7 +407,7 @@ private:
 
             case OFFLINE_RIGHT:
                 if (isFrontCenterBlack && isFrontLeftBlack) {
-                    state = STRAIGHT_RIGHT;
+                    state = ONLINE_RIGHT;
                 } else if (isFrontCenterBlack && isFrontRightBlack) {
                     state = STRAIGHT_LEFT;
                 } else if (isFrontCenterBlack) {
@@ -412,10 +415,29 @@ private:
                 }
 
             break;
+
+            case ONLINE_LEFT:
+                if (isFrontCenterBlack && !isFrontRightBlack) {
+                    state = STRAIGHT_LEFT;
+                }
+
+            break;
+
+            case ONLINE_RIGHT:
+                if (isFrontCenterBlack && !isFrontLeftBlack) {
+                    state = STRAIGHT_RIGHT;
+                }
+
+            break;
         }
 
         double leftSpeed = 0, rightSpeed = 0;
         double leftFactor = 1, rightFactor = 1;
+
+        if (!isBackLeftBlack && !isBackRightBlack) {
+            wasNotBackLeftBlack = true;
+            wasNotBackRightBlack = true;
+        }
 
         // States actions
         switch (state) {
@@ -447,6 +469,16 @@ private:
                 leftMotorController.reset();
                 rightSpeed = MOTORS_SPEED / 2;
             break;
+
+            case ONLINE_LEFT:
+                rightSpeed = MOTORS_SPEED / 4;
+                leftSpeed = MOTORS_SPEED;
+            break;
+
+            case ONLINE_RIGHT:
+                leftSpeed = MOTORS_SPEED / 4;
+                rightSpeed = MOTORS_SPEED;
+            break;
         }
 
         double leftDistance, rightDistance;
@@ -468,47 +500,49 @@ private:
         // }
 
         // Stopping at nodes
-        if ((isBackLeftBlack || wasBackLeftBlack) && remainingDistance < thresholdDistance) {
+        if ((isBackLeftBlack || wasBackLeftBlack) && wasNotBackLeftBlack) {
             if (state != 6) // Prevent stuck when state == 6 && right tire on black line
                 leftPWM = 0;
 
             wasBackLeftBlack = true;
         }
 
-        if ((isBackRightBlack || wasBackRightBlack) && remainingDistance < thresholdDistance) {
+        if ((isBackRightBlack || wasBackRightBlack) && wasNotBackRightBlack) {
             if (state != 7)
                 rightPWM = 0;
 
             wasBackRightBlack = true;
         }
 
-        // logs += ("MOVE:: elapsedTime: " + String(elapsedTime) +
-        //          " - STATE: " + String(state) +
-        //          // " - LeftRPM: " + String(leftRPM) +
-        //          " - LeftSpeed: " + String(leftSpeed) +
-        //          " - LeftPWM: " + String(leftPWM * leftFactor) +
-        //          " - LeftP: " + String(leftMotorController.p) +
-        //          " - LeftI: " + String(leftMotorController.i) +
-        //          " - LeftD: " + String(leftMotorController.d) +
-        //          // " - RightRPM: " + String(rightRPM) +
-        //          " - RightSpeed: " + String(rightSpeed) +
-        //          " - RightPWM: " + String(rightPWM * rightFactor) +
-        //          " - RightP: " + String(rightMotorController.p) +
-        //          " - RightI: " + String(rightMotorController.i) +
-        //          " - RightD: " + String(rightMotorController.d) +
-        //          " - leftDistance: " + String(leftDistance) +
-        //          " - rightDistance: " + String(rightDistance) +
-        //          " - Remaining Distance: " + String(remainingDistance) +
-        //          " - Moved Distance: " + String(movedDistance / 2) +
-        //          " - isFrontLeftBlack: " + String(isFrontLeftBlack) +
-        //          " - isFrontRightBlack: " + String(isFrontRightBlack) +
-        //          " - isFrontCenterBlack: " + String(isFrontCenterBlack) +
-        //          " - isBackLeftBlack: " + String(isBackLeftBlack) +
-        //          " - isBackRightBlack: " + String(isBackRightBlack) +
-        //          " - wasBackLeftBlack: " + String(wasBackLeftBlack) +
-        //          " - wasBackRightBlack: " + String(wasBackRightBlack) + "\n\n");
+        logs += ("MOVE:: t: " + String(elapsedTime) +
+                 " - s: " + String(state) +
+                 // " - LeftRPM: " + String(leftRPM) +
+                 // " - LeftSpeed: " + String(leftSpeed) +
+                 // " - LeftPWM: " + String(leftPWM * leftFactor) +
+                 // " - LeftP: " + String(leftMotorController.p) +
+                 // " - LeftI: " + String(leftMotorController.i) +
+                 // " - LeftD: " + String(leftMotorController.d) +
+                 // " - RightRPM: " + String(rightRPM) +
+                 // " - RightSpeed: " + String(rightSpeed) +
+                 // " - RightPWM: " + String(rightPWM * rightFactor) +
+                 // " - RightP: " + String(rightMotorController.p) +
+                 // " - RightI: " + String(rightMotorController.i) +
+                 // " - RightD: " + String(rightMotorController.d) +
+                 // " - leftDistance: " + String(leftDistance) +
+                 // " - rightDistance: " + String(rightDistance) +
+                 // " - Remaining Distance: " + String(remainingDistance) +
+                 // " - Moved Distance: " + String(movedDistance / 2) +
+                 " - Lspd: " + String(leftSpeed) +
+                 " - Rspd: " + String(rightSpeed) +
+                 " - FL: " + String(isFrontLeftBlack) +
+                 " - FR: " + String(isFrontRightBlack) +
+                 " - FC: " + String(isFrontCenterBlack) +
+                 " - iBL: " + String(isBackLeftBlack) +
+                 " - iBR: " + String(isBackRightBlack) +
+                 " - wBL: " + String(wasBackLeftBlack) +
+                 " - wBR: " + String(wasBackRightBlack) + "\n\n");
 
-        if (wasBackLeftBlack && wasBackRightBlack && remainingDistance < thresholdDistance /*&& action == ACTION::RETREAT*/) {
+        if (wasBackLeftBlack && wasBackRightBlack /*&& remainingDistance < thresholdDistance*/ /*&& action == ACTION::RETREAT*/) {
             // We've arrived sucessfully without interruptions.
             preIdleActionCompleted = true;
 
@@ -651,16 +685,16 @@ private:
             case IDLE:
                 preIdleActionCompleted = true;
 
-                logs += ("TURN:: - state: " + String(state) +
-                         " - Angle: " + String(angle) +
-                         " - isFrontLeftBlack: " + String(isFrontLeftBlack) +
-                         " - isFrontRightBlack: " + String(isFrontRightBlack) +
-                         " - isFrontCenterBlack: " + String(isFrontCenterBlack) +
-                         " - isBackLeftBlack: " + String(isBackLeftBlack) +
-                         " - isBackRightBlack: " + String(isBackRightBlack) +
-                         " - wasBackLeftBlack: " + String(wasBackLeftBlack) +
-                         " - wasBackRightBlack: " + String(wasBackRightBlack) +
-                         " - elapsedTime: " + String(elapsedTime) + "\n\n");
+                logs += ("TURN:: - s: " + String(state) +
+                         " - t: " + String(elapsedTime) +
+                         " - a: " + String(angle) +
+                         " - FL: " + String(isFrontLeftBlack) +
+                         " - FR: " + String(isFrontRightBlack) +
+                         " - FC: " + String(isFrontCenterBlack) +
+                         " - iBL: " + String(isBackLeftBlack) +
+                         " - iBR: " + String(isBackRightBlack) +
+                         " - wBL: " + String(wasBackLeftBlack) +
+                         " - wBR: " + String(wasBackRightBlack) + "\n\n");
 
                 // if (action == ACTION::RETREAT) {
                 //     state = MOVE;
@@ -754,32 +788,32 @@ private:
         double leftPWM = leftMotorController.compute(elapsedTime, abs(leftSpeed), logs);
         double rightPWM = rightMotorController.compute(elapsedTime, abs(rightSpeed), logs);
 
-        logs += ("TURN:: - state: " + String(state) +
-        //          " - Angle: " + String(angle) +
-        //          " - remainingAngle: " + String(remainingAngle) +
-        //          " - isFrontLeftBlack: " + String(isFrontLeftBlack) +
-        //          " - isFrontRightBlack: " + String(isFrontRightBlack) +
-        //          " - isFrontCenterBlack: " + String(isFrontCenterBlack) +
-        //          " - isBackLeftBlack: " + String(isBackLeftBlack) +
-        //          " - isBackRightBlack: " + String(isBackRightBlack) +
-                 " - wasBackLeftBlack: " + String(wasBackLeftBlack) +
-                 " - wasBackRightBlack: " + String(wasBackRightBlack) +
-        //          " - wasNotBackLeftBlack: " + String(wasNotBackLeftBlack) +
-        //          " - wasNotBackRightBlack: " + String(wasNotBackRightBlack) +
-        //          " - elapsedTime: " + String(elapsedTime) +
-        //          // " - LeftRPM: " + String(leftRPM) +
+        logs += ("TURN:: - s: " + String(state) +
+                 " - elapsedTime: " + String(elapsedTime) +
+                 " - a: " + String(angle) +
+                 " - rA: " + String(remainingAngle) +
+                 " - FL: " + String(isFrontLeftBlack) +
+                 " - FR: " + String(isFrontRightBlack) +
+                 " - FC: " + String(isFrontCenterBlack) +
+                 " - iBL: " + String(isBackLeftBlack) +
+                 " - iBR: " + String(isBackRightBlack) +
+                 " - wBL: " + String(wasBackLeftBlack) +
+                 " - wBR: " + String(wasBackRightBlack) +
+                 " - wasNBL: " + String(wasNotBackLeftBlack) +
+                 " - wasNBR: " + String(wasNotBackRightBlack) +
+        //          " - LeftRPM: " + String(leftRPM) +
         //          " - LeftSpeed: " + String(abs(leftSpeed)) +
-                 " - LeftPWM: " + String(leftPWM) +
+        //          " - LeftPWM: " + String(leftPWM) +
         //          " - LeftP: " + String(leftMotorController.p) +
         //          " - LeftI: " + String(leftMotorController.i) +
         //          " - LeftD: " + String(leftMotorController.d) +
-        //          // " - RightRPM: " + String(rightRPM) +
+        //          " - RightRPM: " + String(rightRPM) +
         //          " - RightSpeed: " + String(abs(rightSpeed)) +
-                 " - RightPWM: " + String(rightPWM) + "\n\n");// +
+        //          " - RightPWM: " + String(rightPWM) + "\n\n");// +
         //          " - RightP: " + String(rightMotorController.p) +
         //          " - RightI: " + String(rightMotorController.i) +
         //          " - RightD: " + String(rightMotorController.d) +
-        //          "\n\n");
+                 "\n\n");
 
         // Set directions
         int lDir1 = HIGH;
