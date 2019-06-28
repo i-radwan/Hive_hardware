@@ -251,9 +251,10 @@ enum STATE {
     POST_ROTATE_LEFT_2,         // 19
     PRE_RETREAT,                // 20
     RETREAT,                    // 21
-    RETREAT_LEFT,               // 22
-    RETREAT_RIGHT,              // 23
-    RETREAT_OFFLINE_LEFT,       // 24
-    RETREAT_OFFLINE_RIGHT,      // 25
-    ERROR                       // 26
+    POST_RETREAT,               // 22
+    RETREAT_LEFT,               // 23
+    RETREAT_RIGHT,              // 24
+    RETREAT_OFFLINE_LEFT,       // 25
+    RETREAT_OFFLINE_RIGHT,      // 26
+    ERROR                       // 27
 };

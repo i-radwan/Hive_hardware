@@ -183,7 +183,7 @@ void loop() {
     // Light LEDs
     updateLights();
 
-    // if (millis() - lastSend > 1000) {
+    if (millis() - lastSend > 1000) {
         // unsigned long lTicks, rTicks;
 
         // noInterrupts();
@@ -203,14 +203,14 @@ void loop() {
         //     " Sonic: " + distance +
         //     "\n\n");
 
-        // if (logs.length() > 0) {
-        //     com.sendStr(logs + "\n\n");
+        if (logs.length() > 0) {
+            com.sendStr(logs + "\n\n");
 
-        //     logs = "";
-        // }
+            logs = "";
+        }
 
-    //     lastSend = millis();
-    // }
+        lastSend = millis();
+    }
 
     // Server commands
     com.loop();
@@ -218,7 +218,7 @@ void loop() {
     // Navigation
     nav.navigate(distance, y, isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
 
-    if (moving && nav.getState() == IDLE) {
+    if (/*moving &&*/ nav.getState() == IDLE) { // ToDo
         moving = false;
 
         com.issueDone();

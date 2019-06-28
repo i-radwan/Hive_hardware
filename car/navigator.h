@@ -143,6 +143,7 @@ public:
         wasBackLeftBlack = false;
 
         atNode = false;
+        wasAtNode = false;
     }
 
     void stop() {
@@ -198,6 +199,15 @@ public:
         state = PRE_RETREAT;
 
         action = ACTION::RETREAT;
+
+        retreatRotated = false;
+        retreatRotatedTime = 0;
+
+        postRetreatAngle = angle + 180;
+
+        if (postRetreatAngle >= 180) {
+            postRetreatAngle -= 360;
+        }
     }
 
     void rotateLeft(double angle) {
@@ -265,6 +275,7 @@ private:
 
     // Navigation flags
     bool atNode = false;
+    bool wasAtNode = false;
     bool prevIsFrontRightBlack = false;
     bool prevIsFrontLeftBlack = false;
     bool prevIsBackRightBlack = false;
@@ -275,24 +286,29 @@ private:
     bool wasNotBackRightBlack = false;
     bool wasNotBackLeftBlack = false;
 
+    bool retreatRotated = false;
+    double retreatRotatedTime = 0;
+    double postRetreatAngle = 0;
+    bool wasNotFrontCenterBlack = false;
+
     void move(unsigned long obstacleDistance, double angle, bool isFrontCenterBlack, bool isFrontLeftBlack, bool isFrontRightBlack, bool isBackLeftBlack, bool isBackRightBlack, String& logs) {
         // Emergency braking
-        // if (obstacleDistance < MIN_DISTANCE) {
-        //     logs += ("Error: nearby object! " + String(obstacleDistance) + "\n");
+        if (obstacleDistance < MIN_DISTANCE) {
+            logs += ("Error: nearby object! " + String(obstacleDistance) + "\n");
 
-        //     // stop();
+            // stop();
 
-        //     return;
-        // }
+            return;
+        }
 
-        // if (remainingDistance < - STEP / 4.0) {
-        //     logs += ("Error: the robot is going beyond the required distance!\n");
+        if (remainingDistance < - STEP / 2.0) {
+            logs += ("Error: the robot is going beyond the required distance!\n");
 
-        //     // ToDo: throw an error.
-        //     stop();
+            // ToDo: throw an error.
+            stop();
 
-        //     return;
-        // }
+            return;
+        }
 
         //
         // Timer
@@ -324,14 +340,14 @@ private:
 
         if (isFrontCenterBlack && isFrontLeftBlack && isFrontRightBlack){
             atNode = true;
+            wasAtNode = true;
+        } else {
+            atNode = false;
         }
 
         // FSM transitions
         switch (state) {
             case MOVE:
-                // if (action == ACTION::RETREAT && remainingAngle < 40) {
-                //     state = STRAIGHT;
-                // } else
                 if (!isFrontLeftBlack && !isFrontRightBlack && !isFrontCenterBlack && preIdleAction == ACTION::ROTATE_LEFT) {
                     if (preIdleState == POST_ROTATE_LEFT_2) {
                         state = STRAIGHT_LEFT;
@@ -344,13 +360,18 @@ private:
                     } else if (preIdleState == ROTATE_RIGHT) {
                         state = STRAIGHT_LEFT;
                     }
-
                 } else if (!isFrontLeftBlack && !isFrontRightBlack && !isFrontCenterBlack && preIdleAction == ACTION::MOVE) {
                     state = preIdleState;
 
                     if (preIdleState != OFFLINE_RIGHT && preIdleState != OFFLINE_RIGHT) {
                         logs += "Error: you have to work with angles here";
                     }
+                // } else if (!isFrontLeftBlack && !isFrontRightBlack && !isFrontCenterBlack && preIdleAction == ACTION::RETREAT) {
+                //     if (preIdleState == RETREAT) {
+                //         state = OFFLINE_LEFT;
+                //     } else {
+                //         state = OFFLINE_RIGHT;
+                //     }
                 } else if (isFrontLeftBlack && isFrontRightBlack && isFrontCenterBlack) {
                     state = STRAIGHT;
                 } else if (!isFrontLeftBlack && !isFrontRightBlack && isFrontCenterBlack) {
@@ -367,10 +388,6 @@ private:
             break;
 
             case STRAIGHT:
-                // if (action == ACTION::RETREAT && remainingAngle < 20) {
-                //     state = STRAIGHT;
-                // } else
-
                 if (atNode) {
                     state = STRAIGHT;
                 } else if (isFrontCenterBlack && isFrontLeftBlack && isFrontRightBlack) {
@@ -470,8 +487,8 @@ private:
                 } else if (isFrontCenterBlack && isFrontLeftBlack && isFrontRightBlack) {
                     state = STRAIGHT;
                 } else if (isFrontCenterBlack && isFrontLeftBlack && !isFrontRightBlack) {
-                    if (elapsedTime >= STRAIGHT_RIGHT / 1000.0) {
-                        state = STRAIGHT_LEFT;
+                    if (elapsedTime >= MOTORS_ADJUST_DELTA / 1000.0) {
+                        state = STRAIGHT_RIGHT;
                     }
                 } else if (isFrontCenterBlack && !isFrontLeftBlack && isFrontRightBlack) {
                     state = STRAIGHT_LEFT;
@@ -490,12 +507,18 @@ private:
             break;
         }
 
-        if (isFrontCenterBlack && isFrontLeftBlack && isFrontRightBlack) {
-            state = STRAIGHT;
-        }
-
         double leftSpeed = 0, rightSpeed = 0;
         double leftFactor = 1, rightFactor = 1;
+
+        double diff = angle - postRetreatAngle;
+
+        if (diff > 180) {
+            diff -= 360;
+        }
+
+        if (diff < -180) {
+            diff += 360;
+        }
 
         if (!isBackLeftBlack && !isBackRightBlack) {
             wasNotBackLeftBlack = true;
@@ -542,6 +565,27 @@ private:
             break;
         }
 
+        if (preIdleAction == ACTION::RETREAT) {
+            if (diff < -10) {
+                leftSpeed = MOTORS_SPEED * 0.3;
+                rightSpeed = 0;
+                rightFactor = 0;
+            } else if (diff < -3) {
+                leftSpeed = MOTORS_SPEED;
+                rightSpeed = MOTORS_SPEED * 0.5;
+            } else if (diff > 3) {
+                leftSpeed = MOTORS_SPEED * 0.5;
+                rightSpeed = MOTORS_SPEED;
+            } else if (diff > 10) {
+                leftSpeed = 0;
+                leftFactor = 0;
+                rightSpeed = MOTORS_SPEED * 0.3;
+            } else {
+                leftSpeed = MOTORS_SPEED / 2;
+                rightSpeed = MOTORS_SPEED / 2;
+            }
+        }
+
         double leftDistance, rightDistance;
 
         // Get motors throttle
@@ -551,37 +595,39 @@ private:
         // Update distances
         remainingDistance -= (leftDistance + rightDistance) / 2.0;
 
-        // if (action != ACTION::RETREAT)
-        movedDistance += (leftDistance + rightDistance) / 2.0;
+        if (action != ACTION::RETREAT)
+            movedDistance += (leftDistance + rightDistance) / 2.0;
 
         int thresholdDistance = STEP / 2;
 
-        // if (action == ACTION::RETREAT) {
-            // thresholdDistance = movedDistance * 0.75;
-        // }
+        if (action == ACTION::RETREAT) {
+            thresholdDistance = movedDistance * 0.75;
+        }
 
         // Stopping at nodes
-        if (isBackLeftBlack && wasNotBackLeftBlack) {
+        if (isBackLeftBlack && remainingDistance < thresholdDistance) {
             wasBackLeftBlack = true;
         }
 
-        if (isBackRightBlack && wasNotBackRightBlack) {
+        if (isBackRightBlack && remainingDistance < thresholdDistance) {
             wasBackRightBlack = true;
         }
 
         if (wasBackLeftBlack) {
-            if (state != OFFLINE_LEFT && state != ONLINE_LEFT) // Prevent stuck when state == 6 && right tire on black line
+            if (state != OFFLINE_LEFT && wasAtNode) // Prevent stuck when state == 6 && right tire on black line
                 leftPWM = 0;
         }
 
         if (wasBackRightBlack) {
-            if (state != OFFLINE_RIGHT && state != ONLINE_RIGHT)
+            if (state != OFFLINE_RIGHT && wasAtNode)
                 rightPWM = 0;
         }
 
         logs += ("MOVE:: t: " + String(elapsedTime) +
                  " - s: " + String(state) +
                  " - a: " + String(angle) +
+                 " - d: " + String(diff) +
+                 " - rd: " + String(remainingDistance) +
                  // " - LeftRPM: " + String(leftRPM) +
                  // " - LeftSpeed: " + String(leftSpeed) +
                  " - LPWM: " + String(leftPWM * leftFactor) +
@@ -606,10 +652,12 @@ private:
                  " - iBL: " + String(isBackLeftBlack) +
                  " - iBR: " + String(isBackRightBlack) +
                  " - wBL: " + String(wasBackLeftBlack) +
-                 " - wBR: " + String(wasBackRightBlack) + "\n\n");
+                 " - wBR: " + String(wasBackRightBlack) +
+                 " - wnBL: " + String(wasNotBackLeftBlack) +
+                 " - wnBR: " + String(wasNotBackRightBlack) + "\n\n");
 
-        if (wasBackLeftBlack && wasBackRightBlack /*&& remainingDistance < thresholdDistance*/ /*&& action == ACTION::RETREAT*/) {
-            // We've arrived sucessfully without interruptions.
+        if (wasBackLeftBlack && wasBackRightBlack && (preIdleAction == ACTION::RETREAT || remainingDistance < STEP / 2.0) /*&& action == ACTION::RETREAT*/) {
+            // We've arrived successfully without interruptions.
             preIdleActionCompleted = true;
 
             logs += (" - Stopping");
@@ -899,11 +947,33 @@ private:
         remainingAngle -= min(abs(angle - prevAngle), 360 - abs(angle - prevAngle));
         prevAngle = angle;
 
-        if (remainingAngle <= 0) {
+        if (abs(remainingAngle) <= 10) {
             logs += "rA: " + String(remainingAngle) + "\n";
+
+            stop();
+
+            action = ACTION::MOVE;
 
             state = MOVE;
         }
+
+        // if (retreatRotated && millis() - retreatRotatedTime > 1000) {
+        //     logs += "Decided rA: " + String(remainingAngle) + "\n\n";
+
+        //     if (remainingAngle < 20) {
+        //         action = ACTION::MOVE;
+
+        //         state = MOVE;
+        //     } else {
+        //         retreatRotated = false;
+
+        //         state = RETREAT;
+        //     }
+        // }
+
+        // if (!isFrontCenterBlack) {
+        //     wasNotFrontCenterBlack = true;
+        // }
 
         //
         // Timer
@@ -919,7 +989,10 @@ private:
             return;
 
         double elapsedTime = (current - time) / 1000.0;
-        time = current;
+
+        if (elapsedTime >= MOTORS_ADJUST_DELTA / 1000.0) {
+            time = current;
+        }
 
         //
         // Line following
@@ -933,25 +1006,27 @@ private:
         // FSM transitions
         switch (state) {
             case PRE_RETREAT: // ToDo: handle all cases
-                if (!isFrontCenterBlack && isFrontLeftBlack) {
-                    state = RETREAT;
-                }
+                // if (!isFrontCenterBlack && isFrontLeftBlack) {
+                //     state = RETREAT;
+                // }
             break;
 
             case RETREAT:
-                if (isFrontCenterBlack) {
-                    logs += "Touched rA: " + String(remainingAngle) + "\n\n";
+                // if (isFrontCenterBlack && !wasNotFrontCenterBlack) {
+                //     retreatRotated = true;
+                //     retreatRotatedTime = millis();
 
-                    if (remainingAngle < 30) {
-                        state = MOVE;
-                    } else {
-                        state = PRE_ROTATE_RIGHT;
-                    }
-                }
+                //     logs += "Touched rA: " + String(remainingAngle) + "\n\n";
+
+                //     state = POST_RETREAT;
+
+                //     wasNotFrontCenterBlack = false;
+                // }
             break;
         }
 
         double leftSpeed = 0, rightSpeed = 0;
+        double leftFactor = 0.9, rightFactor = 0.9;
 
         logs += ("RETREAT:: - s: " + String(state) +
                          " - t: " + String(elapsedTime) +
@@ -969,7 +1044,6 @@ private:
                          "\n\n");
 
         switch (state) {
-            case PRE_ROTATE_RIGHT:
             case MOVE:
                 adjustMotors(PWMRANGE, PWMRANGE, HIGH, HIGH, HIGH, HIGH);
 
@@ -987,6 +1061,13 @@ private:
             case RETREAT:
                 rightSpeed = -MOTORS_ROTATION_SPEED;
                 leftSpeed = MOTORS_ROTATION_SPEED;
+            break;
+
+            case POST_RETREAT:
+                rightSpeed = 0;
+                rightFactor = 0;
+                leftSpeed = 0;
+                leftFactor = 0;
             break;
         }
 
@@ -1008,7 +1089,7 @@ private:
             Utils::swap(&rDir1, &rDir2);
         }
 
-        adjustMotors(leftPWM, rightPWM, lDir1, lDir2, rDir1, rDir2);
+        adjustMotors(leftPWM * leftFactor, rightPWM * rightFactor, lDir1, lDir2, rDir1, rDir2);
 
         return;
     }
