@@ -7,7 +7,7 @@ public:
         int c = *a;
         *a = *b;
         *b = c;
-    }   
+    }
 
     static void swap (double* a, double*b) {
         double c = *a;
@@ -16,11 +16,23 @@ public:
     }
 
     static int twosToDecimal(int v) {
-        int x = log2(v) + 1; 
-      
-        for (int i = 0; i < x; i++)  
-           v = (v ^ (1 << i));  
+        int x = log2(v) + 1;
+
+        for (int i = 0; i < x; i++)
+           v = (v ^ (1 << i));
 
         return -(v + 1);
+    }
+
+    static double mapAngle(double a) {
+        if (a > 180) {
+            return a - 360;
+        }
+
+        if (a < -180) {
+            return a + 360;
+        }
+
+        return a;
     }
 };

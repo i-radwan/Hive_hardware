@@ -90,7 +90,7 @@ private:
 
     bool connectWS() {
         // Server address, port and URL
-        webSocket.begin(SERVER, WS_PORT, "/");
+        webSocket.begin(SERVER, PORT, "/");
 
         // Event handler
         webSocket.onEvent(webSocketEvent);
@@ -113,7 +113,6 @@ private:
             case WStype_DISCONNECTED:
                 break;
             case WStype_CONNECTED:
-                webSocket.sendTXT("Connected");
                 break;
             case WStype_TEXT:
                 break;

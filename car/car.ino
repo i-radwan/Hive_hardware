@@ -15,9 +15,12 @@ extern "C" {
 #include "sensors/mpu.h"
 #include "utils/constants.h"
 
-//
+// #define HIVE_DEBUG
+
+// ====================
 // Variables & Objects
-//
+
+// Objects
 Communicator com;
 Navigator nav;
 BlackSensor blblk;
@@ -27,20 +30,17 @@ BlackSensor frblk;
 BlackSensor fcblk;
 UltrasonicSensor uls;
 BatterySensor bat;
-OTAHandler ota;
 Encoder len;
 Encoder ren;
-Servo servo;
 MPUSensor mpu;
+OTAHandler ota;
 
 PCF857x pcf1(PCF1_ADDRESS, &Wire);
 
-bool setupState = false;
-bool moving = false;
-bool blocked = false;
-
+// Battery
 uint8_t batteryLevel;
 
+// LEDs
 LIGHT_MODE redLed = LIGHT_MODE::OFF;
 LIGHT_MODE blueLed = LIGHT_MODE::OFF;
 
@@ -49,31 +49,31 @@ int lastBlueLedValue = LOW;
 double lastRedLedChange = millis();
 double lastBlueLedChange = millis();
 
-double y, p, r;
-double distance;
+// State variables
+bool setupState = false;
+bool blocked = false;
 
+// Sensor readings
+double yaw, pitch, roll;
+double obstacleDistance;
+bool blackSensors[5];
+
+// Logs
 double lastSend = millis(); // ToDo: remove
-
 String logs = "";
 
-//
-// ISRs
-//
-void ICACHE_RAM_ATTR leftEncoderISR() {
-    len.ticksHandler();
-}
 
-void ICACHE_RAM_ATTR rightEncoderISR() {
-    ren.ticksHandler();
-}
+// ====================
+// Functions
 
-//
-// Logic
-//
 void receive(SERVER_TASKS task);
-void updateLights();
-void serverDisconnected();
 void serverConnected();
+void serverDisconnected();
+void readSensors();
+void ICACHE_RAM_ATTR leftEncoderISR();
+void ICACHE_RAM_ATTR rightEncoderISR();
+void updateLights();
+void debug();
 
 void setup() {
     // Initialize I2C Bus
@@ -82,16 +82,14 @@ void setup() {
     // Initialize connection
     setupState = com.setup(&receive);
 
-    // MPU setup
-    mpu.setup();
-
     // Initialize PCFs
-    pcf1.begin(0xF0); // P0-P3 output, P4-P7 input
+    pcf1.begin(PCF1_CONFIGS); // P0-P3 output, P4-P7 input
 
     // Initialize OTA
     ota.setup();
 
     // Initialize sensors
+    mpu.setup();
     uls.setup();
     bat.setup(BATTERY_SENSOR_PIN);
     blblk.setup(&pcf1, BAK_LFT_BLACK_SENSOR_PIN, BAK_LFT_BLACK_SENSOR_INV, BAK_LFT_BLACK_SENSOR_PCF);
@@ -107,14 +105,7 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(RGHT_ENC), rightEncoderISR, CHANGE);
 
     // Initialize motors
-    nav.setup(&pcf1, &len, &ren);
-
-    // Initialize servo
-    // servo.attach(SERVO_PIN);
-    // servo.write(SERVO_DOWN_ANGLE);
-
-    // Send initial setup completed signal
-    // com.send(MSG_SET);
+    nav.setup(&pcf1, &len, &ren, &logs);
 
     // Setup PWM freq
     analogWriteFreq(PWM_FREQUENCY);
@@ -127,10 +118,7 @@ void setup() {
     digitalWrite(RED_LED_PIN, LOW);
     digitalWrite(BLUE_LED_PIN, LOW);
 
-    for(int i = 0; i < 3000; ++i) {
-        ota.handle();
-    }
-
+    // Prevent sleeping to enhance communication speed
     wifi_set_sleep_type(NONE_SLEEP_T);
 }
 
@@ -140,95 +128,27 @@ void loop() {
     if(!setupState)
         return;
 
-    //
+    // Server commands
+    com.loop();
+
     // Read sensors
-    //
-
-    // MPU
-    mpu.read(y, p, r);
-
-    // Black sensors
-    bool isBackLeftBlack, isBackRightBlack, isFrontLeftBlack, isFrontRightBlack, isFrontCenterBlack;
-    blblk.read(isBackLeftBlack);
-    brblk.read(isBackRightBlack);
-    flblk.read(isFrontLeftBlack);
-    frblk.read(isFrontRightBlack);
-    fcblk.read(isFrontCenterBlack);
-
-    // Ultrasonic
-    uls.read(distance);
-
-    if (!blocked && distance <= MIN_DISTANCE) {
-        blocked = true;
-
-        com.sendBlockingState(BLOCKING_MODE::BLOCKED);
-        com.sendStr(String("Blocked!"));
-    } else if (blocked && distance > MIN_DISTANCE) {
-        blocked = false;
-
-        com.sendBlockingState(BLOCKING_MODE::UNBLOCKED);
-        com.sendStr(String("UnBlocked!"));
-    }
-
-    // Battery
-    uint8_t level;
-    bat.read(level);
-
-    if (level != batteryLevel) {
-        batteryLevel = level;
-
-        com.sendBatteryLevel(batteryLevel);
-    }
+    readSensors();
 
     // Light LEDs
     updateLights();
 
-    if (millis() - lastSend > 1000) {
-        // unsigned long lTicks, rTicks;
-
-        // noInterrupts();
-        // len.read(lTicks);
-        // ren.read(rTicks);
-        // interrupts();
-
-        // com.sendStr(
-        //     "DEBUG:\nAngle: " + String(y) +
-        //     "\nSensors: " + String(isFrontLeftBlack) +
-        //     " " + String(isFrontCenterBlack) +
-        //     " " + String(isFrontRightBlack) +
-        //     " " + String(isBackLeftBlack) +
-        //     " " + String(isBackRightBlack) +
-        //     " Lticks: " + lTicks +
-        //     " Rticks: " + rTicks +
-        //     " Sonic: " + distance +
-        //     "\n\n");
-
-        if (logs.length() > 0) {
-            com.sendStr(logs + "\n\n");
-
-            logs = "";
-        }
-
-        lastSend = millis();
-    }
-
-    // Server commands
-    com.loop();
+    // Printing debugging info
+    debug();
 
     // Navigation
-    nav.navigate(distance, y, isFrontCenterBlack, isFrontLeftBlack, isFrontRightBlack, isBackLeftBlack, isBackRightBlack, logs);
+    ExecutionState executionState;
+    nav.navigate(obstacleDistance, yaw, blackSensors, executionState);
 
-    if (/*moving &&*/ nav.getState() == IDLE) { // ToDo
-        moving = false;
-
+    if (executionState.state == EXECUTION_STATE::FINISHED) {
         com.issueDone();
-
-        if (logs.length() > 0) {
-            com.sendStr("LOGS::\n\n" + logs + "\n\n");
-
-            logs = "";
-        }
     }
+
+    debug();
 
     yield();
 }
@@ -240,32 +160,27 @@ void receive(SERVER_TASKS task) {
         break;
 
         case SERVER_TASKS::STOP:
-            moving = false;
             nav.stop();
             com.sendStr(String("Stop!"));
         break;
 
         case SERVER_TASKS::MOVE:
-            moving = true;
-            nav.move();
+            nav.move(yaw);
             com.sendStr(String("Forward!"));
         break;
 
         case SERVER_TASKS::ROTATE_RIGHT:
-            moving = true;
-            nav.rotateRight(y);
+            nav.rotateRight(yaw);
             com.sendStr(String("Right!"));
         break;
 
         case SERVER_TASKS::ROTATE_LEFT:
-            moving = true;
-            nav.rotateLeft(y);
+            nav.rotateLeft(yaw);
             com.sendStr(String("Left!"));
         break;
 
         case SERVER_TASKS::RETREAT:
-            moving = true;
-            nav.retreat(y);
+            nav.retreat(yaw);
             com.sendStr(String("Backward!"));
         break;
 
@@ -311,6 +226,57 @@ void receive(SERVER_TASKS task) {
     }
 }
 
+void serverConnected() {
+
+}
+
+void serverDisconnected() {
+
+}
+
+void readSensors() {
+    // MPU
+    mpu.read(yaw, pitch, roll);
+
+    // Black sensors
+    flblk.read(blackSensors[0]);
+    fcblk.read(blackSensors[1]);
+    frblk.read(blackSensors[2]);
+    blblk.read(blackSensors[3]);
+    brblk.read(blackSensors[4]);
+
+    // Ultrasonic
+    uls.read(obstacleDistance);
+
+    if (!blocked && obstacleDistance <= MIN_DISTANCE) { // On block state change to BLOCKED
+        blocked = true;
+
+        com.sendBlockingState(BLOCKING_MODE::BLOCKED);
+    } else if (blocked && obstacleDistance > MIN_DISTANCE) { // On block state change to UNBLOCKED
+        blocked = false;
+
+        com.sendBlockingState(BLOCKING_MODE::UNBLOCKED);
+    }
+
+    // Battery
+    uint8_t level;
+    bat.read(level);
+
+    if (level != batteryLevel) { // On battery level change
+        batteryLevel = level;
+
+        com.sendBatteryLevel(batteryLevel);
+    }
+}
+
+void ICACHE_RAM_ATTR leftEncoderISR() {
+    len.ticksHandler();
+}
+
+void ICACHE_RAM_ATTR rightEncoderISR() {
+    ren.ticksHandler();
+}
+
 void updateLights() {
     if (redLed == LIGHT_MODE::OFF && lastRedLedValue != LOW) {
         lastRedLedValue = LOW;
@@ -340,5 +306,40 @@ void updateLights() {
         lastBlueLedChange = millis();
 
         digitalWrite(BLUE_LED_PIN, lastBlueLedValue);
+    }
+}
+
+void debug() {
+    if (millis() - lastSend > 1000) {
+
+        #ifdef HIVE_DEBUG
+        unsigned long lTicks, rTicks;
+
+        noInterrupts();
+        len.read(lTicks);
+        ren.read(rTicks);
+        interrupts();
+
+        com.sendStr(
+            "DEBUG:\nAngle: " + String(yaw) +
+            "\nSensors: " + String(blackSensors[0]) +
+            " " + String(blackSensors[1]) +
+            " " + String(blackSensors[2]) +
+            " " + String(blackSensors[3]) +
+            " " + String(blackSensors[4]) +
+            " Lticks: " + lTicks +
+            " Rticks: " + rTicks +
+            " Sonic: " + obstacleDistance +
+            "\n\n");
+        #endif
+
+        // ToDo: remove
+        // if (logs.length() > 0) {
+        //     com.sendStr("\n\n\nLOGS::\n" + logs + "\n\n\n");
+
+        //     logs = "";
+        // }
+
+        lastSend = millis();
     }
 }
