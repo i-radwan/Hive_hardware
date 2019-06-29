@@ -1,7 +1,7 @@
 #pragma once
 
-#define CAR1
-// #define CAR2
+// #define CAR1
+#define CAR2
 // #define CAR3
 
 
@@ -51,23 +51,19 @@ enum class DIRECTION {
 
 // Configs
 const double MOTORS_ADJUST_DELTA            = 100; // ms
-const double MOTORS_INIT_THROTTLE           = PWMRANGE / 6; // pwm
 const double MOTORS_SPEED                   = 40; // rpm
 const double MOTORS_ROTATION_SPEED          = 60; // rpm
 const double MOTORS_ALIGNMENT_SPEED         = MOTORS_SPEED / 2; // rpm
-const double MOTORS_MOVE_SPEED_INCREMENT    = 4; // rpm
 const double MOTORS_ROTATE_SPEED_INCREMENT  = 6; // rpm
 const double STEP                           = 300; // mm
-const double EXCESS_DISTANCE_LIMIT          = STEP / 2.0; // mm, the distance the robot can go beyond the black line before reporting to the server.
+const double EXCESS_DISTANCE_LIMIT          = STEP; // mm, the distance the robot can go beyond the black line before reporting to the server.
 const double EXCESS_ANGLES_LIMIT            = 10; // degrees, the angles the robot can rotate beyond the 90 degrees.
-
-// Wheel
-const double DISK_SLOTS                     = 12.0;
-const int WHEEL_DIAMETER                    = 65; // mm
-const int DEBOUNCE_DELTA                    = 1000; // us
 
 // PID
 #ifdef CAR1
+const double MOTORS_MOVE_SPEED_INCREMENT    = 4; // rpm
+const double MOTORS_INIT_THROTTLE           = PWMRANGE / 6; // pwm
+
 const double LEFT_KP                        = 1.5;
 const double LEFT_KI                        = 0.07;
 const double LEFT_KD                        = 0;
@@ -77,6 +73,9 @@ const double RIGHT_KD                       = 0;
 #endif
 
 #ifdef CAR2
+const double MOTORS_MOVE_SPEED_INCREMENT    = 6; // rpm
+const double MOTORS_INIT_THROTTLE           = PWMRANGE / 4; // pwm
+
 const double LEFT_KP                        = 1.5;
 const double LEFT_KI                        = 0.07;
 const double LEFT_KD                        = 0;
@@ -86,6 +85,8 @@ const double RIGHT_KD                       = 0;
 #endif
 
 #ifdef CAR3
+const double MOTORS_INIT_THROTTLE           = PWMRANGE / 6; // pwm
+
 const double LEFT_KP                        = 1.5;
 const double LEFT_KI                        = 0.07;
 const double LEFT_KD                        = 0;
@@ -93,6 +94,11 @@ const double RIGHT_KP                       = 1.5;
 const double RIGHT_KI                       = 0.07;
 const double RIGHT_KD                       = 0;
 #endif
+
+// Wheel
+const double DISK_SLOTS                     = 12.0;
+const int WHEEL_DIAMETER                    = 65; // mm
+const int DEBOUNCE_DELTA                    = 1000; // us
 
 // ====================
 // Sensors
@@ -257,7 +263,8 @@ enum class ROTATE_STATE {
 enum class RETREAT_STATE {
     NONE                                    = -1,
     RETREAT                                 = 0,
-    ALIGNMENT                               = 1
+    POST_RETREAT_MOVE                       = 1,
+    POST_RETREAT_ALIGNMENT                  = 2
 };
 
 struct ExecutionState {

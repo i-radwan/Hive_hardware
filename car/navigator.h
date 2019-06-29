@@ -22,6 +22,11 @@ public:
         leftMotorController.pcf = pcf1;
         rightMotorController.pcf = pcf1;
 
+        leftMotorController.logs = logsPtr;
+        rightMotorController.logs = logsPtr;
+
+        rightMotorController.left = false;
+
         // Logs
         logs = logsPtr;
 
@@ -70,6 +75,10 @@ public:
         retreatState = RETREAT_STATE::NONE;
 
         executionState.state = EXECUTION_STATE::IDLE;
+
+        init();
+
+        logs->concat("Configed\n");
     }
 
     void stop() {
@@ -182,10 +191,10 @@ public:
             remainingAngle = 180;
             previousAngle = angle;
             postRetreatAngle = Utils::mapAngle(angle + 180);
-            postRetreatDistance = STEP - movedDistance;
+            postRetreatDistance = movedDistance;
 
-            leftMotorController.setSpeedIncrementStep(MOTORS_MOVE_SPEED_INCREMENT);
-            rightMotorController.setSpeedIncrementStep(MOTORS_MOVE_SPEED_INCREMENT);
+            leftMotorController.setSpeedIncrementStep(MOTORS_MOVE_SPEED_INCREMENT / 2);
+            rightMotorController.setSpeedIncrementStep(MOTORS_MOVE_SPEED_INCREMENT / 2);
 
             logs->concat("Start retreating\n");
         } else if (executionState.state == EXECUTION_STATE::PAUSE && action == ACTION::RETREAT) {
@@ -226,8 +235,19 @@ private:
     double postRetreatAngle;
     double postRetreatDistance;
 
+    double time = millis();
+
     // ====================
     // Execution state updating function
+
+    void init() {
+        executionState.state = EXECUTION_STATE::IDLE;
+
+        leftMotorController.brake();
+        rightMotorController.brake();
+
+        logs->concat("Init\n");
+    }
 
     void pause() {
         executionState.state = EXECUTION_STATE::PAUSE;
@@ -305,6 +325,12 @@ private:
         // Check if arrived
         if (stopLeftMotor && stopRightMotor) {
             done();
+        }
+
+        if (millis() - time > 100) {
+            time = millis();
+
+            logs->concat("Moving State: " + String((int) moveState) + "\n");
         }
     }
 
@@ -387,15 +413,15 @@ private:
 
         if (diff < -10) { // (-oo, -10)
             leftSpeed = MOTORS_SPEED * 0.5;
-            rightSpeed = 0;
+            rightSpeed = MOTORS_SPEED * 0.3;
         } else if (diff < -3) { // [-10, -3)
             leftSpeed = MOTORS_SPEED * 0.8;
             rightSpeed = MOTORS_SPEED * 0.5;
         } else if (diff > 3) { // (3, 10]
             leftSpeed = MOTORS_SPEED * 0.5;
-            rightSpeed = MOTORS_SPEED * 0.6;
+            rightSpeed = MOTORS_SPEED * 0.8;
         } else if (diff > 10) { // (10, oo)
-            leftSpeed = 0;
+            leftSpeed = MOTORS_SPEED * 0.3;
             rightSpeed = MOTORS_SPEED * 0.5;
         } else { // [-3, 3]
             leftSpeed = MOTORS_SPEED * 0.8;
@@ -452,17 +478,17 @@ private:
         bool isBackLeftBlack = blackSensors[3];
         bool isBackRightBlack = blackSensors[4];
 
-        if (!isBackLeftBlack && !isBackRightBlack) {
-            motorsLeftBlackLines = true;
-        }
-
         // Distances
         double leftDistance = leftMotorController.getTotalDistance();
         double rightDistance = rightMotorController.getTotalDistance();
 
+        if ((!isBackLeftBlack && leftDistance > 30) && (!isBackRightBlack && rightDistance > 30)) {
+            motorsLeftBlackLines = true;
+        }
+
         // Stopping after rotation or
         // when one wheel spins much more than the expected rotation distance
-        if (motorsLeftBlackLines && remainingAngle <= 25) {
+        if (motorsLeftBlackLines) {
             stopLeftMotor = stopLeftMotor || isBackLeftBlack || leftDistance > 185;
             stopRightMotor = stopRightMotor || isBackRightBlack || rightDistance > 185;
         }
@@ -527,7 +553,7 @@ private:
         bool isFrontCenterBlack = blackSensors[1];
         bool isFrontRightBlack = blackSensors[2];
 
-        if (isFrontCenterBlack || isFrontLeftBlack || isFrontRightBlack) {
+        if (isFrontCenterBlack && (isFrontLeftBlack || isFrontRightBlack)) {
             logs->concat(String(isFrontLeftBlack) + " " + String(isFrontCenterBlack) + " " + String(isFrontRightBlack) + "\n");
             return;
         }
@@ -587,11 +613,6 @@ private:
         result |= (remainingAngle <= -EXCESS_ANGLES_LIMIT);
         result |= (stopLeftMotor && stopRightMotor && remainingAngle <= 20);
 
-        if (result) {
-            logs->concat(String(remainingAngle <= -EXCESS_ANGLES_LIMIT) + "\n");
-            logs->concat(String(stopLeftMotor && stopRightMotor && remainingAngle <= 20) + "\n");
-        }
-
         return result;
     }
 
@@ -626,22 +647,65 @@ private:
         if (stopLeftMotor && stopRightMotor) {
             done();
         }
+
+        if (millis() - time > 100) {
+            time = millis();
+
+            logs->concat("Retreat State: " + String((int) retreatState) + "\n");
+            logs->concat("Moving State: " + String((int) moveState) + "\n");
+            logs->concat("postRetreatDistance: " + String(postRetreatDistance) + "\n");
+        }
     }
 
     void updateRetreatState(bool blackSensors[], double remainingDistance, double remainingAngle) {
+        bool isFrontLeftBlack = blackSensors[0];
+        bool isFrontCenterBlack = blackSensors[1];
+        bool isFrontRightBlack = blackSensors[2];
         bool isBackLeftBlack = blackSensors[3];
         bool isBackRightBlack = blackSensors[4];
 
-        if (abs(remainingAngle) <= 10) {
-            retreatState = RETREAT_STATE::ALIGNMENT;
+        switch (retreatState) {
+            case RETREAT_STATE::RETREAT:
+                if (remainingAngle <= 30) {
+                    if (remainingDistance < STEP / 3) {
+                        retreatState = RETREAT_STATE::POST_RETREAT_ALIGNMENT;
+                    } else if (isFrontLeftBlack && isFrontCenterBlack && isFrontRightBlack) {
+                        retreatState = RETREAT_STATE::POST_RETREAT_ALIGNMENT;
+                    } else if (isFrontLeftBlack || isFrontCenterBlack || isFrontRightBlack) {
+                        retreatState = RETREAT_STATE::POST_RETREAT_MOVE;
+
+                        updateMoveState(blackSensors, remainingDistance, postRetreatDistance);
+                    } else {
+                        retreatState = RETREAT_STATE::POST_RETREAT_ALIGNMENT;
+                    }
+                }
+            break;
+
+            case RETREAT_STATE::POST_RETREAT_MOVE:
+                if (isFrontLeftBlack && isFrontCenterBlack && isFrontRightBlack) {
+                    retreatState = RETREAT_STATE::POST_RETREAT_ALIGNMENT;
+                }
+            break;
+
+            case RETREAT_STATE::POST_RETREAT_ALIGNMENT:
+                if (remainingDistance > STEP / 3 &&
+                    (isFrontLeftBlack || isFrontCenterBlack || isFrontRightBlack)) {
+                    retreatState = RETREAT_STATE::POST_RETREAT_MOVE;
+                }
+            break;
         }
 
-        if (retreatState == RETREAT_STATE::ALIGNMENT) {
-            // Stopping after moving the postRetreatDistance
-            bool distanceReturned = (remainingDistance < 0.5 * postRetreatDistance);
+        if (retreatState == RETREAT_STATE::POST_RETREAT_ALIGNMENT) {
+            // Distances
+            double leftDistance = leftMotorController.getTotalDistance();
+            double rightDistance = rightMotorController.getTotalDistance();
 
-            stopLeftMotor = stopLeftMotor || (isBackLeftBlack && distanceReturned);
-            stopRightMotor = stopRightMotor || (isBackRightBlack && distanceReturned);
+            // Stopping after moving the postRetreatDistance
+            bool leftDistanceReturned = (postRetreatDistance - leftDistance) <= 10;
+            bool rightDistanceReturned = (postRetreatDistance - rightDistance) <= 10;
+
+            stopLeftMotor = stopLeftMotor || (isBackLeftBlack && leftDistanceReturned);
+            stopRightMotor = stopRightMotor || (isBackRightBlack && rightDistanceReturned);
         }
     }
 
@@ -652,7 +716,11 @@ private:
                 leftSpeed = MOTORS_ROTATION_SPEED;
             break;
 
-            case RETREAT_STATE::ALIGNMENT:
+            case RETREAT_STATE::POST_RETREAT_MOVE:
+                getMotorsMoveSpeeds(angle, referenceAngle, leftSpeed, rightSpeed);
+            break;
+
+            case RETREAT_STATE::POST_RETREAT_ALIGNMENT:
                 getMotorsAlignmentSpeeds(angle, referenceAngle, leftSpeed, rightSpeed);
             break;
         }

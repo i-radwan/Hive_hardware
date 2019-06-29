@@ -16,6 +16,9 @@ public:
 
     double p = 0, i = 0, d = 0, diff = 0, previousDiff = 0, speed = 0, targetSpeed = 0;
 
+    String* logs;
+    bool left = true;
+
     // ====================
     // Functions
 
@@ -46,6 +49,19 @@ public:
 
         // Increment speed gradually until reaching the targetSpeed
         speed = min(speed + speedIncrementStep, targetSpeed);
+
+        if (left) {
+            logs->concat("Left Motor: \n");
+        } else {
+            logs->concat("Right Motor: \n");
+        }
+
+        logs->concat("et: " + String(elapsedTime) + "\n");
+        logs->concat("ticks: " + String(ticks) + "\n");
+        logs->concat("dis: " + String(totalDistance) + "\n");
+        logs->concat("rpm: " + String(RPM) + "\n");
+        logs->concat("pwm: " + String(PWM) + "\n");
+        logs->concat("spd: " + String(speed) + "\n");
     }
 
     void brake() {

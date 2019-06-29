@@ -148,8 +148,6 @@ void loop() {
         com.issueDone();
     }
 
-    debug();
-
     yield();
 }
 
