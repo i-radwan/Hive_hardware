@@ -7,6 +7,7 @@
 #include "../utils/constants.h"
 
 class MPUSensor {
+
 public:
 
     void setup() {
@@ -84,6 +85,7 @@ public:
     }
 
 private:
+
     MPU6050 mpu;
 
     // MPU control/status vars

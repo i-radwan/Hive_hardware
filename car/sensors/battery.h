@@ -6,6 +6,7 @@
 #include "../utils/constants.h"
 
 class BatterySensor {
+
 public:
 
     BatterySensor() {}
@@ -25,5 +26,6 @@ public:
     }
 
 private:
+
     int pin;
 };

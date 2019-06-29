@@ -6,6 +6,7 @@
 #include "../utils/constants.h"
 
 class OpticalSensor {
+
 public:
 
     OpticalSensor() {}
@@ -17,7 +18,7 @@ public:
 
         // Initialize sensor
         mouse = new PS2Mouse(OPTICAL_CLCK, OPTICAL_DATA);
-        
+
         mouse->begin();
     }
 
@@ -42,5 +43,6 @@ public:
     }
 
 private:
+
     PS2Mouse* mouse;
 };

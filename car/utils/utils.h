@@ -35,4 +35,8 @@ public:
 
         return a;
     }
+
+    static double anglesSmallDifference(double a, double b) {
+        return min(abs(a - b), 360 - abs(a - b));
+    }
 };

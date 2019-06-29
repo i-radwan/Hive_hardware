@@ -156,6 +156,7 @@ void loop() {
 void receive(SERVER_TASKS task) {
     switch (task) {
         case SERVER_TASKS::CONFIG:
+            nav.config();
             com.sendStr(String("Config!"));
         break;
 
@@ -334,11 +335,11 @@ void debug() {
         #endif
 
         // ToDo: remove
-        // if (logs.length() > 0) {
-        //     com.sendStr("\n\n\nLOGS::\n" + logs + "\n\n\n");
+        if (logs.length() > 0) {
+            com.sendStr("\n\n\nLOGS::\n" + logs + "\n\n\n");
 
-        //     logs = "";
-        // }
+            logs = "";
+        }
 
         lastSend = millis();
     }

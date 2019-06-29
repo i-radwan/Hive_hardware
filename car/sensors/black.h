@@ -4,6 +4,7 @@
 #include "../utils/constants.h"
 
 class BlackSensor {
+
 public:
 
     BlackSensor() {}
@@ -21,7 +22,7 @@ public:
     void read(bool& isBlack) {
         if (isConnectedToPCF)
             isBlack = (pcf1->read(pin) == LOW);
-        else 
+        else
             isBlack = digitalRead(pin);
 
         if (inverted)
@@ -29,6 +30,7 @@ public:
     }
 
 private:
+
     PCF857x* pcf1;
     int pin;
     bool inverted;

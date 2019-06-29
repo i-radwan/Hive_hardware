@@ -6,6 +6,7 @@
 #include "../utils/constants.h"
 
 class Encoder {
+
 public:
 
     void setup(int pin) {
@@ -34,6 +35,7 @@ public:
 	}
 
 private:
+
     volatile unsigned long ticks = 0;
     volatile unsigned long debounce = 0;
 };

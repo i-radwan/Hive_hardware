@@ -6,6 +6,7 @@
 class UltrasonicSensor {
 
 private:
+
     double lastRead = millis();
 
 public:

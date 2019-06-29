@@ -10,8 +10,8 @@ class Navigator {
 
 public:
 
-    Navigator() : leftMotorController(LEFT_KP, LEFT_KI, LEFT_KD, 0, LEFT_SPED, LEFT_DIR1, LEFT_DIR2),
-                  rightMotorController(RIGHT_KP, RIGHT_KI, RIGHT_KD, 0, RIGHT_SPED, RIGHT_DIR1, RIGHT_DIR2) {
+    Navigator() : leftMotorController(LEFT_KP, LEFT_KI, LEFT_KD, LEFT_SPED, LEFT_DIR1, LEFT_DIR2),
+                  rightMotorController(RIGHT_KP, RIGHT_KI, RIGHT_KD, RIGHT_SPED, RIGHT_DIR1, RIGHT_DIR2) {
     }
 
     void setup(PCF857x* pcf1, Encoder* len, Encoder* ren, String* logsPtr) {
@@ -25,7 +25,7 @@ public:
         // Logs
         logs = logsPtr;
 
-        // ToDo: read last checkpoing from the files system to handle car sudden restart.
+        // ToDo: read last checkpoint from the files system to handle car sudden restart.
     }
 
     void navigate(double obstacleDistance, double angle, bool blackSensors[], ExecutionState& execState) {
@@ -36,7 +36,7 @@ public:
         if (action == ACTION::MOVE) {
             move(obstacleDistance, angle, blackSensors);
         } else if (action == ACTION::ROTATE_RIGHT || action == ACTION::ROTATE_LEFT) {
-            // rotate(angle, blackSensors);
+            rotate(angle, blackSensors);
         } else if (action == ACTION::RETREAT) {
             // retreat(angle, blackSensors);
         }
@@ -53,6 +53,23 @@ public:
     }
 
     void prepare() {
+        leftMotorController.reset();
+        rightMotorController.reset();
+
+        motorsLeftBlackLines = false;
+        stopLeftMotor = false;
+        stopRightMotor = false;
+    }
+
+    void config() {
+        prepare();
+
+        action = ACTION::NONE;
+        moveState = MOVE_STATE::NONE;
+        rotateState = ROTATE_STATE::NONE;
+        retreatState = RETREAT_STATE::NONE;
+
+        executionState.state = EXECUTION_STATE::IDLE;
     }
 
     void stop() {
@@ -66,21 +83,34 @@ public:
     }
 
     void move(double angle) {
-        prepare();
-
         if (executionState.state == EXECUTION_STATE::IDLE) {
-            action = ACTION::MOVE;
+            prepare();
+
             moveState = MOVE_STATE::STRAIGHT;
+
+            // Recover from an incomplete rotation
+            if (action == ACTION::ROTATE_LEFT) {
+                if (rotateState == ROTATE_STATE::FAILED_ROTATE_LEFT_OFFLINE_LEFT) {
+                    moveState = MOVE_STATE::DRIFTING_LEFT;
+                } else if (rotateState == ROTATE_STATE::FAILED_ROTATE_LEFT_OFFLINE_RIGHT) {
+                    moveState = MOVE_STATE::DRIFTING_RIGHT;
+                }
+            } else if (action == ACTION::ROTATE_RIGHT) {
+                if (rotateState == ROTATE_STATE::FAILED_ROTATE_RIGHT_OFFLINE_LEFT) {
+                    moveState = MOVE_STATE::DRIFTING_LEFT;
+                } else if (rotateState == ROTATE_STATE::FAILED_ROTATE_RIGHT_OFFLINE_RIGHT) {
+                    moveState = MOVE_STATE::DRIFTING_RIGHT;
+                }
+            }
+
+            action = ACTION::MOVE;
             executionState.state = EXECUTION_STATE::ONGOING;
 
             straightAnglesSum = angle;
             straightAnglesCnt = 1;
 
-            leftMotorController.reset();
-            rightMotorController.reset();
-
-            stopLeftMotor = false;
-            stopRightMotor = false;
+            leftMotorController.setSpeedIncrementStep(MOTORS_MOVE_SPEED_INCREMENT);
+            rightMotorController.setSpeedIncrementStep(MOTORS_MOVE_SPEED_INCREMENT);
 
             logs->concat("Start moving\n");
         } else if (executionState.state == EXECUTION_STATE::PAUSE && action == ACTION::MOVE) {
@@ -88,16 +118,50 @@ public:
 
             logs->concat("Resume moving\n");
         }
-
-        // ToDo: consider moving after rotating left/right
     }
 
     void rotateRight(double angle) {
-        logs->concat("Start rotating right\n");
+        if (executionState.state == EXECUTION_STATE::IDLE) {
+            prepare();
+
+            action = ACTION::ROTATE_RIGHT;
+            rotateState = ROTATE_STATE::PREPARE_ROTATE_RIGHT;
+            executionState.state = EXECUTION_STATE::ONGOING;
+
+            remainingAngle = 90;
+            previousAngle = angle;
+
+            leftMotorController.setSpeedIncrementStep(MOTORS_ROTATE_SPEED_INCREMENT);
+            rightMotorController.setSpeedIncrementStep(MOTORS_ROTATE_SPEED_INCREMENT);
+
+            logs->concat("Start rotating right\n");
+        } else if (executionState.state == EXECUTION_STATE::PAUSE && action == ACTION::ROTATE_RIGHT) {
+            executionState.state = EXECUTION_STATE::ONGOING;
+
+            logs->concat("Resume rotating right\n");
+        }
     }
 
     void rotateLeft(double angle) {
-        logs->concat("Start rotating left\n");
+        if (executionState.state == EXECUTION_STATE::IDLE) {
+            prepare();
+
+            action = ACTION::ROTATE_LEFT;
+            rotateState = ROTATE_STATE::PREPARE_ROTATE_LEFT;
+            executionState.state = EXECUTION_STATE::ONGOING;
+
+            remainingAngle = 90;
+            previousAngle = angle;
+
+            leftMotorController.setSpeedIncrementStep(MOTORS_ROTATE_SPEED_INCREMENT);
+            rightMotorController.setSpeedIncrementStep(MOTORS_ROTATE_SPEED_INCREMENT);
+
+            logs->concat("Start rotating left\n");
+        } else if (executionState.state == EXECUTION_STATE::PAUSE && action == ACTION::ROTATE_LEFT) {
+            executionState.state = EXECUTION_STATE::ONGOING;
+
+            logs->concat("Resume rotating left\n");
+        }
     }
 
     void retreat(double angle) {
@@ -122,14 +186,18 @@ private:
     ROTATE_STATE rotateState = ROTATE_STATE::NONE;
     RETREAT_STATE retreatState = RETREAT_STATE::NONE;
 
+    bool motorsLeftBlackLines = false;
     bool stopLeftMotor = false;
     bool stopRightMotor = false;
 
     double straightAnglesSum = 0;
     int straightAnglesCnt = 0;
 
+    double remainingAngle;
+    double previousAngle;
+
     // ====================
-    // Functions
+    // Execution state updating function
 
     void pause() {
         executionState.state = EXECUTION_STATE::PAUSE;
@@ -159,6 +227,9 @@ private:
         logs->concat("Halting due: " + String((int) error) + "\n");
     }
 
+    // ====================
+    // Moving handling functions
+
     void move(double obstacleDistance, double angle, bool blackSensors[]) {
         // Emergency braking
         if (obstacleDistance < MIN_DISTANCE) {
@@ -167,7 +238,7 @@ private:
             return;
         }
 
-        // Update distances
+        // Update remaining distances
         double leftDistance = leftMotorController.getTotalDistance();
         double rightDistance = rightMotorController.getTotalDistance();
 
@@ -175,9 +246,9 @@ private:
         double minimumDistanceToNode = STEP / 2.0;
 
         if (remainingDistance < -EXCESS_DISTANCE_LIMIT) {
-            // halt(EXECUTION_ERROR::EXCEEDED_ALLOWED_DISTANCE);
+            halt(EXECUTION_ERROR::EXCEEDED_ALLOWED_DISTANCE);
 
-            // return;
+            return;
         }
 
         // FSM transitions
@@ -214,6 +285,17 @@ private:
         bool isBackLeftBlack = blackSensors[3];
         bool isBackRightBlack = blackSensors[4];
 
+        if (!isBackLeftBlack && !isBackRightBlack) {
+            motorsLeftBlackLines = true;
+        }
+
+        // Stopping at nodes
+        if (remainingDistance < minimumDistanceToNode && motorsLeftBlackLines) {
+            stopLeftMotor = stopLeftMotor || isBackLeftBlack;
+            stopRightMotor = stopRightMotor || isBackRightBlack;
+        }
+
+        // FSM transitions
         if (isFrontCenterBlack && isFrontLeftBlack && isFrontRightBlack) {
             moveState = MOVE_STATE::STRAIGHT;
         } else if (isFrontCenterBlack && isFrontLeftBlack && !isFrontRightBlack) {
@@ -234,12 +316,6 @@ private:
             } else if (moveState == MOVE_STATE::DRIFTING_LEFT) {
                 moveState = MOVE_STATE::OFFLINE_LEFT;
             }
-        }
-
-        // Stopping at nodes
-        if (remainingDistance < minimumDistanceToNode) {
-            stopLeftMotor = stopLeftMotor || isBackLeftBlack;
-            stopRightMotor = stopRightMotor || isBackRightBlack;
         }
     }
 
@@ -304,5 +380,188 @@ private:
         if (stopRightMotor) {
             rightSpeed = 0;
         }
+    }
+
+    // ====================
+    // Rotation handling functions
+
+    void rotate(double angle, bool blackSensors[]) {
+        // Update the remaining angle
+        remainingAngle -= Utils::anglesSmallDifference(angle, previousAngle);
+        previousAngle = angle;
+
+        // FSM transitions
+        updateRotateState(blackSensors, remainingAngle);
+
+        // Get motors new speeds
+        double leftSpeed, rightSpeed;
+        getMotorsRotateSpeeds(leftSpeed, rightSpeed);
+
+        // Update motors controllers
+        leftMotorController.setSpeed(leftSpeed);
+        rightMotorController.setSpeed(rightSpeed);
+
+        leftMotorController.update();
+        rightMotorController.update();
+
+        // Call done if the limit is reached.
+        // Here the moveState will indicate the current situation,
+        // this info is helpful for the next action if it's a move action.
+        // It will know that the rotation went wrong.
+        if (isRotationDone(blackSensors, remainingAngle)) {
+            done();
+
+            updateRotateFinalState(blackSensors, remainingAngle);
+        }
+    }
+
+    void updateRotateState(bool blackSensors[], double remainingAngle) {
+        bool isFrontLeftBlack = blackSensors[0];
+        bool isFrontCenterBlack = blackSensors[1];
+        bool isFrontRightBlack = blackSensors[2];
+        bool isBackLeftBlack = blackSensors[3];
+        bool isBackRightBlack = blackSensors[4];
+
+        if (!isBackLeftBlack && !isBackRightBlack) {
+            motorsLeftBlackLines = true;
+        }
+
+        // Distances
+        double leftDistance = leftMotorController.getTotalDistance();
+        double rightDistance = rightMotorController.getTotalDistance();
+
+        // Stopping after rotation or
+        // when one wheel spins much more than the expected rotation distance
+        if (motorsLeftBlackLines && remainingAngle <= 25) {
+            stopLeftMotor = stopLeftMotor || isBackLeftBlack || leftDistance > 185;
+            stopRightMotor = stopRightMotor || isBackRightBlack || rightDistance > 185;
+        }
+
+        switch (rotateState) {
+            case ROTATE_STATE::PREPARE_ROTATE_RIGHT:
+                if (!isFrontRightBlack) {
+                    rotateState = ROTATE_STATE::PRE_ROTATE_RIGHT;
+                }
+            break;
+
+            case ROTATE_STATE::PREPARE_ROTATE_LEFT:
+                if (!isFrontLeftBlack) {
+                    rotateState = ROTATE_STATE::PRE_ROTATE_LEFT;
+                }
+            break;
+
+            case ROTATE_STATE::PRE_ROTATE_RIGHT:
+                if (!isFrontCenterBlack) {
+                    rotateState = ROTATE_STATE::ROTATE_RIGHT;
+                }
+            break;
+
+            case ROTATE_STATE::PRE_ROTATE_LEFT:
+                if (!isFrontCenterBlack) {
+                    rotateState = ROTATE_STATE::ROTATE_LEFT;
+                }
+            break;
+
+            case ROTATE_STATE::ROTATE_RIGHT:
+                if (isFrontRightBlack && !isFrontCenterBlack) {
+                    rotateState = ROTATE_STATE::POST_ROTATE_RIGHT;
+                } else if (!isFrontRightBlack && isFrontCenterBlack) {
+                    rotateState = ROTATE_STATE::FINISH_ROTATE_RIGHT;
+                }
+            break;
+
+            case ROTATE_STATE::ROTATE_LEFT:
+                if (isFrontLeftBlack && !isFrontCenterBlack) {
+                    rotateState = ROTATE_STATE::POST_ROTATE_LEFT;
+                } else if (!isFrontLeftBlack && isFrontCenterBlack) {
+                    rotateState = ROTATE_STATE::FINISH_ROTATE_LEFT;
+                }
+            break;
+
+            case ROTATE_STATE::POST_ROTATE_RIGHT:
+                if (!isFrontRightBlack) {
+                    rotateState = ROTATE_STATE::FINISH_ROTATE_RIGHT;
+                }
+            break;
+
+            case ROTATE_STATE::POST_ROTATE_LEFT:
+                if (!isFrontLeftBlack) {
+                    rotateState = ROTATE_STATE::FINISH_ROTATE_LEFT;
+                }
+            break;
+        }
+    }
+
+    void updateRotateFinalState(bool blackSensors[], double remainingAngle) {
+        bool isFrontLeftBlack = blackSensors[0];
+        bool isFrontCenterBlack = blackSensors[1];
+        bool isFrontRightBlack = blackSensors[2];
+
+        if (isFrontCenterBlack || isFrontLeftBlack || isFrontRightBlack) {
+            logs->concat(String(isFrontLeftBlack) + " " + String(isFrontCenterBlack) + " " + String(isFrontRightBlack) + "\n");
+            return;
+        }
+
+        // Update the ending rotateState, this will be helpful to complete moving
+        // and compensating this error while moving, if the next action is move
+        if (rotateState == ROTATE_STATE::FINISH_ROTATE_LEFT) {
+            rotateState = ROTATE_STATE::FAILED_ROTATE_LEFT_OFFLINE_LEFT;
+        } else if (rotateState == ROTATE_STATE::ROTATE_LEFT) {
+            rotateState = ROTATE_STATE::FAILED_ROTATE_LEFT_OFFLINE_RIGHT;
+        } else if (rotateState == ROTATE_STATE::FINISH_ROTATE_RIGHT) {
+            rotateState = ROTATE_STATE::FAILED_ROTATE_RIGHT_OFFLINE_RIGHT;
+        } else if (rotateState == ROTATE_STATE::ROTATE_RIGHT) {
+            rotateState = ROTATE_STATE::FAILED_ROTATE_RIGHT_OFFLINE_LEFT;
+        }
+
+        logs->concat("Rotation limit exceeded, remainingAngle: " + String(remainingAngle) + "\n");
+        logs->concat("Stopping state: " + String((int) rotateState) + "\n");
+    }
+
+    void getMotorsRotateSpeeds(double& leftSpeed, double& rightSpeed) {
+        switch (rotateState) {
+            case ROTATE_STATE::PREPARE_ROTATE_RIGHT:
+            case ROTATE_STATE::PRE_ROTATE_RIGHT:
+            case ROTATE_STATE::ROTATE_RIGHT:
+            case ROTATE_STATE::POST_ROTATE_RIGHT:
+            case ROTATE_STATE::FINISH_ROTATE_RIGHT:
+                rightSpeed = -MOTORS_ROTATION_SPEED;
+                leftSpeed = MOTORS_ROTATION_SPEED;
+            break;
+
+            case ROTATE_STATE::PREPARE_ROTATE_LEFT:
+            case ROTATE_STATE::PRE_ROTATE_LEFT:
+            case ROTATE_STATE::ROTATE_LEFT:
+            case ROTATE_STATE::POST_ROTATE_LEFT:
+            case ROTATE_STATE::FINISH_ROTATE_LEFT:
+                rightSpeed = MOTORS_ROTATION_SPEED;
+                leftSpeed = -MOTORS_ROTATION_SPEED;
+            break;
+        }
+
+        if (stopLeftMotor) {
+            leftSpeed = 0;
+        }
+
+        if (stopRightMotor) {
+            rightSpeed = 0;
+        }
+    }
+
+    bool isRotationDone(bool blackSensors[], double remainingAngle) {
+        bool isFrontLeftBlack = blackSensors[0];
+        bool isFrontRightBlack = blackSensors[2];
+
+        bool result = false;
+
+        result |= (remainingAngle <= -EXCESS_ANGLES_LIMIT);
+        result |= (stopLeftMotor && stopRightMotor && remainingAngle <= 20);
+
+        if (result) {
+            logs->concat(String(remainingAngle <= -EXCESS_ANGLES_LIMIT) + "\n");
+            logs->concat(String(stopLeftMotor && stopRightMotor && remainingAngle <= 20) + "\n");
+        }
+
+        return result;
     }
 };

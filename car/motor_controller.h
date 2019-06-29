@@ -14,17 +14,15 @@ public:
     Encoder* en;
     PCF857x* pcf;
 
-    double p = 0, i = 0, d = 0, diff = 0, prevDiff = 0, speed = 0, targetSpeed = 0;
+    double p = 0, i = 0, d = 0, diff = 0, previousDiff = 0, speed = 0, targetSpeed = 0;
 
     // ====================
     // Functions
 
-    MotorController(double kp, double ki, double kd, double spd,
+    MotorController(double kp, double ki, double kd,
                     int speedPin, int dir1Pin, int dir2Pin) :
                     kp(kp), ki(ki), kd(kd),
                     speedPin(speedPin), dir1Pin(dir1Pin), dir2Pin(dir2Pin) {
-        speed = spd;
-
         pinMode(speedPin, OUTPUT);
     }
 
@@ -47,23 +45,33 @@ public:
         sendMotorSignal(PWM);
 
         // Increment speed gradually until reaching the targetSpeed
-        speed = min(speed + MOTORS_SPEED_INCREMENT, targetSpeed);
+        speed = min(speed + speedIncrementStep, targetSpeed);
     }
 
     void brake() {
         speed = 0;
+        direction = DIRECTION::FORWARD;
 
         sendMotorSignal(PWMRANGE); // To brake the motors PWMRANGE, HIGH, HIGH
     }
 
     void setSpeed(double spd) {
+        // Set the direction
+        if (spd < 0 && abs(spd) > EPS) {
+            direction = DIRECTION::BACKWARD;
+        } else {
+            direction = DIRECTION::FORWARD;
+        }
+
+        spd = abs(spd);
+
         if (spd < speed) { // Sudden reduction
             speed = spd;
         } else { // Gradual increment
             targetSpeed = spd;
         }
 
-        if (abs(speed) < EPS) { // To stop anytime the speed drops to zero
+        if (speed < EPS) { // To stop anytime the speed drops to zero
             brake();
         }
     }
@@ -72,13 +80,19 @@ public:
         return speed;
     }
 
+    void setSpeedIncrementStep(double spdIncrementStep) {
+        speedIncrementStep = max(0., spdIncrementStep);
+    }
+
     double getTotalDistance() {
         return totalDistance;
     }
 
     void reset() {
         p = i = d = 0;
-        totalDistance = prevDiff = diff = 0;
+        totalDistance = previousDiff = diff = 0;
+
+        direction = DIRECTION::FORWARD;
 
         noInterrupts();
         en->reset();
@@ -93,26 +107,30 @@ private:
     const double kp, ki, kd;
     const int speedPin, dir1Pin, dir2Pin;
 
+    double speedIncrementStep = MOTORS_MOVE_SPEED_INCREMENT;
+
     double time = millis();
     double totalDistance = 0;
+
+    DIRECTION direction = DIRECTION::FORWARD;
 
     // ====================
     // Functions
 
     double computePWM(double spd, double elapsedTime) {
         if (speed < EPS) { // If the speed is zero, force stop the motor
-            reset();
+            brake();
 
             return 0;
         }
 
-        diff = abs(speed) - spd;
+        diff = speed - spd;
 
         p = diff * kp;
         i = i + diff * ki;
-        d = ((diff - prevDiff) / elapsedTime) * kd;
+        d = ((diff - previousDiff) / elapsedTime) * kd;
 
-        prevDiff = diff;
+        previousDiff = diff;
 
         double pid = constrain(MOTORS_INIT_THROTTLE + (p + i + d), -PWMRANGE, PWMRANGE);
 
@@ -142,14 +160,14 @@ private:
     void sendMotorSignal(double PWM) {
         int dir1, dir2;
 
-        if (abs(speed) < EPS) {
+        if (speed < EPS) {
             dir1 = dir2 = HIGH;
-        } else if (speed < 0) {
-            dir1 = LOW;
-            dir2 = HIGH;
-        } else {
+        } else if (direction == DIRECTION::FORWARD) {
             dir1 = HIGH;
             dir2 = LOW;
+        } else if (direction == DIRECTION::BACKWARD) {
+            dir1 = LOW;
+            dir2 = HIGH;
         }
 
         analogWrite(speedPin, PWM);
