@@ -9,8 +9,11 @@
 class Communicator {
 public:
 
-    bool setup(void (*receive)(SERVER_TASKS)) {
+    bool setup(void (*receive)(SERVER_TASKS),
+               void (*serverConnectedCallbk)(), void (*serverDisconnectedCallbk)()) {
         receiveCallback = receive;
+        serverConnectedCallback = serverConnectedCallbk;
+        serverDisconnectedCallback = serverDisconnectedCallbk;
 
         wifiConnected = connectWifi();
 
@@ -42,7 +45,16 @@ public:
         send(msg, 2);
     }
 
+    void sendError() {
+        uint8_t msg[1] = {(uint8_t) MSG_TO_SERVER::ERROR};
+        send(msg, 1);
+    }
+
     inline void sendStr(String str) { // For debugging!
+        if (!WSConnected) {
+            return;
+        }
+
         webSocket.sendTXT(str);
     }
 
@@ -64,9 +76,11 @@ private:
     bool wifiConnected = false;
 
     // Websocket
-    bool WSConnected = false;
+    static bool WSConnected;
     static WebSocketsClient webSocket;
     static void (*receiveCallback)(SERVER_TASKS);
+    static void (*serverConnectedCallback)();
+    static void (*serverDisconnectedCallback)();
 
     bool connectWifi() {
         WiFi.mode(WIFI_STA);
@@ -111,8 +125,12 @@ private:
     static void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
         switch(type) {
             case WStype_DISCONNECTED:
+                WSConnected = false;
+                serverDisconnectedCallback();
                 break;
             case WStype_CONNECTED:
+                WSConnected = true;
+                serverConnectedCallback();
                 break;
             case WStype_TEXT:
                 break;
@@ -169,9 +187,16 @@ private:
     }
 
     inline void send(uint8_t msg[], int length) {
+        if (!WSConnected) {
+            return;
+        }
+
         webSocket.sendBIN(msg, length);
     }
 };
 
+bool Communicator::WSConnected = true;
 WebSocketsClient Communicator::webSocket;
 void (*Communicator::receiveCallback)(SERVER_TASKS) = NULL;
+void (*Communicator::serverConnectedCallback)() = NULL;
+void (*Communicator::serverDisconnectedCallback)() = NULL;

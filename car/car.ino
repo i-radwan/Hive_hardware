@@ -80,7 +80,7 @@ void setup() {
     Wire.begin(I2C_SDA, I2C_SCL);
 
     // Initialize connection
-    setupState = com.setup(&receive);
+    setupState = com.setup(&receive, &serverConnected, &serverDisconnected);
 
     // Initialize PCFs
     pcf1.begin(PCF1_CONFIGS); // P0-P3 output, P4-P7 input
@@ -138,7 +138,7 @@ void loop() {
     updateLights();
 
     // Printing debugging info
-    debug();
+    // debug();
 
     // Navigation
     ExecutionState executionState;
@@ -146,6 +146,12 @@ void loop() {
 
     if (executionState.state == EXECUTION_STATE::FINISHED) {
         com.issueDone();
+    } else if (executionState.state == EXECUTION_STATE::ERROR) {
+        com.sendError();
+    }
+
+    if (executionState.state != EXECUTION_STATE::ONGOING) {
+        debug();
     }
 
     yield();
@@ -226,11 +232,12 @@ void receive(SERVER_TASKS task) {
 }
 
 void serverConnected() {
-
+    redLed = LIGHT_MODE::OFF;
 }
 
 void serverDisconnected() {
-
+    redLed = LIGHT_MODE::ON;
+    nav.stop();
 }
 
 void readSensors() {
@@ -265,6 +272,7 @@ void readSensors() {
         batteryLevel = level;
 
         com.sendBatteryLevel(batteryLevel);
+        com.sendStr("New battery level: " + String(batteryLevel) + "\n");
     }
 }
 
@@ -334,7 +342,7 @@ void debug() {
 
         // ToDo: remove
         if (logs.length() > 0) {
-            com.sendStr("\n\n\nLOGS::\n" + logs + "\n\n\n");
+            // com.sendStr("\n\n\nLOGS::\n" + logs + "\n\n\n");
 
             logs = "";
         }

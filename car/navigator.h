@@ -469,6 +469,14 @@ private:
 
             updateRotateFinalState(blackSensors, remainingAngle);
         }
+
+        if (millis() - time > 100) {
+            time = millis();
+
+            logs->concat("Rotate State: " + String((int) rotateState) + "\n");
+            logs->concat("lspd: " + String((int) leftSpeed) + "\n");
+            logs->concat("rspd: " + String((int) rightSpeed) + "\n");
+        }
     }
 
     void updateRotateState(bool blackSensors[], double remainingAngle) {
@@ -611,7 +619,7 @@ private:
         bool result = false;
 
         result |= (remainingAngle <= -EXCESS_ANGLES_LIMIT);
-        result |= (stopLeftMotor && stopRightMotor && remainingAngle <= 20);
+        result |= (stopLeftMotor && stopRightMotor);
 
         return result;
     }

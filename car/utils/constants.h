@@ -1,7 +1,7 @@
 #pragma once
 
-// #define CAR1
-#define CAR2
+#define CAR1
+// #define CAR2
 // #define CAR3
 
 
@@ -15,8 +15,9 @@ const int PORT                              = 12344;
 const int RECONNECT_INTERVAL                = 5000; // ms
 const int PING_INTERVAL                     = 100; // ms
 const int PONG_TIMEOUT                      = 3000; // ms
-const int RETRIES_COUNT                     = 10; // ms
+const int RETRIES_COUNT                     = 2;
 const int DONE_DELAY                        = 1000; // ms
+const int CONNECTION_ALIVE_PERIOD           = 500; // ms
 
 // Serial
 const int BAUD_RATE                         = 115200;
@@ -61,8 +62,8 @@ const double EXCESS_ANGLES_LIMIT            = 10; // degrees, the angles the rob
 
 // PID
 #ifdef CAR1
-const double MOTORS_MOVE_SPEED_INCREMENT    = 4; // rpm
-const double MOTORS_INIT_THROTTLE           = PWMRANGE / 6; // pwm
+const double MOTORS_MOVE_SPEED_INCREMENT    = 5; // rpm
+const double MOTORS_INIT_THROTTLE           = PWMRANGE / 5; // pwm
 
 const double LEFT_KP                        = 1.5;
 const double LEFT_KI                        = 0.07;
@@ -147,15 +148,17 @@ const int ULTRA_SONIC_TRIGGER_PIN           = D9;
 const int ULTRA_SONIC_ECHO_PIN              = D5;
 const int ULTRA_SONIC_REFRESH_TIME          = 200; // ms
 const int ULTRA_SONIC_TIMEOUT               = 2000; // us ... 2cm * 2     = 40cm     = ~0.5m takes the sound 300 m/s -> 0.001666666667 seconds to travel     = 1666.667us
-const int MIN_DISTANCE                      = 20; // cm. Min distance ahead of the robot
+const int MIN_DISTANCE                      = 15; // cm. Min distance ahead of the robot
 
 // Battery
 const int BATTERY_SENSOR_PIN                = A0;
 const int BATTERY_LEVEL_SIZE                = 10;  // Each level represents 10% of the battery life.
-const double BATTERY_REF_VOLT               = 12.4;
+const double BATTERY_REF_VOLT               = 12.6;
+const double BATTERY_EMPTY_REF_VOLT         = 10.8;
 const double BATTERY_DIVIDED_REF_VOLT       = 3.1; // Divided by 15kΩ & [5kΩ]
 const double BATTERY_WARNING_PERCENTAGE     = 0.2;
 const double BATTERY_RESISTORS_RATIO        = 20 / 5; // (15 + 5) / 5
+const double BATTERY_SENSOR_REFRESH_RATE    = 5000; // ms
 
 // Black sensors
 const int FRT_LFT_BLACK_SENSOR_PIN          = 6;
