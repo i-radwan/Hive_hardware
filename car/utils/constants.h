@@ -76,6 +76,24 @@ const double RIGHT_KI                       = 0.07;
 const double RIGHT_KD                       = 0;
 #endif
 
+#ifdef CAR2
+const double LEFT_KP                        = 1.5;
+const double LEFT_KI                        = 0.07;
+const double LEFT_KD                        = 0;
+const double RIGHT_KP                       = 1.5;
+const double RIGHT_KI                       = 0.07;
+const double RIGHT_KD                       = 0;
+#endif
+
+#ifdef CAR3
+const double LEFT_KP                        = 1.5;
+const double LEFT_KI                        = 0.07;
+const double LEFT_KD                        = 0;
+const double RIGHT_KP                       = 1.5;
+const double RIGHT_KI                       = 0.07;
+const double RIGHT_KD                       = 0;
+#endif
+
 // ====================
 // Sensors
 
@@ -238,14 +256,13 @@ enum class ROTATE_STATE {
 
 enum class RETREAT_STATE {
     NONE                                    = -1,
-    PRE_RETREAT                             = 0,
-    RETREAT                                 = 1,
-    POST_RETREAT                            = 2
+    RETREAT                                 = 0,
+    ALIGNMENT                               = 1
 };
 
 struct ExecutionState {
-    EXECUTION_STATE state     = EXECUTION_STATE::IDLE;
-    EXECUTION_ERROR error     = EXECUTION_ERROR::NONE;
+    EXECUTION_STATE state                   = EXECUTION_STATE::IDLE;
+    EXECUTION_ERROR error                   = EXECUTION_ERROR::NONE;
 };
 
 // ====================
