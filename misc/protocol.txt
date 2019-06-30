@@ -26,6 +26,9 @@ L               = [0:LOW|1|2|3|4|5|6|7|8|9:HIGH]
 BLOCKING        = [2, B]            # Sent when the robot view has been blocked/unblocked.
 B               = [0:UNBLOCKED|1:BLOCKED]
 
+ERROR           = [3, E]            # Sent when the robot is in erroneous state.
+E               = [0:EXCEEDED_ALLOWED_DISTANCE|1:UNKNOWN]
+
 ----------------
 FROM SERVER:
 ----------------
