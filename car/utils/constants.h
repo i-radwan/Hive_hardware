@@ -156,7 +156,7 @@ const int BATTERY_LEVEL_SIZE                = 10;  // Each level represents 10% 
 const double BATTERY_REF_VOLT               = 12.6;
 const double BATTERY_EMPTY_REF_VOLT         = 10.8;
 const double BATTERY_DIVIDED_REF_VOLT       = 3.1; // Divided by 15kΩ & [5kΩ]
-const double BATTERY_WARNING_PERCENTAGE     = 0.2;
+const double BATTERY_WARNING_LEVEL          = 3;
 const double BATTERY_RESISTORS_RATIO        = 20 / 5; // (15 + 5) / 5
 const double BATTERY_SENSOR_REFRESH_RATE    = 5000; // ms
 

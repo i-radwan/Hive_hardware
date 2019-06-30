@@ -257,9 +257,13 @@ void readSensors() {
     if (!blocked && obstacleDistance <= MIN_DISTANCE) { // On block state change to BLOCKED
         blocked = true;
 
+        redLed = LIGHT_MODE::ON;
+
         com.sendBlockingState(BLOCKING_MODE::BLOCKED);
     } else if (blocked && obstacleDistance > MIN_DISTANCE) { // On block state change to UNBLOCKED
         blocked = false;
+
+        redLed = LIGHT_MODE::OFF;
 
         com.sendBlockingState(BLOCKING_MODE::UNBLOCKED);
     }
@@ -313,6 +317,10 @@ void updateLights() {
         lastBlueLedChange = millis();
 
         digitalWrite(BLUE_LED_PIN, lastBlueLedValue);
+    }
+
+    if (redLed == LIGHT_MODE::OFF && batteryLevel < BATTERY_WARNING_LEVEL) {
+        redLed = LIGHT_MODE::FLASH;
     }
 }
 
