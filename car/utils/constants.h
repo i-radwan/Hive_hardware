@@ -86,7 +86,8 @@ const double RIGHT_KD                       = 0;
 #endif
 
 #ifdef CAR3
-const double MOTORS_INIT_THROTTLE           = PWMRANGE / 6; // pwm
+const double MOTORS_MOVE_SPEED_INCREMENT    = 6; // rpm
+const double MOTORS_INIT_THROTTLE           = PWMRANGE / 4; // pwm
 
 const double LEFT_KP                        = 1.5;
 const double LEFT_KI                        = 0.07;
@@ -153,8 +154,8 @@ const int MIN_DISTANCE                      = 15; // cm. Min distance ahead of t
 // Battery
 const int BATTERY_SENSOR_PIN                = A0;
 const int BATTERY_LEVEL_SIZE                = 10;  // Each level represents 10% of the battery life.
-const double BATTERY_REF_VOLT               = 12.6;
-const double BATTERY_EMPTY_REF_VOLT         = 10.8;
+const double BATTERY_REF_VOLT               = 12.18;
+const double BATTERY_EMPTY_REF_VOLT         = 10.2;
 const double BATTERY_DIVIDED_REF_VOLT       = 3.1; // Divided by 15kΩ & [5kΩ]
 const double BATTERY_WARNING_LEVEL          = 3;
 const double BATTERY_RESISTORS_RATIO        = 20 / 5; // (15 + 5) / 5

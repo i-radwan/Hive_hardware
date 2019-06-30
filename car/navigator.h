@@ -674,18 +674,20 @@ private:
 
         switch (retreatState) {
             case RETREAT_STATE::RETREAT:
-                if (remainingAngle <= 30) {
+                if (remainingAngle <= 10) {
                     if (remainingDistance < STEP / 3) {
                         retreatState = RETREAT_STATE::POST_RETREAT_ALIGNMENT;
                     } else if (isFrontLeftBlack && isFrontCenterBlack && isFrontRightBlack) {
                         retreatState = RETREAT_STATE::POST_RETREAT_ALIGNMENT;
                     } else if (isFrontLeftBlack || isFrontCenterBlack || isFrontRightBlack) {
                         retreatState = RETREAT_STATE::POST_RETREAT_MOVE;
-
-                        updateMoveState(blackSensors, remainingDistance, postRetreatDistance);
                     } else {
                         retreatState = RETREAT_STATE::POST_RETREAT_ALIGNMENT;
                     }
+
+                    // Reset the motors after rotation
+                    leftMotorController.reset();
+                    rightMotorController.reset();
                 }
             break;
 
@@ -696,24 +698,26 @@ private:
             break;
 
             case RETREAT_STATE::POST_RETREAT_ALIGNMENT:
-                if (remainingDistance > STEP / 3 &&
-                    (isFrontLeftBlack || isFrontCenterBlack || isFrontRightBlack)) {
+                if ((isFrontLeftBlack || isFrontCenterBlack || isFrontRightBlack) &&
+                    !(isFrontLeftBlack && isFrontCenterBlack && isFrontRightBlack)) {
                     retreatState = RETREAT_STATE::POST_RETREAT_MOVE;
                 }
             break;
         }
 
-        if (retreatState == RETREAT_STATE::POST_RETREAT_ALIGNMENT) {
-            // Distances
-            double leftDistance = leftMotorController.getTotalDistance();
-            double rightDistance = rightMotorController.getTotalDistance();
+        // Distances
+        double leftDistance = leftMotorController.getTotalDistance();
+        double rightDistance = rightMotorController.getTotalDistance();
 
-            // Stopping after moving the postRetreatDistance
-            bool leftDistanceReturned = (postRetreatDistance - leftDistance) <= 10;
-            bool rightDistanceReturned = (postRetreatDistance - rightDistance) <= 10;
+        // Stopping after moving the postRetreatDistance
+        bool leftDistanceReturned = (postRetreatDistance - leftDistance) <= 10;
+        bool rightDistanceReturned = (postRetreatDistance - rightDistance) <= 10;
 
-            stopLeftMotor = stopLeftMotor || (isBackLeftBlack && leftDistanceReturned);
-            stopRightMotor = stopRightMotor || (isBackRightBlack && rightDistanceReturned);
+        stopLeftMotor = stopLeftMotor || (isBackLeftBlack && leftDistanceReturned);
+        stopRightMotor = stopRightMotor || (isBackRightBlack && rightDistanceReturned);
+
+        if (retreatState == RETREAT_STATE::POST_RETREAT_MOVE) {
+            updateMoveState(blackSensors, remainingDistance, postRetreatDistance);
         }
     }
 

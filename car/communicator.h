@@ -50,7 +50,7 @@ public:
         send(msg, 1);
     }
 
-    inline void sendStr(String str) { // For debugging!
+    void sendStr(String str) { // For debugging!
         if (!WSConnected) {
             return;
         }
@@ -66,6 +66,10 @@ public:
 
             doneIssued = false;
         }
+    }
+
+    bool isConnected() {
+        return WSConnected;
     }
 
 private:

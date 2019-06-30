@@ -232,11 +232,9 @@ void receive(SERVER_TASKS task) {
 }
 
 void serverConnected() {
-    redLed = LIGHT_MODE::OFF;
 }
 
 void serverDisconnected() {
-    redLed = LIGHT_MODE::ON;
     nav.stop();
 }
 
@@ -257,13 +255,9 @@ void readSensors() {
     if (!blocked && obstacleDistance <= MIN_DISTANCE) { // On block state change to BLOCKED
         blocked = true;
 
-        redLed = LIGHT_MODE::ON;
-
         com.sendBlockingState(BLOCKING_MODE::BLOCKED);
     } else if (blocked && obstacleDistance > MIN_DISTANCE) { // On block state change to UNBLOCKED
         blocked = false;
-
-        redLed = LIGHT_MODE::OFF;
 
         com.sendBlockingState(BLOCKING_MODE::UNBLOCKED);
     }
@@ -319,8 +313,20 @@ void updateLights() {
         digitalWrite(BLUE_LED_PIN, lastBlueLedValue);
     }
 
-    if (redLed == LIGHT_MODE::OFF && batteryLevel < BATTERY_WARNING_LEVEL) {
+    if (batteryLevel < BATTERY_WARNING_LEVEL) {
         redLed = LIGHT_MODE::FLASH;
+    }
+
+    if (blocked) {
+        redLed = LIGHT_MODE::ON;
+    }
+
+    if (!com.isConnected()) {
+        redLed = LIGHT_MODE::ON;
+    }
+
+    if (com.isConnected() && !blocked && batteryLevel > BATTERY_WARNING_LEVEL) {
+        redLed = LIGHT_MODE::OFF;
     }
 }
 
@@ -350,7 +356,7 @@ void debug() {
 
         // ToDo: remove
         if (logs.length() > 0) {
-            // com.sendStr("\n\n\nLOGS::\n" + logs + "\n\n\n");
+            com.sendStr("\n\n\nLOGS::\n" + logs + "\n\n\n");
 
             logs = "";
         }
