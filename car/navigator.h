@@ -22,15 +22,8 @@ public:
         leftMotorController.pcf = pcf1;
         rightMotorController.pcf = pcf1;
 
-        leftMotorController.logs = logsPtr;
-        rightMotorController.logs = logsPtr;
-
-        rightMotorController.left = false;
-
         // Logs
         logs = logsPtr;
-
-        // ToDo: read last checkpoint from the files system to handle car sudden restart.
     }
 
     void navigate(double obstacleDistance, double angle, bool blackSensors[], ExecutionState& execState) {
@@ -659,9 +652,16 @@ private:
         if (millis() - time > 100) {
             time = millis();
 
-            logs->concat("Retreat State: " + String((int) retreatState) + "\n");
-            logs->concat("Moving State: " + String((int) moveState) + "\n");
-            logs->concat("postRetreatDistance: " + String(postRetreatDistance) + "\n");
+            logs->concat("Rs: " + String((int) retreatState) + "\n");
+            logs->concat("Ms: " + String((int) moveState) + "\n");
+            logs->concat("pdr: " + String(postRetreatDistance) + "\n");
+            logs->concat("red: " + String(remainingDistance) + "\n");
+            logs->concat("ld: " + String(leftDistance) + "\n");
+            logs->concat("rd: " + String(rightDistance) + "\n");
+            logs->concat("lspd: " + String(leftSpeed) + "\n");
+            logs->concat("rspd: " + String(rightSpeed) + "\n");
+            logs->concat("lstp: " + String(stopLeftMotor) + "\n");
+            logs->concat("rstp: " + String(stopRightMotor) + "\n");
         }
     }
 
@@ -705,19 +705,21 @@ private:
             break;
         }
 
-        // Distances
-        double leftDistance = leftMotorController.getTotalDistance();
-        double rightDistance = rightMotorController.getTotalDistance();
+        if (retreatState != RETREAT_STATE::RETREAT) {
+            // Distances
+            double leftDistance = leftMotorController.getTotalDistance();
+            double rightDistance = rightMotorController.getTotalDistance();
 
-        // Stopping after moving the postRetreatDistance
-        bool leftDistanceReturned = (postRetreatDistance - leftDistance) <= 10;
-        bool rightDistanceReturned = (postRetreatDistance - rightDistance) <= 10;
+            // Stopping after moving the postRetreatDistance
+            bool leftDistanceReturned = (postRetreatDistance - leftDistance) <= 10;
+            bool rightDistanceReturned = (postRetreatDistance - rightDistance) <= 10;
 
-        stopLeftMotor = stopLeftMotor || (isBackLeftBlack && leftDistanceReturned);
-        stopRightMotor = stopRightMotor || (isBackRightBlack && rightDistanceReturned);
+            stopLeftMotor = stopLeftMotor || (isBackLeftBlack && leftDistanceReturned);
+            stopRightMotor = stopRightMotor || (isBackRightBlack && rightDistanceReturned);
+        }
 
         if (retreatState == RETREAT_STATE::POST_RETREAT_MOVE) {
-            updateMoveState(blackSensors, remainingDistance, postRetreatDistance);
+            updateMoveState(blackSensors, remainingDistance, 10);
         }
     }
 
