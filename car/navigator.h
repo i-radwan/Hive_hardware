@@ -108,8 +108,11 @@ public:
             action = ACTION::MOVE;
             executionState.state = EXECUTION_STATE::ONGOING;
 
-            straightAnglesSum = angle;
-            straightAnglesCnt = 1;
+            straightAnglesSin = 0;
+            straightAnglesCos = 0;
+            straightAnglesCnt = 0;
+
+            addStraightAngle(angle);
 
             leftMotorController.setSpeedIncrementStep(MOTORS_MOVE_SPEED_INCREMENT);
             rightMotorController.setSpeedIncrementStep(MOTORS_MOVE_SPEED_INCREMENT);
@@ -181,15 +184,26 @@ public:
             retreatState = RETREAT_STATE::RETREAT;
             executionState.state = EXECUTION_STATE::ONGOING;
 
-            remainingAngle = 180;
+            // Angle that the robot should rotate to first
+            // We will always rotate right
             previousAngle = angle;
-            postRetreatAngle = Utils::mapAngle(angle + 180);
+            postRetreatAngle = (getStraightAngle() + 180) % 360;
+
+            if (moveState == MOVE_STATE::STRAIGHT) {
+                remainingAngle = Utils::anglesAverageDifference(angle, postRetreatAngle);
+            } else if (moveState == MOVE_STATE::DRIFTING_RIGHT || moveState == MOVE_STATE::OFFLINE_RIGHT) {
+                remainingAngle = Utils::anglesSmallDifference(angle, postRetreatAngle);
+            } else if (moveState == MOVE_STATE::DRIFTING_LEFT || moveState == MOVE_STATE::OFFLINE_LEFT) {
+                remainingAngle = Utils::anglesLargeDifference(angle, postRetreatAngle);
+            }
+
             postRetreatDistance = movedDistance;
 
             leftMotorController.setSpeedIncrementStep(MOTORS_MOVE_SPEED_INCREMENT / 2);
             rightMotorController.setSpeedIncrementStep(MOTORS_MOVE_SPEED_INCREMENT / 2);
 
             logs->concat("Start retreating\n");
+            logs->concat("MS: " + String((int) moveState) + " Current angle: " + String(angle) + " pra: " + postRetreatAngle + " ra: " + String(remainingAngle) + "\n");
         } else if (executionState.state == EXECUTION_STATE::PAUSE && action == ACTION::RETREAT) {
             executionState.state = EXECUTION_STATE::ONGOING;
 
@@ -219,7 +233,8 @@ private:
     bool stopLeftMotor = false;
     bool stopRightMotor = false;
 
-    double straightAnglesSum = 0;
+    double straightAnglesCos = 0;
+    double straightAnglesSin = 0;
     int straightAnglesCnt = 0;
 
     double remainingAngle;
@@ -299,14 +314,14 @@ private:
 
         // Store angles to prepare for moving using angles when reaching the next node,
         // where all sensors see black
-        if (moveState == MOVE_STATE::STRAIGHT) { // ToDo
-            // straightAnglesSum += angle;
-            // straightAnglesCnt++;
+        if (moveState == MOVE_STATE::DRIFTING_LEFT || moveState == MOVE_STATE::DRIFTING_RIGHT ||
+            moveState == MOVE_STATE::STRAIGHT) {
+            addStraightAngle(angle);
         }
 
         // Get motors new speeds
         double leftSpeed, rightSpeed;
-        getMotorsMoveSpeeds(angle, straightAnglesSum / straightAnglesCnt, leftSpeed, rightSpeed);
+        getMotorsMoveSpeeds(angle, getStraightAngle(), leftSpeed, rightSpeed);
 
         // Update motors controllers
         leftMotorController.setSpeed(leftSpeed);
@@ -324,6 +339,9 @@ private:
             time = millis();
 
             logs->concat("Moving State: " + String((int) moveState) + "\n");
+            logs->concat("Angle: " + String(angle) + "\n");
+            logs->concat("Ref angle: " + String(getStraightAngle()) + "\n");
+            logs->concat("Ref angle: " + String(getStraightAngle()) + "\n");
         }
     }
 
@@ -364,6 +382,8 @@ private:
                 moveState = MOVE_STATE::OFFLINE_RIGHT;
             } else if (moveState == MOVE_STATE::DRIFTING_LEFT) {
                 moveState = MOVE_STATE::OFFLINE_LEFT;
+            } else if (moveState == MOVE_STATE::STRAIGHT) {
+                halt(EXECUTION_ERROR::UNKNOWN);
             }
         }
     }
@@ -635,7 +655,7 @@ private:
 
         // Get motors new speeds
         double leftSpeed, rightSpeed;
-        getMotorsRetreatSpeeds(angle, postRetreatAngle, leftSpeed, rightSpeed);
+        getMotorsRetreatSpeeds(angle, postRetreatAngle, remainingAngle, leftSpeed, rightSpeed);
 
         // Update motors controllers
         leftMotorController.setSpeed(leftSpeed);
@@ -654,7 +674,7 @@ private:
 
             logs->concat("Rs: " + String((int) retreatState) + "\n");
             logs->concat("Ms: " + String((int) moveState) + "\n");
-            logs->concat("pdr: " + String(postRetreatDistance) + "\n");
+            logs->concat("prd: " + String(postRetreatDistance) + "\n");
             logs->concat("red: " + String(remainingDistance) + "\n");
             logs->concat("ld: " + String(leftDistance) + "\n");
             logs->concat("rd: " + String(rightDistance) + "\n");
@@ -662,6 +682,8 @@ private:
             logs->concat("rspd: " + String(rightSpeed) + "\n");
             logs->concat("lstp: " + String(stopLeftMotor) + "\n");
             logs->concat("rstp: " + String(stopRightMotor) + "\n");
+            logs->concat("rA: " + String(remainingAngle) + "\n");
+            logs->concat("\n\n\n");
         }
     }
 
@@ -699,7 +721,8 @@ private:
 
             case RETREAT_STATE::POST_RETREAT_ALIGNMENT:
                 if ((isFrontLeftBlack || isFrontCenterBlack || isFrontRightBlack) &&
-                    !(isFrontLeftBlack && isFrontCenterBlack && isFrontRightBlack)) {
+                    !(isFrontLeftBlack && isFrontCenterBlack && isFrontRightBlack) &&
+                    remainingDistance > STEP / 4) {
                     retreatState = RETREAT_STATE::POST_RETREAT_MOVE;
                 }
             break;
@@ -723,7 +746,7 @@ private:
         }
     }
 
-    void getMotorsRetreatSpeeds(double angle, double referenceAngle, double& leftSpeed, double& rightSpeed) {
+    void getMotorsRetreatSpeeds(double angle, double referenceAngle, double remainingAngle, double& leftSpeed, double& rightSpeed) {
         switch (retreatState) {
             case RETREAT_STATE::RETREAT:
                 rightSpeed = -MOTORS_ROTATION_SPEED;
@@ -746,5 +769,27 @@ private:
         if (stopRightMotor) {
             rightSpeed = 0;
         }
+
+        leftSpeed /= 2;
+        rightSpeed /= 2;
+    }
+
+    // ====================
+    // Helper functions
+    void addStraightAngle(double angle) {
+        double angleSin, angleCos;
+        Utils::angleResolution(Utils::degreesToRad(angle), angleCos, angleSin);
+
+        straightAnglesCos += angleCos;
+        straightAnglesSin += angleSin;
+
+        straightAnglesCnt++;
+    }
+
+    int getStraightAngle() {
+        double straightAnglesAvgSin  = straightAnglesSin / straightAnglesCnt;
+        double straightAnglesAvgCos  = straightAnglesCos / straightAnglesCnt;
+
+        return Utils::radToDegrees(Utils::vecToAngle(straightAnglesAvgCos, straightAnglesAvgSin));
     }
 };

@@ -53,7 +53,7 @@ enum class DIRECTION {
 // Configs
 const double MOTORS_ADJUST_DELTA            = 100; // ms
 const double MOTORS_SPEED                   = 40; // rpm
-const double MOTORS_ROTATION_SPEED          = 60; // rpm
+const double MOTORS_ROTATION_SPEED          = 50; // rpm
 const double MOTORS_ALIGNMENT_SPEED         = MOTORS_SPEED / 2; // rpm
 const double MOTORS_ROTATE_SPEED_INCREMENT  = 6; // rpm
 const double STEP                           = 300; // mm
