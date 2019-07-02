@@ -45,9 +45,9 @@ public:
         send(msg, 2);
     }
 
-    void sendError() {
-        uint8_t msg[1] = {(uint8_t) MSG_TO_SERVER::ERROR};
-        send(msg, 1);
+    void sendError(EXECUTION_ERROR error) {
+        uint8_t msg[2] = {(uint8_t) MSG_TO_SERVER::ERROR, (uint8_t) error};
+        send(msg, 2);
     }
 
     void sendStr(String str) { // For debugging!

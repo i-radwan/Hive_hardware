@@ -108,10 +108,6 @@ public:
             action = ACTION::MOVE;
             executionState.state = EXECUTION_STATE::ONGOING;
 
-            straightAnglesSin = 0;
-            straightAnglesCos = 0;
-            straightAnglesCnt = 0;
-
             addStraightAngle(angle);
 
             leftMotorController.setSpeedIncrementStep(MOTORS_MOVE_SPEED_INCREMENT);
@@ -136,6 +132,10 @@ public:
             remainingAngle = 90;
             previousAngle = angle;
 
+            straightAnglesSin = 0;
+            straightAnglesCos = 0;
+            straightAnglesCnt = 0;
+
             leftMotorController.setSpeedIncrementStep(MOTORS_ROTATE_SPEED_INCREMENT);
             rightMotorController.setSpeedIncrementStep(MOTORS_ROTATE_SPEED_INCREMENT);
 
@@ -157,6 +157,10 @@ public:
 
             remainingAngle = 90;
             previousAngle = angle;
+
+            straightAnglesSin = 0;
+            straightAnglesCos = 0;
+            straightAnglesCnt = 0;
 
             leftMotorController.setSpeedIncrementStep(MOTORS_ROTATE_SPEED_INCREMENT);
             rightMotorController.setSpeedIncrementStep(MOTORS_ROTATE_SPEED_INCREMENT);
@@ -188,6 +192,10 @@ public:
             // We will always rotate right
             previousAngle = angle;
             postRetreatAngle = (getStraightAngle() + 180) % 360;
+
+            straightAnglesSin = 0;
+            straightAnglesCos = 0;
+            straightAnglesCnt = 0;
 
             if (moveState == MOVE_STATE::STRAIGHT) {
                 remainingAngle = Utils::anglesAverageDifference(angle, postRetreatAngle);
@@ -288,6 +296,13 @@ private:
     // ====================
     // Moving handling functions
 
+    // ToDo
+    bool prevIsFrontLeftBlack = false;
+    bool prevIsFrontCenterBlack = false;
+    bool prevIsFrontRightBlack = false;
+    bool prevIsBackLeftBlack = false;
+    bool prevIsBackRightBlack = false;
+
     void move(double obstacleDistance, double angle, bool blackSensors[]) {
         // Emergency braking
         if (obstacleDistance < MIN_DISTANCE) {
@@ -310,12 +325,11 @@ private:
         }
 
         // FSM transitions
-        updateMoveState(blackSensors, remainingDistance, minimumDistanceToNode);
+        updateMoveState(angle, blackSensors, remainingDistance, minimumDistanceToNode);
 
         // Store angles to prepare for moving using angles when reaching the next node,
         // where all sensors see black
-        if (moveState == MOVE_STATE::DRIFTING_LEFT || moveState == MOVE_STATE::DRIFTING_RIGHT ||
-            moveState == MOVE_STATE::STRAIGHT) {
+        if (moveState == MOVE_STATE::STRAIGHT) {
             addStraightAngle(angle);
         }
 
@@ -330,22 +344,61 @@ private:
         leftMotorController.update();
         rightMotorController.update();
 
+        // Compensate back black sensors errors
+        double diff = Utils::mapAngle(angle - getStraightAngle());
+
+        if (stopLeftMotor && !stopRightMotor && diff < -10) {
+            stopRightMotor = true;
+            logs->concat("Force stopping right motor, diff: " + String(diff) + "\n");
+        }
+
+        if (!stopLeftMotor && stopRightMotor && diff > 10) {
+            stopLeftMotor = true;
+            logs->concat("Force stopping left motor, diff: " + String(diff) + "\n");
+        }
+
         // Check if arrived
         if (stopLeftMotor && stopRightMotor) {
             done();
         }
 
-        if (millis() - time > 100) {
+        // Logging
+        if (millis() - time > 200 || prevIsFrontLeftBlack != blackSensors[0] ||
+            prevIsFrontCenterBlack != blackSensors[1] ||
+            prevIsFrontRightBlack != blackSensors[2] ||
+            prevIsBackLeftBlack != blackSensors[3] ||
+            prevIsBackRightBlack != blackSensors[4]) {
+
             time = millis();
 
-            logs->concat("Moving State: " + String((int) moveState) + "\n");
-            logs->concat("Angle: " + String(angle) + "\n");
-            logs->concat("Ref angle: " + String(getStraightAngle()) + "\n");
-            logs->concat("Ref angle: " + String(getStraightAngle()) + "\n");
+            prevIsFrontLeftBlack = blackSensors[0];
+            prevIsFrontCenterBlack = blackSensors[1];
+            prevIsFrontRightBlack = blackSensors[2];
+            prevIsBackLeftBlack = blackSensors[3];
+            prevIsBackRightBlack = blackSensors[4];
+
+            logs->concat("MS: " + String((int) moveState) + "\n");
+            logs->concat("a: " + String(angle) + "\n");
+            logs->concat("RefA: " + String(getStraightAngle()) + "\n");
+            logs->concat("lspd: " + String(leftMotorController.getSpeed()) + "\n");
+            logs->concat("rspd: " + String(rightMotorController.getSpeed()) + "\n");
+            logs->concat("lpwm: " + String(leftMotorController.pwm) + "\n");
+            logs->concat("rpwm: " + String(rightMotorController.pwm) + "\n");
+            logs->concat("rd: " + String(remainingDistance) + "\n");
+            logs->concat("mdtn: " + String(minimumDistanceToNode) + "\n");
+            logs->concat("mlbl: " + String(motorsLeftBlackLines) + "\n");
+            logs->concat("slm: " + String(stopLeftMotor) + "\n");
+            logs->concat("srm: " + String(stopRightMotor) + "\n");
+            logs->concat("blks: " + String(blackSensors[0]) + " " +
+                                    String(blackSensors[1]) + " " +
+                                    String(blackSensors[2]) + " " +
+                                    String(blackSensors[3]) + " " +
+                                    String(blackSensors[4]) + " " +
+                                    "\n\n\n");
         }
     }
 
-    void updateMoveState(bool blackSensors[], double remainingDistance, double minimumDistanceToNode) {
+    void updateMoveState(double angle, bool blackSensors[], double remainingDistance, double minimumDistanceToNode) {
         bool isFrontLeftBlack = blackSensors[0];
         bool isFrontCenterBlack = blackSensors[1];
         bool isFrontRightBlack = blackSensors[2];
@@ -372,7 +425,7 @@ private:
         } else if (isFrontCenterBlack && !isFrontLeftBlack && !isFrontRightBlack) {
             moveState = MOVE_STATE::STRAIGHT;
         } else if (!isFrontCenterBlack && isFrontLeftBlack && isFrontRightBlack) {
-            moveState = MOVE_STATE::STRAIGHT;
+            moveState = MOVE_STATE::ALIGNMENT;
         } else if (!isFrontCenterBlack && isFrontLeftBlack && !isFrontRightBlack) {
             moveState = MOVE_STATE::OFFLINE_RIGHT;
         } else if (!isFrontCenterBlack && !isFrontLeftBlack && isFrontRightBlack) {
@@ -383,7 +436,18 @@ private:
             } else if (moveState == MOVE_STATE::DRIFTING_LEFT) {
                 moveState = MOVE_STATE::OFFLINE_LEFT;
             } else if (moveState == MOVE_STATE::STRAIGHT) {
-                halt(EXECUTION_ERROR::UNKNOWN);
+                double straightAngle = getStraightAngle();
+                double diff = Utils::mapAngle(angle - straightAngle);
+
+                logs->concat("ERROR: " + String(straightAngle) + " " + String(diff) + "\n");
+
+                if (abs(diff) < EPS) {
+                    halt(EXECUTION_ERROR::UNKNOWN);
+                } else if (diff < 0) {
+                    moveState = MOVE_STATE::OFFLINE_LEFT;
+                } else {
+                    moveState = MOVE_STATE::OFFLINE_RIGHT;
+                }
             }
         }
     }
@@ -487,8 +551,6 @@ private:
             time = millis();
 
             logs->concat("Rotate State: " + String((int) rotateState) + "\n");
-            logs->concat("lspd: " + String((int) leftSpeed) + "\n");
-            logs->concat("rspd: " + String((int) rightSpeed) + "\n");
         }
     }
 
@@ -591,7 +653,7 @@ private:
             rotateState = ROTATE_STATE::FAILED_ROTATE_RIGHT_OFFLINE_LEFT;
         }
 
-        logs->concat("Rotation limit exceeded, remainingAngle: " + String(remainingAngle) + "\n");
+        logs->concat("RemainingAngle: " + String(remainingAngle) + "\n");
         logs->concat("Stopping state: " + String((int) rotateState) + "\n");
     }
 
@@ -634,6 +696,13 @@ private:
         result |= (remainingAngle <= -EXCESS_ANGLES_LIMIT);
         result |= (stopLeftMotor && stopRightMotor);
 
+        if (result) {
+            logs->concat("\nResult::\n");
+            logs->concat("rA" + String(remainingAngle) + "\n");
+            logs->concat("slm" + String(stopLeftMotor) + "\n");
+            logs->concat("srm" + String(stopRightMotor) + "\n");
+        }
+
         return result;
     }
 
@@ -651,7 +720,7 @@ private:
         double remainingDistance = postRetreatDistance - (leftDistance + rightDistance) / 2.0;
 
         // FSM transitions
-        updateRetreatState(blackSensors, remainingDistance, remainingAngle);
+        updateRetreatState(angle, blackSensors, remainingDistance, remainingAngle);
 
         // Get motors new speeds
         double leftSpeed, rightSpeed;
@@ -687,7 +756,7 @@ private:
         }
     }
 
-    void updateRetreatState(bool blackSensors[], double remainingDistance, double remainingAngle) {
+    void updateRetreatState(double angle, bool blackSensors[], double remainingDistance, double remainingAngle) {
         bool isFrontLeftBlack = blackSensors[0];
         bool isFrontCenterBlack = blackSensors[1];
         bool isFrontRightBlack = blackSensors[2];
@@ -742,7 +811,7 @@ private:
         }
 
         if (retreatState == RETREAT_STATE::POST_RETREAT_MOVE) {
-            updateMoveState(blackSensors, remainingDistance, 10);
+            updateMoveState(angle, blackSensors, remainingDistance, 10);
         }
     }
 

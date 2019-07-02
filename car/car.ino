@@ -52,6 +52,7 @@ double lastBlueLedChange = millis();
 // State variables
 bool setupState = false;
 bool blocked = false;
+bool failure = false;
 
 // Sensor readings
 double yaw, pitch, roll;
@@ -145,9 +146,11 @@ void loop() {
     nav.navigate(obstacleDistance, yaw, blackSensors, executionState);
 
     if (executionState.state == EXECUTION_STATE::FINISHED) {
-        com.issueDone();
+        com.sendDone();
     } else if (executionState.state == EXECUTION_STATE::ERROR) {
-        com.sendError();
+        com.sendError(executionState.error);
+
+        failure = true;
     }
 
     if (executionState.state != EXECUTION_STATE::ONGOING) {
@@ -160,81 +163,84 @@ void loop() {
 void receive(SERVER_TASKS task) {
     switch (task) {
         case SERVER_TASKS::CONFIG:
+            failure = false;
             nav.config();
-            com.sendStr(String("Config!"));
+            logs.concat("Config!\n");
         break;
 
         case SERVER_TASKS::STOP:
             nav.stop();
-            com.sendStr(String("Stop!"));
+            logs.concat("Stop!\n");
         break;
 
         case SERVER_TASKS::MOVE:
             nav.move(yaw);
-            com.sendStr(String("Forward!"));
+            logs.concat("Forward!\n");
         break;
 
         case SERVER_TASKS::ROTATE_RIGHT:
             nav.rotateRight(yaw);
-            com.sendStr(String("Right!"));
+            logs.concat("Right!\n");
         break;
 
         case SERVER_TASKS::ROTATE_LEFT:
             nav.rotateLeft(yaw);
-            com.sendStr(String("Left!"));
+            logs.concat("Left!\n");
         break;
 
         case SERVER_TASKS::RETREAT:
             nav.retreat(yaw);
-            com.sendStr(String("Backward!"));
+            logs.concat("Backward!\n");
         break;
 
         case SERVER_TASKS::LOAD:
             com.sendDone();
-            com.sendStr(String("Load!"));
+            logs.concat("Load!\n");
         break;
 
         case SERVER_TASKS::OFFLOAD:
             com.sendDone();
-            com.sendStr(String("Offload!"));
+            logs.concat("Offload!\n");
         break;
 
         case SERVER_TASKS::RED_LED_OFF:
             redLed = LIGHT_MODE::OFF;
-            com.sendStr(String("Red LED off!"));
+            logs.concat("Red LED off!\n");
         break;
 
         case SERVER_TASKS::RED_LED_ON:
             redLed = LIGHT_MODE::ON;
-            com.sendStr(String("Red LED on!"));
+            logs.concat("Red LED on!\n");
         break;
 
         case SERVER_TASKS::RED_LED_FLASH:
             redLed = LIGHT_MODE::FLASH;
-            com.sendStr(String("Red LED flash!"));
+            logs.concat("Red LED flash!\n");
         break;
 
         case SERVER_TASKS::BLUE_LED_OFF:
             blueLed = LIGHT_MODE::OFF;
-            com.sendStr(String("Blue LED off!"));
+            logs.concat("Blue LED off!\n");
         break;
 
         case SERVER_TASKS::BLUE_LED_ON:
             blueLed = LIGHT_MODE::ON;
-            com.sendStr(String("Blue LED on!"));
+            logs.concat("Blue LED on!\n");
         break;
 
         case SERVER_TASKS::BLUE_LED_FLASH:
             blueLed = LIGHT_MODE::FLASH;
-            com.sendStr(String("Blue LED flash!"));
+            logs.concat("Blue LED flash!\n");
         break;
     }
 }
 
 void serverConnected() {
+    logs.concat("Server serverConnected");
 }
 
 void serverDisconnected() {
+    logs.concat("Server serverDisconnected");
     nav.stop();
 }
 
@@ -263,15 +269,15 @@ void readSensors() {
     }
 
     // Battery
-    uint8_t level;
-    bat.read(level);
+    // uint8_t level;
+    // bat.read(level);
 
-    if (level != batteryLevel) { // On battery level change
-        batteryLevel = level;
+    // if (level != batteryLevel) { // On battery level change
+    //     batteryLevel = level;
 
-        com.sendBatteryLevel(batteryLevel);
-        com.sendStr("New battery level: " + String(batteryLevel) + "\n");
-    }
+    //     com.sendBatteryLevel(batteryLevel);
+    //     logs.concat("New battery level: " + String(batteryLevel) + "\n");
+    // }
 }
 
 void ICACHE_RAM_ATTR leftEncoderISR() {
@@ -313,19 +319,15 @@ void updateLights() {
         digitalWrite(BLUE_LED_PIN, lastBlueLedValue);
     }
 
-    if (batteryLevel < BATTERY_WARNING_LEVEL) {
-        redLed = LIGHT_MODE::FLASH;
-    }
+    // if (batteryLevel < BATTERY_WARNING_LEVEL) {
+    //     redLed = LIGHT_MODE::FLASH;
+    // }
 
-    if (blocked) {
+    if (blocked || failure || !com.isConnected()) {
         redLed = LIGHT_MODE::ON;
     }
 
-    if (!com.isConnected()) {
-        redLed = LIGHT_MODE::ON;
-    }
-
-    if (com.isConnected() && !blocked && batteryLevel > BATTERY_WARNING_LEVEL) {
+    if (com.isConnected() && !blocked && !failure/* && batteryLevel > BATTERY_WARNING_LEVEL*/) {
         redLed = LIGHT_MODE::OFF;
     }
 }
@@ -341,7 +343,7 @@ void debug() {
         ren.read(rTicks);
         interrupts();
 
-        com.sendStr(
+        logs.concat(
             "DEBUG:\nAngle: " + String(yaw) +
             "\nSensors: " + String(blackSensors[0]) +
             " " + String(blackSensors[1]) +

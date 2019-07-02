@@ -14,7 +14,7 @@ public:
     Encoder* en;
     PCF857x* pcf;
 
-    double p = 0, i = 0, d = 0, diff = 0, previousDiff = 0, speed = 0, targetSpeed = 0;
+    double pwm;
 
     // ====================
     // Functions
@@ -43,6 +43,8 @@ public:
         double PWM = computePWM(RPM, elapsedTime);
 
         sendMotorSignal(PWM);
+
+        pwm = PWM; // ToDo
 
         // Increment speed gradually until reaching the targetSpeed
         speed = min(speed + speedIncrementStep, targetSpeed);
@@ -106,6 +108,8 @@ private:
 
     const double kp, ki, kd;
     const int speedPin, dir1Pin, dir2Pin;
+
+    double p = 0, i = 0, d = 0, diff = 0, previousDiff = 0, speed = 0, targetSpeed = 0;
 
     double speedIncrementStep = MOTORS_MOVE_SPEED_INCREMENT;
 

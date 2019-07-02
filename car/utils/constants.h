@@ -1,8 +1,8 @@
 #pragma once
 
-// #define CAR1
+#define CAR1
 // #define CAR2
-#define CAR3
+// #define CAR3
 
 
 // ====================
@@ -17,7 +17,6 @@ const int PING_INTERVAL                     = 100; // ms
 const int PONG_TIMEOUT                      = 3000; // ms
 const int RETRIES_COUNT                     = 2;
 const int DONE_DELAY                        = 1000; // ms
-const int CONNECTION_ALIVE_PERIOD           = 500; // ms
 
 // Serial
 const int BAUD_RATE                         = 115200;
