@@ -1,7 +1,7 @@
 #pragma once
 
-// #define CAR1
-#define CAR2
+#define CAR1
+// #define CAR2
 // #define CAR3
 
 
@@ -10,7 +10,7 @@
 
 const char* NET_NAME                        = "Ibrahim's iPhone";
 const char* NET_PASS                        = "20061996";
-const char* SERVER                          = "172.20.10.5";
+const char* SERVER                          = "169.254.97.178";
 const int PORT                              = 12344;
 const int RECONNECT_INTERVAL                = 5000; // ms
 const int PING_INTERVAL                     = 100; // ms

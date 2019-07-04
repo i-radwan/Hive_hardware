@@ -134,9 +134,10 @@ public:
             remainingAngle = 90;
             previousAngle = angle;
 
-            straightAnglesSin = 0;
-            straightAnglesCos = 0;
-            straightAnglesCnt = 0;
+            double straightAngle = getStraightAngle();
+
+            clearStraightAngle();
+            addStraightAngle(int(straightAngle + 90) % 360);
 
             leftMotorController.setSpeedIncrementStep(MOTORS_ROTATE_SPEED_INCREMENT);
             rightMotorController.setSpeedIncrementStep(MOTORS_ROTATE_SPEED_INCREMENT);
@@ -160,9 +161,10 @@ public:
             remainingAngle = 90;
             previousAngle = angle;
 
-            straightAnglesSin = 0;
-            straightAnglesCos = 0;
-            straightAnglesCnt = 0;
+            double straightAngle = getStraightAngle();
+
+            clearStraightAngle();
+            addStraightAngle(int(straightAngle - 90 + 360) % 360);
 
             leftMotorController.setSpeedIncrementStep(MOTORS_ROTATE_SPEED_INCREMENT);
             rightMotorController.setSpeedIncrementStep(MOTORS_ROTATE_SPEED_INCREMENT);
@@ -195,9 +197,7 @@ public:
             previousAngle = angle;
             postRetreatAngle = (getStraightAngle() + 180) % 360;
 
-            straightAnglesSin = 0;
-            straightAnglesCos = 0;
-            straightAnglesCnt = 0;
+            clearStraightAngle();
 
             if (moveState == MOVE_STATE::STRAIGHT) {
                 remainingAngle = Utils::anglesAverageDifference(angle, postRetreatAngle);
@@ -922,5 +922,11 @@ private:
         double straightAnglesAvgCos  = straightAnglesCos / straightAnglesCnt;
 
         return Utils::radToDegrees(Utils::vecToAngle(straightAnglesAvgCos, straightAnglesAvgSin));
+    }
+
+    void clearStraightAngle() {
+        straightAnglesSin = 0;
+        straightAnglesCos = 0;
+        straightAnglesCnt = 0;
     }
 };
