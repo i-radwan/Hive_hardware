@@ -10,8 +10,10 @@ class Navigator {
 
 public:
 
-    Navigator() : leftMotorController(LEFT_KP, LEFT_KI, LEFT_KD, LEFT_SPED, LEFT_DIR1, LEFT_DIR2),
-                  rightMotorController(RIGHT_KP, RIGHT_KI, RIGHT_KD, RIGHT_SPED, RIGHT_DIR1, RIGHT_DIR2) {
+    Navigator() : leftMotorController(LEFT_KP, LEFT_KI, LEFT_KD, LEFT_INIT_THROTTLE,
+                                      LEFT_SPED, LEFT_DIR1, LEFT_DIR2),
+                  rightMotorController(RIGHT_KP, RIGHT_KI, RIGHT_KD, RIGHT_INIT_THROTTLE,
+                                       RIGHT_SPED, RIGHT_DIR1, RIGHT_DIR2) {
     }
 
     void setup(PCF857x* pcf1, Encoder* len, Encoder* ren, String* logsPtr) {
@@ -199,9 +201,13 @@ public:
 
             if (moveState == MOVE_STATE::STRAIGHT) {
                 remainingAngle = Utils::anglesAverageDifference(angle, postRetreatAngle);
-            } else if (moveState == MOVE_STATE::DRIFTING_RIGHT || moveState == MOVE_STATE::OFFLINE_RIGHT) {
+            } else if (moveState == MOVE_STATE::STRAIGHT_RIGHT ||
+                       moveState == MOVE_STATE::DRIFTING_RIGHT ||
+                       moveState == MOVE_STATE::OFFLINE_RIGHT) {
                 remainingAngle = Utils::anglesSmallDifference(angle, postRetreatAngle);
-            } else if (moveState == MOVE_STATE::DRIFTING_LEFT || moveState == MOVE_STATE::OFFLINE_LEFT) {
+            } else if (moveState == MOVE_STATE::STRAIGHT_LEFT ||
+                       moveState == MOVE_STATE::DRIFTING_LEFT ||
+                       moveState == MOVE_STATE::OFFLINE_LEFT) {
                 remainingAngle = Utils::anglesLargeDifference(angle, postRetreatAngle);
             }
 
@@ -347,12 +353,12 @@ private:
         // Compensate back black sensors errors
         double diff = Utils::mapAngle(angle - getStraightAngle());
 
-        if (stopLeftMotor && !stopRightMotor && diff < -10) {
+        if (stopLeftMotor && !stopRightMotor && diff < -10 && remainingDistance < STEP / 5) {
             stopRightMotor = true;
             logs->concat("Force stopping right motor, diff: " + String(diff) + "\n");
         }
 
-        if (!stopLeftMotor && stopRightMotor && diff > 10) {
+        if (!stopLeftMotor && stopRightMotor && diff > 10 && remainingDistance < STEP / 5) {
             stopLeftMotor = true;
             logs->concat("Force stopping left motor, diff: " + String(diff) + "\n");
         }
@@ -382,8 +388,6 @@ private:
             logs->concat("RefA: " + String(getStraightAngle()) + "\n");
             logs->concat("lspd: " + String(leftMotorController.getSpeed()) + "\n");
             logs->concat("rspd: " + String(rightMotorController.getSpeed()) + "\n");
-            logs->concat("lpwm: " + String(leftMotorController.pwm) + "\n");
-            logs->concat("rpwm: " + String(rightMotorController.pwm) + "\n");
             logs->concat("rd: " + String(remainingDistance) + "\n");
             logs->concat("mdtn: " + String(minimumDistanceToNode) + "\n");
             logs->concat("mlbl: " + String(motorsLeftBlackLines) + "\n");
@@ -415,25 +419,34 @@ private:
             stopRightMotor = stopRightMotor || isBackRightBlack;
         }
 
+
+        if (moveState == MOVE_STATE::ALIGNMENT && remainingDistance <= STEP / 4) {
+            return;
+        }
+
         // FSM transitions
         if (isFrontCenterBlack && isFrontLeftBlack && isFrontRightBlack) {
             moveState = MOVE_STATE::STRAIGHT;
+
+            if (remainingDistance <= STEP / 4) {
+                moveState = MOVE_STATE::ALIGNMENT;
+            }
         } else if (isFrontCenterBlack && isFrontLeftBlack && !isFrontRightBlack) {
-            moveState = MOVE_STATE::DRIFTING_RIGHT;
+            moveState = MOVE_STATE::STRAIGHT_RIGHT;
         } else if (isFrontCenterBlack && !isFrontLeftBlack && isFrontRightBlack) {
-            moveState = MOVE_STATE::DRIFTING_LEFT;
+            moveState = MOVE_STATE::STRAIGHT_LEFT;
         } else if (isFrontCenterBlack && !isFrontLeftBlack && !isFrontRightBlack) {
             moveState = MOVE_STATE::STRAIGHT;
         } else if (!isFrontCenterBlack && isFrontLeftBlack && isFrontRightBlack) {
             moveState = MOVE_STATE::ALIGNMENT;
         } else if (!isFrontCenterBlack && isFrontLeftBlack && !isFrontRightBlack) {
-            moveState = MOVE_STATE::OFFLINE_RIGHT;
+            moveState = MOVE_STATE::DRIFTING_RIGHT;
         } else if (!isFrontCenterBlack && !isFrontLeftBlack && isFrontRightBlack) {
-            moveState = MOVE_STATE::OFFLINE_LEFT;
+            moveState = MOVE_STATE::DRIFTING_LEFT;
         } else if (!isFrontCenterBlack && !isFrontLeftBlack && !isFrontRightBlack) {
-            if (moveState == MOVE_STATE::DRIFTING_RIGHT) {
+            if (moveState == MOVE_STATE::DRIFTING_RIGHT || moveState == MOVE_STATE::STRAIGHT_RIGHT) {
                 moveState = MOVE_STATE::OFFLINE_RIGHT;
-            } else if (moveState == MOVE_STATE::DRIFTING_LEFT) {
+            } else if (moveState == MOVE_STATE::DRIFTING_LEFT || moveState == MOVE_STATE::STRAIGHT_LEFT) {
                 moveState = MOVE_STATE::OFFLINE_LEFT;
             } else if (moveState == MOVE_STATE::STRAIGHT) {
                 double straightAngle = getStraightAngle();
@@ -459,29 +472,48 @@ private:
                 rightSpeed = MOTORS_SPEED;
             break;
 
-            case MOVE_STATE::DRIFTING_LEFT:
+            case MOVE_STATE::STRAIGHT_LEFT:
                 leftSpeed = MOTORS_SPEED;
                 rightSpeed = MOTORS_SPEED * 0.5;
             break;
 
-            case MOVE_STATE::DRIFTING_RIGHT:
+            case MOVE_STATE::STRAIGHT_RIGHT:
                 leftSpeed = MOTORS_SPEED * 0.5;
                 rightSpeed = MOTORS_SPEED;
             break;
 
+            case MOVE_STATE::DRIFTING_LEFT:
+                leftSpeed = MOTORS_SPEED * 0.6;
+                rightSpeed = MOTORS_SPEED * 0.2;
+            break;
+
+            case MOVE_STATE::DRIFTING_RIGHT:
+                leftSpeed = MOTORS_SPEED * 0.2;
+                rightSpeed = MOTORS_SPEED * 0.6;
+            break;
+
             case MOVE_STATE::OFFLINE_LEFT:
-                leftSpeed = MOTORS_SPEED * 0.5;
+                leftSpeed = MOTORS_SPEED * 0.4;
                 rightSpeed = 0;
             break;
 
             case MOVE_STATE::OFFLINE_RIGHT:
                 leftSpeed = 0;
-                rightSpeed = MOTORS_SPEED * 0.5;
+                rightSpeed = MOTORS_SPEED * 0.4;
             break;
 
             case MOVE_STATE::ALIGNMENT:
                 getMotorsAlignmentSpeeds(angle, referenceAngle, leftSpeed, rightSpeed);
             break;
+        }
+
+        // Stopping at nodes
+        if (stopLeftMotor) {
+            leftSpeed = 0;
+        }
+
+        if (stopRightMotor) {
+            rightSpeed = 0;
         }
     }
 
@@ -547,10 +579,35 @@ private:
             updateRotateFinalState(blackSensors, remainingAngle);
         }
 
-        if (millis() - time > 100) {
+        // Logging
+        if (millis() - time > 200 || prevIsFrontLeftBlack != blackSensors[0] ||
+            prevIsFrontCenterBlack != blackSensors[1] ||
+            prevIsFrontRightBlack != blackSensors[2] ||
+            prevIsBackLeftBlack != blackSensors[3] ||
+            prevIsBackRightBlack != blackSensors[4]) {
+
             time = millis();
 
-            logs->concat("Rotate State: " + String((int) rotateState) + "\n");
+            prevIsFrontLeftBlack = blackSensors[0];
+            prevIsFrontCenterBlack = blackSensors[1];
+            prevIsFrontRightBlack = blackSensors[2];
+            prevIsBackLeftBlack = blackSensors[3];
+            prevIsBackRightBlack = blackSensors[4];
+
+            logs->concat("RS: " + String((int) rotateState) + "\n");
+            logs->concat("a: " + String(angle) + "\n");
+            logs->concat("ra: " + String(remainingAngle) + "\n");
+            logs->concat("ld: " + String(leftMotorController.getTotalDistance()) + "\n");
+            logs->concat("rd: " + String(rightMotorController.getTotalDistance()) + "\n");
+            logs->concat("mlbl: " + String(motorsLeftBlackLines) + "\n");
+            logs->concat("slm: " + String(stopLeftMotor) + "\n");
+            logs->concat("srm: " + String(stopRightMotor) + "\n");
+            logs->concat("blks: " + String(blackSensors[0]) + " " +
+                                    String(blackSensors[1]) + " " +
+                                    String(blackSensors[2]) + " " +
+                                    String(blackSensors[3]) + " " +
+                                    String(blackSensors[4]) + " " +
+                                    "\n\n\n");
         }
     }
 
@@ -572,8 +629,8 @@ private:
         // Stopping after rotation or
         // when one wheel spins much more than the expected rotation distance
         if (motorsLeftBlackLines) {
-            stopLeftMotor = stopLeftMotor || isBackLeftBlack || leftDistance > 185;
-            stopRightMotor = stopRightMotor || isBackRightBlack || rightDistance > 185;
+            stopLeftMotor |= isBackLeftBlack || leftDistance > 120;
+            stopRightMotor |= isBackRightBlack || rightDistance > 125;
         }
 
         switch (rotateState) {

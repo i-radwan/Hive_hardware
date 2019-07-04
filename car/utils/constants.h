@@ -1,7 +1,7 @@
 #pragma once
 
-#define CAR1
-// #define CAR2
+// #define CAR1
+#define CAR2
 // #define CAR3
 
 
@@ -50,9 +50,9 @@ enum class DIRECTION {
 };
 
 // Configs
-const double MOTORS_ADJUST_DELTA            = 100; // ms
-const double MOTORS_SPEED                   = 40; // rpm
-const double MOTORS_ROTATION_SPEED          = 50; // rpm
+const double MOTORS_ADJUST_DELTA            = 150; // ms
+const double MOTORS_SPEED                   = 50; // rpm
+const double MOTORS_ROTATION_SPEED          = 60; // rpm
 const double MOTORS_ALIGNMENT_SPEED         = MOTORS_SPEED / 2; // rpm
 const double MOTORS_ROTATE_SPEED_INCREMENT  = 6; // rpm
 const double STEP                           = 300; // mm
@@ -61,22 +61,24 @@ const double EXCESS_ANGLES_LIMIT            = 10; // degrees, the angles the rob
 
 // PID
 #ifdef CAR1
-const double MOTORS_MOVE_SPEED_INCREMENT    = 5; // rpm
-const double MOTORS_INIT_THROTTLE           = PWMRANGE / 5; // pwm
+const double MOTORS_MOVE_SPEED_INCREMENT    = 7; // rpm
+const double LEFT_INIT_THROTTLE             = PWMRANGE / 6.5; // pwm
+const double RIGHT_INIT_THROTTLE            = PWMRANGE / 6.5; // pwm
 
-const double LEFT_KP                        = 1.5;
+const double LEFT_KP                        = 1.6;
 const double LEFT_KI                        = 0.07;
 const double LEFT_KD                        = 0;
-const double RIGHT_KP                       = 1.5;
+const double RIGHT_KP                       = 1.6;
 const double RIGHT_KI                       = 0.07;
 const double RIGHT_KD                       = 0;
 #endif
 
 #ifdef CAR2
-const double MOTORS_MOVE_SPEED_INCREMENT    = 6; // rpm
-const double MOTORS_INIT_THROTTLE           = PWMRANGE / 4; // pwm
+const double MOTORS_MOVE_SPEED_INCREMENT    = 7; // rpm
+const double LEFT_INIT_THROTTLE             = PWMRANGE / 4; // pwm
+const double RIGHT_INIT_THROTTLE            = PWMRANGE / 4.5; // pwm
 
-const double LEFT_KP                        = 1.5;
+const double LEFT_KP                        = 1.3;
 const double LEFT_KI                        = 0.07;
 const double LEFT_KD                        = 0;
 const double RIGHT_KP                       = 1.5;
@@ -86,7 +88,8 @@ const double RIGHT_KD                       = 0;
 
 #ifdef CAR3
 const double MOTORS_MOVE_SPEED_INCREMENT    = 6; // rpm
-const double MOTORS_INIT_THROTTLE           = PWMRANGE / 4; // pwm
+const double LEFT_INIT_THROTTLE             = PWMRANGE / 3.8; // pwm
+const double RIGHT_INIT_THROTTLE            = PWMRANGE / 3.5; // pwm
 
 const double LEFT_KP                        = 1.5;
 const double LEFT_KI                        = 0.07;
@@ -97,7 +100,7 @@ const double RIGHT_KD                       = 0;
 #endif
 
 // Wheel
-const double DISK_SLOTS                     = 12.0;
+const double DISK_SLOTS                     = 20.0;
 const int WHEEL_DIAMETER                    = 65; // mm
 const int DEBOUNCE_DELTA                    = 1000; // us
 
@@ -238,11 +241,13 @@ enum class EXECUTION_ERROR {
 enum class MOVE_STATE {
     NONE                                    = -1,
     STRAIGHT                                = 0,
-    DRIFTING_LEFT                           = 1,
-    DRIFTING_RIGHT                          = 2,
-    OFFLINE_LEFT                            = 3,
-    OFFLINE_RIGHT                           = 4,
-    ALIGNMENT                               = 5  // Move using the angle signal only
+    STRAIGHT_LEFT                           = 1,
+    STRAIGHT_RIGHT                          = 2,
+    DRIFTING_LEFT                           = 3,
+    DRIFTING_RIGHT                          = 4,
+    OFFLINE_LEFT                            = 5,
+    OFFLINE_RIGHT                           = 6,
+    ALIGNMENT                               = 7  // Move using the angle signal only
 };
 
 enum class ROTATE_STATE {

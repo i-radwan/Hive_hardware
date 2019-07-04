@@ -4,7 +4,7 @@
 #include "utils/utils.h"
 #include "utils/constants.h"
 
-struct MotorController {
+class MotorController {
 
 public:
 
@@ -14,14 +14,12 @@ public:
     Encoder* en;
     PCF857x* pcf;
 
-    double pwm;
-
     // ====================
     // Functions
 
-    MotorController(double kp, double ki, double kd,
+    MotorController(double kp, double ki, double kd, double initThrottle,
                     int speedPin, int dir1Pin, int dir2Pin) :
-                    kp(kp), ki(ki), kd(kd),
+                    kp(kp), ki(ki), kd(kd), initThrottle(initThrottle),
                     speedPin(speedPin), dir1Pin(dir1Pin), dir2Pin(dir2Pin) {
         pinMode(speedPin, OUTPUT);
     }
@@ -43,8 +41,6 @@ public:
         double PWM = computePWM(RPM, elapsedTime);
 
         sendMotorSignal(PWM);
-
-        pwm = PWM; // ToDo
 
         // Increment speed gradually until reaching the targetSpeed
         speed = min(speed + speedIncrementStep, targetSpeed);
@@ -106,7 +102,7 @@ private:
     // ====================
     // Members
 
-    const double kp, ki, kd;
+    const double kp, ki, kd, initThrottle;
     const int speedPin, dir1Pin, dir2Pin;
 
     double p = 0, i = 0, d = 0, diff = 0, previousDiff = 0, speed = 0, targetSpeed = 0;
@@ -136,7 +132,7 @@ private:
 
         previousDiff = diff;
 
-        double pid = constrain(MOTORS_INIT_THROTTLE + (p + i + d), -PWMRANGE, PWMRANGE);
+        double pid = constrain(initThrottle + (p + i + d), -PWMRANGE, PWMRANGE);
 
         double throttle = constrain(pid, 0, PWMRANGE);
 

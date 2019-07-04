@@ -121,6 +121,8 @@ void setup() {
 
     // Prevent sleeping to enhance communication speed
     wifi_set_sleep_type(NONE_SLEEP_T);
+
+    failure = !setupState;
 }
 
 void loop() {
@@ -236,11 +238,11 @@ void receive(SERVER_TASKS task) {
 }
 
 void serverConnected() {
-    logs.concat("Server serverConnected");
+    logs.concat("serverConnected()\n");
 }
 
 void serverDisconnected() {
-    logs.concat("Server serverDisconnected");
+    logs.concat("serverDisconnected()\n");
     nav.stop();
 }
 
@@ -358,6 +360,7 @@ void debug() {
 
         // ToDo: remove
         if (logs.length() > 0) {
+
             com.sendStr("\n\n\nLOGS::\n" + logs + "\n\n\n");
 
             logs = "";
