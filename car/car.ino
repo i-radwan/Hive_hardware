@@ -192,7 +192,27 @@ void receive(SERVER_TASKS task) {
 
         case SERVER_TASKS::RETREAT:
             nav.retreat(yaw);
-            logs.concat("Backward!\n");
+            logs.concat("Retreat!\n");
+        break;
+
+        case SERVER_TASKS::RECOVER_MOVE:
+            nav.move(yaw, true);
+            logs.concat("Recover forward!\n");
+        break;
+
+        case SERVER_TASKS::RECOVER_ROTATE_RIGHT:
+            nav.rotateRight(yaw, true);
+            logs.concat("Recover right!\n");
+        break;
+
+        case SERVER_TASKS::RECOVER_ROTATE_LEFT:
+            nav.rotateLeft(yaw, true);
+            logs.concat("Recover left!\n");
+        break;
+
+        case SERVER_TASKS::RECOVER_RETREAT:
+            nav.retreat(yaw, true);
+            logs.concat("Recover retreat!\n");
         break;
 
         case SERVER_TASKS::LOAD:

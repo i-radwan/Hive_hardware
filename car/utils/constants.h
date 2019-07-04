@@ -313,6 +313,11 @@ enum class LIGHT_MODE {
     FLASH                                   = 2
 };
 
+enum class ACTION_TYPE {
+    NORMAL                                  = 0,
+    RECOVER                                 = 1
+};
+
 // To server
 enum class MSG_TO_SERVER {
     DONE                                    = 0,
@@ -334,12 +339,16 @@ enum class SERVER_TASKS {
     ROTATE_RIGHT                            = 3,
     ROTATE_LEFT                             = 4,
     RETREAT                                 = 5,
-    LOAD                                    = 6,
-    OFFLOAD                                 = 7,
-    RED_LED_OFF                             = 8,
-    RED_LED_ON                              = 9,
-    RED_LED_FLASH                           = 10,
-    BLUE_LED_OFF                            = 11,
-    BLUE_LED_ON                             = 12,
-    BLUE_LED_FLASH                          = 13
+    RECOVER_MOVE                            = 6,
+    RECOVER_ROTATE_RIGHT                    = 7,
+    RECOVER_ROTATE_LEFT                     = 8,
+    RECOVER_RETREAT                         = 9,
+    LOAD                                    = 10,
+    OFFLOAD                                 = 11,
+    RED_LED_OFF                             = 12,
+    RED_LED_ON                              = 13,
+    RED_LED_FLASH                           = 14,
+    BLUE_LED_OFF                            = 15,
+    BLUE_LED_ON                             = 16,
+    BLUE_LED_FLASH                          = 17
 };

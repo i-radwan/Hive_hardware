@@ -86,8 +86,8 @@ public:
         logs->concat("Stopped\n");
     }
 
-    void move(double angle) {
-        if (executionState.state == EXECUTION_STATE::IDLE) {
+    void move(double angle, bool recover = false) {
+        if (executionState.state == EXECUTION_STATE::IDLE && !recover) {
             prepare();
 
             moveState = MOVE_STATE::STRAIGHT;
@@ -116,15 +116,15 @@ public:
             rightMotorController.setSpeedIncrementStep(MOTORS_MOVE_SPEED_INCREMENT);
 
             logs->concat("Start moving\n");
-        } else if (executionState.state == EXECUTION_STATE::PAUSE && action == ACTION::MOVE) {
+        } else if (executionState.state == EXECUTION_STATE::PAUSE && action == ACTION::MOVE && recover) {
             executionState.state = EXECUTION_STATE::ONGOING;
 
             logs->concat("Resume moving\n");
         }
     }
 
-    void rotateRight(double angle) {
-        if (executionState.state == EXECUTION_STATE::IDLE) {
+    void rotateRight(double angle, bool recover = false) {
+        if (executionState.state == EXECUTION_STATE::IDLE && !recover) {
             prepare();
 
             action = ACTION::ROTATE_RIGHT;
@@ -142,15 +142,15 @@ public:
             rightMotorController.setSpeedIncrementStep(MOTORS_ROTATE_SPEED_INCREMENT);
 
             logs->concat("Start rotating right\n");
-        } else if (executionState.state == EXECUTION_STATE::PAUSE && action == ACTION::ROTATE_RIGHT) {
+        } else if (executionState.state == EXECUTION_STATE::PAUSE && action == ACTION::ROTATE_RIGHT && recover) {
             executionState.state = EXECUTION_STATE::ONGOING;
 
             logs->concat("Resume rotating right\n");
         }
     }
 
-    void rotateLeft(double angle) {
-        if (executionState.state == EXECUTION_STATE::IDLE) {
+    void rotateLeft(double angle, bool recover = false) {
+        if (executionState.state == EXECUTION_STATE::IDLE && !recover) {
             prepare();
 
             action = ACTION::ROTATE_LEFT;
@@ -168,15 +168,15 @@ public:
             rightMotorController.setSpeedIncrementStep(MOTORS_ROTATE_SPEED_INCREMENT);
 
             logs->concat("Start rotating left\n");
-        } else if (executionState.state == EXECUTION_STATE::PAUSE && action == ACTION::ROTATE_LEFT) {
+        } else if (executionState.state == EXECUTION_STATE::PAUSE && action == ACTION::ROTATE_LEFT && recover) {
             executionState.state = EXECUTION_STATE::ONGOING;
 
             logs->concat("Resume rotating left\n");
         }
     }
 
-    void retreat(double angle) {
-        if (executionState.state == EXECUTION_STATE::PAUSE && action == ACTION::MOVE) {
+    void retreat(double angle, bool recover = false) {
+        if (executionState.state == EXECUTION_STATE::PAUSE && action == ACTION::MOVE && !recover) {
             // Store the moved distance before resetting the controllers
             double leftDistance = leftMotorController.getTotalDistance();
             double rightDistance = rightMotorController.getTotalDistance();
@@ -218,7 +218,7 @@ public:
 
             logs->concat("Start retreating\n");
             logs->concat("MS: " + String((int) moveState) + " Current angle: " + String(angle) + " pra: " + postRetreatAngle + " ra: " + String(remainingAngle) + "\n");
-        } else if (executionState.state == EXECUTION_STATE::PAUSE && action == ACTION::RETREAT) {
+        } else if (executionState.state == EXECUTION_STATE::PAUSE && action == ACTION::RETREAT && recover) {
             executionState.state = EXECUTION_STATE::ONGOING;
 
             logs->concat("Resume reterating\n");

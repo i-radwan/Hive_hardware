@@ -145,20 +145,38 @@ private:
                     if (payload[0] == (int) MSG_FROM_SERVER::CONFIG) {
                         task = SERVER_TASKS::CONFIG;
                     } else if (payload[0] == (int) MSG_FROM_SERVER::ACTION) {
-                        if (payload[1] == (int) ACTION::STOP) {
-                            task = SERVER_TASKS::STOP;
-                        } else if (payload[1] == (int) ACTION::MOVE) {
-                            task = SERVER_TASKS::MOVE;
-                        } else if (payload[1] == (int) ACTION::RETREAT) {
-                            task = SERVER_TASKS::RETREAT;
-                        } else if (payload[1] == (int) ACTION::ROTATE_LEFT) {
-                            task = SERVER_TASKS::ROTATE_LEFT;
-                        } else if (payload[1] == (int) ACTION::ROTATE_RIGHT) {
-                            task = SERVER_TASKS::ROTATE_RIGHT;
-                        } else if (payload[1] == (int) ACTION::LOAD) {
-                            task = SERVER_TASKS::LOAD;
-                        } else if (payload[1] == (int) ACTION::OFFLOAD) {
-                            task = SERVER_TASKS::OFFLOAD;
+                        if (payload[2] == (int) ACTION_TYPE::NORMAL) {
+                            if (payload[1] == (int) ACTION::STOP) {
+                                task = SERVER_TASKS::STOP;
+                            } else if (payload[1] == (int) ACTION::MOVE) {
+                                task = SERVER_TASKS::MOVE;
+                            } else if (payload[1] == (int) ACTION::RETREAT) {
+                                task = SERVER_TASKS::RETREAT;
+                            } else if (payload[1] == (int) ACTION::ROTATE_LEFT) {
+                                task = SERVER_TASKS::ROTATE_LEFT;
+                            } else if (payload[1] == (int) ACTION::ROTATE_RIGHT) {
+                                task = SERVER_TASKS::ROTATE_RIGHT;
+                            } else if (payload[1] == (int) ACTION::LOAD) {
+                                task = SERVER_TASKS::LOAD;
+                            } else if (payload[1] == (int) ACTION::OFFLOAD) {
+                                task = SERVER_TASKS::OFFLOAD;
+                            }
+                        } else if (payload[2] == (int) ACTION_TYPE::RECOVER) {
+                            if (payload[1] == (int) ACTION::STOP) {
+                                task = SERVER_TASKS::STOP;
+                            } else if (payload[1] == (int) ACTION::MOVE) {
+                                task = SERVER_TASKS::RECOVER_MOVE;
+                            } else if (payload[1] == (int) ACTION::RETREAT) {
+                                task = SERVER_TASKS::RECOVER_RETREAT;
+                            } else if (payload[1] == (int) ACTION::ROTATE_LEFT) {
+                                task = SERVER_TASKS::RECOVER_ROTATE_LEFT;
+                            } else if (payload[1] == (int) ACTION::ROTATE_RIGHT) {
+                                task = SERVER_TASKS::RECOVER_ROTATE_RIGHT;
+                            } else if (payload[1] == (int) ACTION::LOAD) {
+                                task = SERVER_TASKS::LOAD;
+                            } else if (payload[1] == (int) ACTION::OFFLOAD) {
+                                task = SERVER_TASKS::OFFLOAD;
+                            }
                         }
                     } else if (payload[0] == (int) MSG_FROM_SERVER::LIGHT) {
                         if (payload[1] == (int) LIGHT::RED) {

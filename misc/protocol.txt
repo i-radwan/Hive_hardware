@@ -34,8 +34,9 @@ FROM SERVER:
 ----------------
 CONFIG          = [0]
 
-ACTION          = [1, T]
+ACTION          = [1, T, R]
 T               = [0:STOP|1:MOVE|2:ROTATE_RIGHT|3:ROTATE_LEFT|4:RETREAT|5:LOAD|6:OFFLOAD]
+R               = [0:NORMAL, 1:RECOVER]
 
 LIGHT           = [2, C, S]
 C               = [0:RED|1:BLUE]   # RED: for any error from the server!
