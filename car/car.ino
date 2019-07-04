@@ -90,7 +90,7 @@ void setup() {
     ota.setup();
 
     // Initialize sensors
-    mpu.setup();
+    mpu.setup(&logs);
     uls.setup();
     bat.setup(BATTERY_SENSOR_PIN);
     blblk.setup(&pcf1, BAK_LFT_BLACK_SENSOR_PIN, BAK_LFT_BLACK_SENSOR_INV, BAK_LFT_BLACK_SENSOR_PCF);

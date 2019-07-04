@@ -10,7 +10,9 @@ class MPUSensor {
 
 public:
 
-    void setup() {
+    void setup(String* logsPtr) {
+        logs = logsPtr;
+
         // Serial.println("Initializing MPU...");
         mpu.initialize();
 
@@ -54,15 +56,15 @@ public:
         mpuIntStatus = mpu.getIntStatus();
         fifoCount = mpu.getFIFOCount();
 
-        if (fifoCount < packetSize)
+        if (fifoCount < packetSize) {
             return false;
+        }
 
         // Check for overflow (this should never happen unless our code is too inefficient)
         if ((mpuIntStatus & 0x10) || fifoCount == 1024) {
             // Reset so we can continue cleanly
             mpu.resetFIFO();
             // Serial.println("FIFO overflow! " + String(fifoCount));
-
         } else if (mpuIntStatus & 0x02) {
             mpu.getFIFOBytes(fifoBuffer, packetSize);
 
@@ -85,6 +87,8 @@ public:
     }
 
 private:
+
+    String* logs;
 
     MPU6050 mpu;
 

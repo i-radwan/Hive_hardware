@@ -448,14 +448,14 @@ private:
                 moveState = MOVE_STATE::OFFLINE_RIGHT;
             } else if (moveState == MOVE_STATE::DRIFTING_LEFT || moveState == MOVE_STATE::STRAIGHT_LEFT) {
                 moveState = MOVE_STATE::OFFLINE_LEFT;
-            } else if (moveState == MOVE_STATE::STRAIGHT) {
+            } else if (moveState == MOVE_STATE::STRAIGHT || moveState == MOVE_STATE::HOLD) {
                 double straightAngle = getStraightAngle();
                 double diff = Utils::mapAngle(angle - straightAngle);
 
                 logs->concat("ERROR: " + String(straightAngle) + " " + String(diff) + "\n");
 
                 if (abs(diff) < EPS) {
-                    halt(EXECUTION_ERROR::UNKNOWN);
+                    moveState = MOVE_STATE::HOLD;
                 } else if (diff < 0) {
                     moveState = MOVE_STATE::OFFLINE_LEFT;
                 } else {
@@ -467,6 +467,11 @@ private:
 
     void getMotorsMoveSpeeds(double angle, double referenceAngle, double& leftSpeed, double& rightSpeed) {
         switch (moveState) {
+            case MOVE_STATE::HOLD:
+                leftSpeed = 0;
+                rightSpeed = 0;
+            break;
+
             case MOVE_STATE::STRAIGHT:
                 leftSpeed = MOTORS_SPEED;
                 rightSpeed = MOTORS_SPEED;

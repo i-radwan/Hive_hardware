@@ -240,14 +240,15 @@ enum class EXECUTION_ERROR {
 
 enum class MOVE_STATE {
     NONE                                    = -1,
-    STRAIGHT                                = 0,
-    STRAIGHT_LEFT                           = 1,
-    STRAIGHT_RIGHT                          = 2,
-    DRIFTING_LEFT                           = 3,
-    DRIFTING_RIGHT                          = 4,
-    OFFLINE_LEFT                            = 5,
-    OFFLINE_RIGHT                           = 6,
-    ALIGNMENT                               = 7  // Move using the angle signal only
+    HOLD                                    = 0,
+    STRAIGHT                                = 1,
+    STRAIGHT_LEFT                           = 2,
+    STRAIGHT_RIGHT                          = 3,
+    DRIFTING_LEFT                           = 4,
+    DRIFTING_RIGHT                          = 5,
+    OFFLINE_LEFT                            = 6,
+    OFFLINE_RIGHT                           = 7,
+    ALIGNMENT                               = 8  // Move using the angle signal only
 };
 
 enum class ROTATE_STATE {
