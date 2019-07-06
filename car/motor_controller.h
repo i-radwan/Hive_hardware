@@ -14,6 +14,8 @@ public:
     Encoder* en;
     PCF857x* pcf;
 
+    double pwm, rpm;
+
     // ====================
     // Functions
 
@@ -41,6 +43,9 @@ public:
         double PWM = computePWM(RPM, elapsedTime);
 
         sendMotorSignal(PWM);
+
+        pwm = PWM;
+        rpm = RPM;
 
         // Increment speed gradually until reaching the targetSpeed
         speed = min(speed + speedIncrementStep, targetSpeed);

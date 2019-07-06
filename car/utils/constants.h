@@ -1,7 +1,7 @@
 #pragma once
 
-#define CAR1
-// #define CAR2
+// #define CAR1
+#define CAR2
 // #define CAR3
 
 
@@ -27,8 +27,8 @@ const int BAUD_RATE                         = 115200;
 
 // Servo
 const int SERVO_PIN                         = D3;
-const int SERVO_DOWN_ANGLE                  = 20;
-const int SERVO_UP_ANGLE                    = 110;
+const int SERVO_DOWN_ANGLE                  = 0;
+const int SERVO_UP_ANGLE                    = 50;
 
 // Motors pins
 const int LEFT_DIR1                         = 0;
@@ -52,49 +52,52 @@ enum class DIRECTION {
 // Configs
 const double MOTORS_ADJUST_DELTA            = 150; // ms
 const double MOTORS_SPEED                   = 50; // rpm
-const double MOTORS_ROTATION_SPEED          = 60; // rpm
 const double MOTORS_ALIGNMENT_SPEED         = MOTORS_SPEED / 2; // rpm
-const double MOTORS_ROTATE_SPEED_INCREMENT  = 6; // rpm
+const double MOTORS_ROTATE_SPEED_INCREMENT  = 10; // rpm
 const double STEP                           = 300; // mm
 const double EXCESS_DISTANCE_LIMIT          = STEP; // mm, the distance the robot can go beyond the black line before reporting to the server.
 const double EXCESS_ANGLES_LIMIT            = 10; // degrees, the angles the robot can rotate beyond the 90 degrees.
+const double HOLD_STATE_PERIOD              = 1000; // ms, time to wait before changing states
 
 // PID
 #ifdef CAR1
+const double MOTORS_ROTATION_SPEED          = 70; // rpm
 const double MOTORS_MOVE_SPEED_INCREMENT    = 7; // rpm
 const double LEFT_INIT_THROTTLE             = PWMRANGE / 6.5; // pwm
 const double RIGHT_INIT_THROTTLE            = PWMRANGE / 6.5; // pwm
 
-const double LEFT_KP                        = 1.6;
+const double LEFT_KP                        = 1.8;
 const double LEFT_KI                        = 0.07;
 const double LEFT_KD                        = 0;
-const double RIGHT_KP                       = 1.6;
+const double RIGHT_KP                       = 1.8;
 const double RIGHT_KI                       = 0.07;
 const double RIGHT_KD                       = 0;
 #endif
 
 #ifdef CAR2
+const double MOTORS_ROTATION_SPEED          = 70; // rpm
 const double MOTORS_MOVE_SPEED_INCREMENT    = 7; // rpm
 const double LEFT_INIT_THROTTLE             = PWMRANGE / 4; // pwm
-const double RIGHT_INIT_THROTTLE            = PWMRANGE / 4.5; // pwm
+const double RIGHT_INIT_THROTTLE            = PWMRANGE / 4.3; // pwm
 
-const double LEFT_KP                        = 1.3;
+const double LEFT_KP                        = 2.4;
 const double LEFT_KI                        = 0.07;
 const double LEFT_KD                        = 0;
-const double RIGHT_KP                       = 1.5;
+const double RIGHT_KP                       = 2.4;
 const double RIGHT_KI                       = 0.07;
 const double RIGHT_KD                       = 0;
 #endif
 
 #ifdef CAR3
+const double MOTORS_ROTATION_SPEED          = 70; // rpm
 const double MOTORS_MOVE_SPEED_INCREMENT    = 6; // rpm
-const double LEFT_INIT_THROTTLE             = PWMRANGE / 3.8; // pwm
-const double RIGHT_INIT_THROTTLE            = PWMRANGE / 3.5; // pwm
+const double LEFT_INIT_THROTTLE             = PWMRANGE / 3.2; // pwm
+const double RIGHT_INIT_THROTTLE            = PWMRANGE / 2.9; // pwm
 
-const double LEFT_KP                        = 1.5;
+const double LEFT_KP                        = 1.8;
 const double LEFT_KI                        = 0.07;
 const double LEFT_KD                        = 0;
-const double RIGHT_KP                       = 1.5;
+const double RIGHT_KP                       = 1.8;
 const double RIGHT_KI                       = 0.07;
 const double RIGHT_KD                       = 0;
 #endif
@@ -103,6 +106,7 @@ const double RIGHT_KD                       = 0;
 const double DISK_SLOTS                     = 20.0;
 const int WHEEL_DIAMETER                    = 65; // mm
 const int DEBOUNCE_DELTA                    = 1000; // us
+
 
 // ====================
 // Sensors
@@ -271,9 +275,10 @@ enum class ROTATE_STATE {
 
 enum class RETREAT_STATE {
     NONE                                    = -1,
-    RETREAT                                 = 0,
-    POST_RETREAT_MOVE                       = 1,
-    POST_RETREAT_ALIGNMENT                  = 2
+    HOLD                                    = 0,
+    RETREAT                                 = 1,
+    POST_RETREAT_MOVE                       = 2,
+    POST_RETREAT_ALIGNMENT                  = 3
 };
 
 struct ExecutionState {

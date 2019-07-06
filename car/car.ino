@@ -366,7 +366,7 @@ void debug() {
         interrupts();
 
         logs.concat(
-            "DEBUG:\nAngle: " + String(yaw) +
+           "DEBUG:\nAngle: " + String(yaw) +
             "\nSensors: " + String(blackSensors[0]) +
             " " + String(blackSensors[1]) +
             " " + String(blackSensors[2]) +
