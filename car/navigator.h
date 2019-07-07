@@ -329,7 +329,7 @@ private:
         double rightDistance = rightMotorController.getTotalDistance();
 
         double remainingDistance = STEP - (leftDistance + rightDistance) / 2.0;
-        double minimumDistanceToNode = STEP / 2.0;
+        double minimumDistanceToNode = STEP / 4.0;
 
         if (remainingDistance < -EXCESS_DISTANCE_LIMIT) {
             halt(EXECUTION_ERROR::EXCEEDED_ALLOWED_DISTANCE);
@@ -361,15 +361,15 @@ private:
         // Compensate back black sensors errors
         double diff = Utils::mapAngle(angle - getStraightAngle());
 
-        if (stopLeftMotor && !stopRightMotor && diff < -10 && remainingDistance < STEP / 5) {
-            stopRightMotor = true;
-            logs->concat("Force stopping right motor, diff: " + String(diff) + "\n");
-        }
+        // if (stopLeftMotor && !stopRightMotor && diff < -10 && remainingDistance < STEP / 5) {
+        //     stopRightMotor = true;
+        //     logs->concat("Force stopping right motor, diff: " + String(diff) + "\n");
+        // }
 
-        if (!stopLeftMotor && stopRightMotor && diff > 10 && remainingDistance < STEP / 5) {
-            stopLeftMotor = true;
-            logs->concat("Force stopping left motor, diff: " + String(diff) + "\n");
-        }
+        // if (!stopLeftMotor && stopRightMotor && diff > 10 && remainingDistance < STEP / 5) {
+        //     stopLeftMotor = true;
+        //     logs->concat("Force stopping left motor, diff: " + String(diff) + "\n");
+        // }
 
         // Check if arrived
         if (stopLeftMotor && stopRightMotor) {
@@ -393,11 +393,16 @@ private:
 
             logs->concat("MS: " + String((int) moveState) + "\n");
             logs->concat("a: " + String(angle) + "\n");
+            logs->concat("rn: " + String(reachedNode) + "\n");
             logs->concat("RefA: " + String(getStraightAngle()) + "\n");
             logs->concat("lspd: " + String(leftMotorController.getSpeed()) + "\n");
             logs->concat("rspd: " + String(rightMotorController.getSpeed()) + "\n");
             logs->concat("rd: " + String(remainingDistance) + "\n");
+            logs->concat("lp: " + String(leftMotorController.p) + "\n");
+            logs->concat("li: " + String(leftMotorController.i) + "\n");
             logs->concat("lpwm: " + String(leftMotorController.pwm) + "\n");
+            logs->concat("rp: " + String(rightMotorController.p) + "\n");
+            logs->concat("ri: " + String(rightMotorController.i) + "\n");
             logs->concat("rpwm: " + String(rightMotorController.pwm) + "\n");
             logs->concat("lrpm: " + String(leftMotorController.rpm) + "\n");
             logs->concat("rrpm: " + String(rightMotorController.rpm) + "\n");
@@ -513,32 +518,32 @@ private:
 
             case MOVE_STATE::STRAIGHT_LEFT:
                 leftSpeed = MOTORS_SPEED;
-                rightSpeed = MOTORS_SPEED * 0.5;
+                rightSpeed = MOTORS_SPEED * C2;
             break;
 
             case MOVE_STATE::STRAIGHT_RIGHT:
-                leftSpeed = MOTORS_SPEED * 0.5;
+                leftSpeed = MOTORS_SPEED * C2;
                 rightSpeed = MOTORS_SPEED;
             break;
 
             case MOVE_STATE::DRIFTING_LEFT:
-                leftSpeed = MOTORS_SPEED * 0.6;
-                rightSpeed = MOTORS_SPEED * 0.2;
+                leftSpeed = MOTORS_SPEED * C1;
+                rightSpeed = MOTORS_SPEED * C4;
             break;
 
             case MOVE_STATE::DRIFTING_RIGHT:
-                leftSpeed = MOTORS_SPEED * 0.2;
-                rightSpeed = MOTORS_SPEED * 0.6;
+                leftSpeed = MOTORS_SPEED * C4;
+                rightSpeed = MOTORS_SPEED * C1;
             break;
 
             case MOVE_STATE::OFFLINE_LEFT:
-                leftSpeed = MOTORS_SPEED * 0.4;
+                leftSpeed = MOTORS_SPEED * C3;
                 rightSpeed = 0;
             break;
 
             case MOVE_STATE::OFFLINE_RIGHT:
                 leftSpeed = 0;
-                rightSpeed = MOTORS_SPEED * 0.4;
+                rightSpeed = MOTORS_SPEED * C3;
             break;
 
             case MOVE_STATE::ALIGNMENT:
@@ -547,11 +552,11 @@ private:
         }
 
         // Stopping at nodes
-        if (stopLeftMotor) {
+        if (stopLeftMotor && moveState != MOVE_STATE::OFFLINE_LEFT) {
             leftSpeed = 0;
         }
 
-        if (stopRightMotor) {
+        if (stopRightMotor && moveState != MOVE_STATE::OFFLINE_RIGHT) {
             rightSpeed = 0;
         }
     }
@@ -667,11 +672,11 @@ private:
         double leftDistance = leftMotorController.getTotalDistance();
         double rightDistance = rightMotorController.getTotalDistance();
 
-        if (!isBackLeftBlack) {
+        if (!isBackLeftBlack && leftDistance > 40) {
             blackLeftWasNotBlack = true;
         }
 
-        if (!isBackRightBlack) {
+        if (!isBackRightBlack && rightDistance > 40) {
             blackRightWasNotBlack = true;
         }
 
@@ -798,7 +803,7 @@ private:
         bool result = false;
 
         result |= (remainingAngle <= -EXCESS_ANGLES_LIMIT);
-        result |= (stopLeftMotor && stopRightMotor);
+        result |= (stopLeftMotor && stopRightMotor && remainingAngle < 25);
 
         if (result) {
             logs->concat("\nResult::\n");
@@ -840,19 +845,19 @@ private:
         // Compensate back black sensors errors
         double diff = Utils::mapAngle(angle - postRetreatAngle);
 
-        if (stopLeftMotor && !stopRightMotor && diff < -10 && remainingDistance < STEP / 5) {
-            stopRightMotor = true;
-            logs->concat("Force stopping right motor, diff: " + String(diff) + "\n");
+        // if (stopLeftMotor && !stopRightMotor && diff < -10 && remainingDistance < STEP / 5) {
+        //     stopRightMotor = true;
+        //     logs->concat("Force stopping right motor, diff: " + String(diff) + "\n");
 
-            moveState = MOVE_STATE::OFFLINE_RIGHT;
-        }
+        //     moveState = MOVE_STATE::OFFLINE_RIGHT;
+        // }
 
-        if (!stopLeftMotor && stopRightMotor && diff > 10 && remainingDistance < STEP / 5) {
-            stopLeftMotor = true;
-            logs->concat("Force stopping left motor, diff: " + String(diff) + "\n");
+        // if (!stopLeftMotor && stopRightMotor && diff > 10 && remainingDistance < STEP / 5) {
+        //     stopLeftMotor = true;
+        //     logs->concat("Force stopping left motor, diff: " + String(diff) + "\n");
 
-            moveState = MOVE_STATE::OFFLINE_LEFT;
-        }
+        //     moveState = MOVE_STATE::OFFLINE_LEFT;
+        // }
 
         // Check if arrived
         if (stopLeftMotor && stopRightMotor) {

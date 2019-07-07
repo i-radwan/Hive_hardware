@@ -15,6 +15,7 @@ public:
     PCF857x* pcf;
 
     double pwm, rpm;
+    double p = 0, i = 0, d = 0, diff = 0, previousDiff = 0, speed = 0, targetSpeed = 0; // ToDo
 
     // ====================
     // Functions
@@ -109,8 +110,6 @@ private:
 
     const double kp, ki, kd, initThrottle;
     const int speedPin, dir1Pin, dir2Pin;
-
-    double p = 0, i = 0, d = 0, diff = 0, previousDiff = 0, speed = 0, targetSpeed = 0;
 
     double speedIncrementStep = MOTORS_MOVE_SPEED_INCREMENT;
 

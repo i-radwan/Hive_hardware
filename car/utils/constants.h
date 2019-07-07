@@ -51,8 +51,6 @@ enum class DIRECTION {
 
 // Configs
 const double MOTORS_ADJUST_DELTA            = 150; // ms
-const double MOTORS_SPEED                   = 50; // rpm
-const double MOTORS_ALIGNMENT_SPEED         = MOTORS_SPEED / 2; // rpm
 const double MOTORS_ROTATE_SPEED_INCREMENT  = 10; // rpm
 const double STEP                           = 300; // mm
 const double EXCESS_DISTANCE_LIMIT          = STEP; // mm, the distance the robot can go beyond the black line before reporting to the server.
@@ -61,6 +59,7 @@ const double HOLD_STATE_PERIOD              = 1000; // ms, time to wait before c
 
 // PID
 #ifdef CAR1
+const double MOTORS_SPEED                   = 50; // rpm
 const double MOTORS_ROTATION_SPEED          = 70; // rpm
 const double MOTORS_MOVE_SPEED_INCREMENT    = 7; // rpm
 const double LEFT_INIT_THROTTLE             = PWMRANGE / 6.5; // pwm
@@ -72,27 +71,39 @@ const double LEFT_KD                        = 0;
 const double RIGHT_KP                       = 1.8;
 const double RIGHT_KI                       = 0.07;
 const double RIGHT_KD                       = 0;
+
+const double C1                             = 0.6;
+const double C2                             = 0.5;
+const double C3                             = 0.4;
+const double C4                             = 0.2;
 #endif
 
 #ifdef CAR2
-const double MOTORS_ROTATION_SPEED          = 70; // rpm
+const double MOTORS_SPEED                   = 60; // rpm
+const double MOTORS_ROTATION_SPEED          = 80; // rpm
 const double MOTORS_MOVE_SPEED_INCREMENT    = 7; // rpm
-const double LEFT_INIT_THROTTLE             = PWMRANGE / 4; // pwm
-const double RIGHT_INIT_THROTTLE            = PWMRANGE / 4.3; // pwm
+const double LEFT_INIT_THROTTLE             = PWMRANGE / 4.1; // pwm
+const double RIGHT_INIT_THROTTLE            = PWMRANGE / 4.4; // pwm
 
-const double LEFT_KP                        = 2.4;
-const double LEFT_KI                        = 0.07;
+const double LEFT_KP                        = 1.9;
+const double LEFT_KI                        = 0.1;
 const double LEFT_KD                        = 0;
-const double RIGHT_KP                       = 2.4;
-const double RIGHT_KI                       = 0.07;
+const double RIGHT_KP                       = 1.9;
+const double RIGHT_KI                       = 0.1;
 const double RIGHT_KD                       = 0;
+
+const double C1                             = 0.6;
+const double C2                             = 0.5;
+const double C3                             = 0.2;
+const double C4                             = 0.4;
 #endif
 
 #ifdef CAR3
+const double MOTORS_SPEED                   = 50; // rpm
 const double MOTORS_ROTATION_SPEED          = 70; // rpm
 const double MOTORS_MOVE_SPEED_INCREMENT    = 6; // rpm
-const double LEFT_INIT_THROTTLE             = PWMRANGE / 3.2; // pwm
-const double RIGHT_INIT_THROTTLE            = PWMRANGE / 2.9; // pwm
+const double LEFT_INIT_THROTTLE             = PWMRANGE / 3.5; // pwm
+const double RIGHT_INIT_THROTTLE            = PWMRANGE / 3.2; // pwm
 
 const double LEFT_KP                        = 1.8;
 const double LEFT_KI                        = 0.07;
@@ -100,6 +111,11 @@ const double LEFT_KD                        = 0;
 const double RIGHT_KP                       = 1.8;
 const double RIGHT_KI                       = 0.07;
 const double RIGHT_KD                       = 0;
+
+const double C1                             = 0.6;
+const double C2                             = 0.5;
+const double C3                             = 0.4;
+const double C4                             = 0.2;
 #endif
 
 // Wheel
