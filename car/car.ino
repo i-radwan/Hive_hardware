@@ -381,7 +381,7 @@ void debug() {
         // ToDo: remove
         if (logs.length() > 0) {
 
-            com.sendStr("\n\n\nLOGS::\n" + logs + "\n\n\n");
+            // com.sendStr("\n\n\nLOGS::\n" + logs + "\n\n\n");
 
             logs = "";
         }

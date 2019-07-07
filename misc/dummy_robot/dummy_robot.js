@@ -28,7 +28,7 @@
 
 // =================
 // Constants
-const PORT = 12344;
+const PORT = 8080;
 
 // =================
 // Args

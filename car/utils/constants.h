@@ -1,7 +1,7 @@
 #pragma once
 
-// #define CAR1
-#define CAR2
+#define CAR1
+// #define CAR2
 // #define CAR3
 
 
@@ -50,8 +50,6 @@ enum class DIRECTION {
 };
 
 // Configs
-const double MOTORS_ADJUST_DELTA            = 150; // ms
-const double MOTORS_ROTATE_SPEED_INCREMENT  = 10; // rpm
 const double STEP                           = 300; // mm
 const double EXCESS_DISTANCE_LIMIT          = STEP; // mm, the distance the robot can go beyond the black line before reporting to the server.
 const double EXCESS_ANGLES_LIMIT            = 10; // degrees, the angles the robot can rotate beyond the 90 degrees.
@@ -59,11 +57,13 @@ const double HOLD_STATE_PERIOD              = 1000; // ms, time to wait before c
 
 // PID
 #ifdef CAR1
+const double MOTORS_ADJUST_DELTA            = 100; // ms
 const double MOTORS_SPEED                   = 50; // rpm
 const double MOTORS_ROTATION_SPEED          = 70; // rpm
 const double MOTORS_MOVE_SPEED_INCREMENT    = 7; // rpm
-const double LEFT_INIT_THROTTLE             = PWMRANGE / 6.5; // pwm
-const double RIGHT_INIT_THROTTLE            = PWMRANGE / 6.5; // pwm
+const double MOTORS_ROTATE_SPEED_INCREMENT  = 10; // rpm
+const double LEFT_INIT_THROTTLE             = PWMRANGE / 6; // pwm
+const double RIGHT_INIT_THROTTLE            = PWMRANGE / 6; // pwm
 
 const double LEFT_KP                        = 1.8;
 const double LEFT_KI                        = 0.07;
@@ -72,36 +72,40 @@ const double RIGHT_KP                       = 1.8;
 const double RIGHT_KI                       = 0.07;
 const double RIGHT_KD                       = 0;
 
-const double C1                             = 0.6;
-const double C2                             = 0.5;
-const double C3                             = 0.4;
-const double C4                             = 0.2;
-#endif
-
-#ifdef CAR2
-const double MOTORS_SPEED                   = 60; // rpm
-const double MOTORS_ROTATION_SPEED          = 80; // rpm
-const double MOTORS_MOVE_SPEED_INCREMENT    = 7; // rpm
-const double LEFT_INIT_THROTTLE             = PWMRANGE / 4.1; // pwm
-const double RIGHT_INIT_THROTTLE            = PWMRANGE / 4.4; // pwm
-
-const double LEFT_KP                        = 1.9;
-const double LEFT_KI                        = 0.1;
-const double LEFT_KD                        = 0;
-const double RIGHT_KP                       = 1.9;
-const double RIGHT_KI                       = 0.1;
-const double RIGHT_KD                       = 0;
-
-const double C1                             = 0.6;
-const double C2                             = 0.5;
-const double C3                             = 0.2;
+const double C1                             = 0.8;
+const double C2                             = 0.7;
+const double C3                             = 0.6;
 const double C4                             = 0.4;
 #endif
 
+#ifdef CAR2
+const double MOTORS_ADJUST_DELTA            = 100; // ms
+const double MOTORS_SPEED                   = 50; // rpm
+const double MOTORS_ROTATION_SPEED          = 80; // rpm
+const double MOTORS_ROTATE_SPEED_INCREMENT  = 40; // rpm
+const double MOTORS_MOVE_SPEED_INCREMENT    = 70; // rpm
+const double LEFT_INIT_THROTTLE             = PWMRANGE / 3.8; // pwm
+const double RIGHT_INIT_THROTTLE            = PWMRANGE / 3.8; // pwm
+
+const double LEFT_KP                        = 2.7;
+const double LEFT_KI                        = 0.07;
+const double LEFT_KD                        = 0;
+const double RIGHT_KP                       = 2.7;
+const double RIGHT_KI                       = 0.07;
+const double RIGHT_KD                       = 0;
+
+const double C1                             = 0.9;
+const double C2                             = 0.9;
+const double C3                             = 0.6;
+const double C4                             = 0.7;
+#endif
+
 #ifdef CAR3
+const double MOTORS_ADJUST_DELTA            = 150; // ms
 const double MOTORS_SPEED                   = 50; // rpm
 const double MOTORS_ROTATION_SPEED          = 70; // rpm
 const double MOTORS_MOVE_SPEED_INCREMENT    = 6; // rpm
+const double MOTORS_ROTATE_SPEED_INCREMENT  = 10; // rpm
 const double LEFT_INIT_THROTTLE             = PWMRANGE / 3.5; // pwm
 const double RIGHT_INIT_THROTTLE            = PWMRANGE / 3.2; // pwm
 
@@ -169,7 +173,7 @@ const double OPTICAL_DPI_TO_MM              = 1 / 39.0;
 // Ultrasonic
 const int ULTRA_SONIC_TRIGGER_PIN           = D9;
 const int ULTRA_SONIC_ECHO_PIN              = D5;
-const int ULTRA_SONIC_REFRESH_TIME          = 200; // ms
+const int ULTRA_SONIC_REFRESH_TIME          = 50; // ms
 const int ULTRA_SONIC_TIMEOUT               = 2000; // us ... 2cm * 2     = 40cm     = ~0.5m takes the sound 300 m/s -> 0.001666666667 seconds to travel     = 1666.667us
 const int MIN_DISTANCE                      = 15; // cm. Min distance ahead of the robot
 
@@ -255,7 +259,8 @@ enum class EXECUTION_STATE {
 enum class EXECUTION_ERROR {
     NONE                                    = -1,
     EXCEEDED_ALLOWED_DISTANCE               = 0,
-    UNKNOWN                                 = 1
+    UNKNOWN_ROTATION                        = 1,
+    UNKNOWN                                 = 2
 };
 
 enum class MOVE_STATE {
