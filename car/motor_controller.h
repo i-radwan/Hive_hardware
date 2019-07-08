@@ -14,7 +14,7 @@ public:
     Encoder* en;
     PCF857x* pcf;
 
-    double pwm, rpm;
+    double PWM, RPM;
     double p = 0, i = 0, d = 0, diff = 0, previousDiff = 0, speed = 0, targetSpeed = 0; // ToDo
 
     // ====================
@@ -40,20 +40,17 @@ public:
         unsigned long ticks = computeTicks();
         totalDistance += computeDistance(ticks);
 
-        double RPM = computeRPM(ticks, elapsedTime);
-        double PWM = computePWM(RPM, elapsedTime);
+        RPM = computeRPM(ticks, elapsedTime);
+        PWM = computePWM(RPM, elapsedTime);
 
         sendMotorSignal(PWM);
-
-        pwm = PWM;
-        rpm = RPM;
 
         // Increment speed gradually until reaching the targetSpeed
         speed = min(speed + speedIncrementStep, targetSpeed);
     }
 
     void brake() {
-        speed = 0;
+        targetSpeed = speed = 0;
         direction = DIRECTION::FORWARD;
 
         sendMotorSignal(PWMRANGE); // To brake the motors PWMRANGE, HIGH, HIGH
@@ -70,18 +67,26 @@ public:
         spd = abs(spd);
 
         if (spd < speed) { // Sudden reduction
-            speed = spd;
+            targetSpeed = speed = spd;
         } else { // Gradual increment
             targetSpeed = spd;
         }
 
-        if (speed < EPS) { // To stop anytime the speed drops to zero
+        if (targetSpeed < EPS) { // To stop anytime the speed drops to zero
             brake();
         }
     }
 
     double getSpeed() {
         return speed;
+    }
+
+    double getRPM() {
+        return RPM;
+    }
+
+    double getPWM() {
+        return PWM;
     }
 
     void setSpeedIncrementStep(double spdIncrementStep) {
@@ -108,7 +113,7 @@ private:
     // ====================
     // Members
 
-    const double kp, ki, kd, initThrottle;
+    double kp, ki, kd, initThrottle;
     const int speedPin, dir1Pin, dir2Pin;
 
     double speedIncrementStep = MOTORS_MOVE_SPEED_INCREMENT;
@@ -122,7 +127,7 @@ private:
     // Functions
 
     double computePWM(double spd, double elapsedTime) {
-        if (speed < EPS) { // If the speed is zero, force stop the motor
+        if (targetSpeed < EPS) { // If the speed is zero, force stop the motor
             brake();
 
             return 0;

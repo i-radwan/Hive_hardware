@@ -23,11 +23,6 @@ extern "C" {
 // Objects
 Communicator com;
 Navigator nav;
-BlackSensor blblk;
-BlackSensor brblk;
-BlackSensor flblk;
-BlackSensor frblk;
-BlackSensor fcblk;
 UltrasonicSensor uls;
 BatterySensor bat;
 Encoder len;
@@ -79,6 +74,7 @@ void debug();
 void setup() {
     // Initialize I2C Bus
     Wire.begin(I2C_SDA, I2C_SCL);
+    Wire.setClock(I2C_CLOCK);
 
     // Initialize connection
     setupState = com.setup(&receive, &serverConnected, &serverDisconnected);
@@ -90,14 +86,11 @@ void setup() {
     ota.setup();
 
     // Initialize sensors
-    mpu.setup(&logs);
+    mpu.setup(&logs, failure);
     uls.setup();
     bat.setup(BATTERY_SENSOR_PIN);
-    blblk.setup(&pcf1, BAK_LFT_BLACK_SENSOR_PIN, BAK_LFT_BLACK_SENSOR_INV, BAK_LFT_BLACK_SENSOR_PCF);
-    brblk.setup(&pcf1, BAK_RGT_BLACK_SENSOR_PIN, BAK_RGT_BLACK_SENSOR_INV, BAK_RGT_BLACK_SENSOR_PCF);
-    flblk.setup(&pcf1, FRT_LFT_BLACK_SENSOR_PIN, FRT_LFT_BLACK_SENSOR_INV, FRT_LFT_BLACK_SENSOR_PCF);
-    frblk.setup(&pcf1, FRT_RGT_BLACK_SENSOR_PIN, FRT_RGT_BLACK_SENSOR_INV, FRT_RGT_BLACK_SENSOR_PCF);
-    fcblk.setup(&pcf1, FRT_CNT_BLACK_SENSOR_PIN, FRT_CNT_BLACK_SENSOR_INV, FRT_CNT_BLACK_SENSOR_PCF);
+
+    pinMode(FRT_CNT_BLACK_SENSOR_PIN, INPUT_PULLUP);
 
     // Initialize encoders
     len.setup(LEFT_ENC);
@@ -106,7 +99,7 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(RGHT_ENC), rightEncoderISR, CHANGE);
 
     // Initialize motors
-    nav.setup(&pcf1, &len, &ren, &logs);
+    nav.setup(&pcf1, &len, &ren, &blocked, &logs);
 
     // Setup PWM freq
     analogWriteFreq(PWM_FREQUENCY);
@@ -122,7 +115,7 @@ void setup() {
     // Prevent sleeping to enhance communication speed
     wifi_set_sleep_type(NONE_SLEEP_T);
 
-    failure = !setupState;
+    failure |= !setupState;
 }
 
 void loop() {
@@ -141,14 +134,19 @@ void loop() {
     updateLights();
 
     // Printing debugging info
-    // debug();
+    debug();
 
     // Navigation
+    bool preExecutionBlocked = blocked;
     ExecutionState executionState;
     nav.navigate(obstacleDistance, yaw, blackSensors, executionState);
 
     if (executionState.state == EXECUTION_STATE::FINISHED) {
         com.sendDone();
+    } else if (executionState.state == EXECUTION_STATE::PAUSE) {
+        if (blocked != preExecutionBlocked) {
+            com.sendBlockingState(blocked ? BLOCKING_MODE::BLOCKED : BLOCKING_MODE::UNBLOCKED);
+        }
     } else if (executionState.state == EXECUTION_STATE::ERROR) {
         com.sendError(executionState.error);
 
@@ -271,20 +269,29 @@ void readSensors() {
     mpu.read(yaw, pitch, roll);
 
     // Black sensors
-    flblk.read(blackSensors[0]);
-    fcblk.read(blackSensors[1]);
-    frblk.read(blackSensors[2]);
-    blblk.read(blackSensors[3]);
-    brblk.read(blackSensors[4]);
+    blackSensors[1] = digitalRead(FRT_CNT_BLACK_SENSOR_PIN) == LOW;
+
+    uint8_t pcfReading = pcf1.read8();
+    blackSensors[0] = (pcfReading & (1 << FRT_LFT_BLACK_SENSOR_PIN)) == 0;
+    blackSensors[2] = (pcfReading & (1 << FRT_RGT_BLACK_SENSOR_PIN)) == 0;
+    blackSensors[3] = (pcfReading & (1 << BAK_LFT_BLACK_SENSOR_PIN)) == 0;
+    blackSensors[4] = (pcfReading & (1 << BAK_RGT_BLACK_SENSOR_PIN)) == 0;
+
+    blackSensors[0] = (FRT_LFT_BLACK_SENSOR_INV ? !blackSensors[0] : blackSensors[0]);
+    blackSensors[1] = (FRT_CNT_BLACK_SENSOR_INV ? !blackSensors[1] : blackSensors[1]);
+    blackSensors[2] = (FRT_RGT_BLACK_SENSOR_INV ? !blackSensors[2] : blackSensors[2]);
+    blackSensors[3] = (BAK_LFT_BLACK_SENSOR_INV ? !blackSensors[3] : blackSensors[3]);
+    blackSensors[4] = (BAK_LFT_BLACK_SENSOR_INV ? !blackSensors[4] : blackSensors[4]);
 
     // Ultrasonic
     uls.read(obstacleDistance);
 
-    if (!blocked && obstacleDistance <= MIN_DISTANCE) { // On block state change to BLOCKED
-        blocked = true;
+    // if (!blocked && obstacleDistance <= MIN_DISTANCE) { // On block state change to BLOCKED
+    //     blocked = true;
 
-        com.sendBlockingState(BLOCKING_MODE::BLOCKED);
-    } else if (blocked && obstacleDistance > MIN_DISTANCE) { // On block state change to UNBLOCKED
+    //     com.sendBlockingState(BLOCKING_MODE::BLOCKED);
+    // } else
+    if (blocked && obstacleDistance > MIN_DISTANCE) { // On block state change to UNBLOCKED
         blocked = false;
 
         com.sendBlockingState(BLOCKING_MODE::UNBLOCKED);
@@ -381,7 +388,7 @@ void debug() {
         // ToDo: remove
         if (logs.length() > 0) {
 
-            // com.sendStr("\n\n\nLOGS::\n" + logs + "\n\n\n");
+            com.sendStr("\n\n\nLOGS::\n" + logs + "\n\n\n");
 
             logs = "";
         }

@@ -1,8 +1,8 @@
 #pragma once
 
-#define CAR1
+// #define CAR1
 // #define CAR2
-// #define CAR3
+#define CAR3
 
 
 // ====================
@@ -52,7 +52,7 @@ enum class DIRECTION {
 // Configs
 const double STEP                           = 300; // mm
 const double EXCESS_DISTANCE_LIMIT          = STEP; // mm, the distance the robot can go beyond the black line before reporting to the server.
-const double EXCESS_ANGLES_LIMIT            = 10; // degrees, the angles the robot can rotate beyond the 90 degrees.
+const double EXCESS_ANGLES_LIMIT            = 0; // degrees, the angles the robot can rotate beyond the 90 degrees.
 const double HOLD_STATE_PERIOD              = 1000; // ms, time to wait before changing states
 
 // PID
@@ -82,32 +82,32 @@ const double C4                             = 0.4;
 const double MOTORS_ADJUST_DELTA            = 100; // ms
 const double MOTORS_SPEED                   = 50; // rpm
 const double MOTORS_ROTATION_SPEED          = 80; // rpm
-const double MOTORS_ROTATE_SPEED_INCREMENT  = 40; // rpm
-const double MOTORS_MOVE_SPEED_INCREMENT    = 70; // rpm
+const double MOTORS_ROTATE_SPEED_INCREMENT  = 20; // rpm
+const double MOTORS_MOVE_SPEED_INCREMENT    = 10; // rpm
 const double LEFT_INIT_THROTTLE             = PWMRANGE / 3.8; // pwm
 const double RIGHT_INIT_THROTTLE            = PWMRANGE / 3.8; // pwm
 
-const double LEFT_KP                        = 2.7;
+const double LEFT_KP                        = 1.8;
 const double LEFT_KI                        = 0.07;
 const double LEFT_KD                        = 0;
-const double RIGHT_KP                       = 2.7;
+const double RIGHT_KP                       = 1.8;
 const double RIGHT_KI                       = 0.07;
 const double RIGHT_KD                       = 0;
 
-const double C1                             = 0.9;
-const double C2                             = 0.9;
-const double C3                             = 0.6;
-const double C4                             = 0.7;
+const double C1                             = 0.6;
+const double C2                             = 0.5;
+const double C3                             = 0.4;
+const double C4                             = 0.2;
 #endif
 
 #ifdef CAR3
-const double MOTORS_ADJUST_DELTA            = 150; // ms
+const double MOTORS_ADJUST_DELTA            = 100; // ms
 const double MOTORS_SPEED                   = 50; // rpm
 const double MOTORS_ROTATION_SPEED          = 70; // rpm
-const double MOTORS_MOVE_SPEED_INCREMENT    = 6; // rpm
+const double MOTORS_MOVE_SPEED_INCREMENT    = 16; // rpm
 const double MOTORS_ROTATE_SPEED_INCREMENT  = 10; // rpm
-const double LEFT_INIT_THROTTLE             = PWMRANGE / 3.5; // pwm
-const double RIGHT_INIT_THROTTLE            = PWMRANGE / 3.2; // pwm
+const double LEFT_INIT_THROTTLE             = PWMRANGE / 3.8; // pwm
+const double RIGHT_INIT_THROTTLE            = PWMRANGE / 3.8; // pwm
 
 const double LEFT_KP                        = 1.8;
 const double LEFT_KI                        = 0.07;
@@ -133,8 +133,6 @@ const int DEBOUNCE_DELTA                    = 1000; // us
 
 // MPU
 const int MPU_ADDRESS                       = 0x68;
-const int I2C_SCL                           = D6;
-const int I2C_SDA                           = D7;
 const int MPU_INTR                          = D8;
 const double MPU_REFRESH_RATE               = 0; // ms
 
@@ -197,7 +195,7 @@ const int BAK_RGT_BLACK_SENSOR_PIN          = 5;
 // Car 1 --> IP : .3
 #ifdef CAR1
 const bool FRT_LFT_BLACK_SENSOR_INV         = false;
-const bool FRT_CNT_BLACK_SENSOR_INV         = false;
+const bool FRT_CNT_BLACK_SENSOR_INV         = true;
 const bool FRT_RGT_BLACK_SENSOR_INV         = false;
 const bool BAK_LFT_BLACK_SENSOR_INV         = true;
 const bool BAK_RGT_BLACK_SENSOR_INV         = true;
@@ -206,7 +204,7 @@ const bool BAK_RGT_BLACK_SENSOR_INV         = true;
 // Car 2 --> IP : .2
 #ifdef CAR2
 const bool FRT_LFT_BLACK_SENSOR_INV         = true;
-const bool FRT_CNT_BLACK_SENSOR_INV         = false;
+const bool FRT_CNT_BLACK_SENSOR_INV         = true;
 const bool FRT_RGT_BLACK_SENSOR_INV         = true;
 const bool BAK_LFT_BLACK_SENSOR_INV         = false;
 const bool BAK_RGT_BLACK_SENSOR_INV         = false;
@@ -215,7 +213,7 @@ const bool BAK_RGT_BLACK_SENSOR_INV         = false;
 // Car 3 --> IP : .4
 #ifdef CAR3
 const bool FRT_LFT_BLACK_SENSOR_INV         = true;
-const bool FRT_CNT_BLACK_SENSOR_INV         = false;
+const bool FRT_CNT_BLACK_SENSOR_INV         = true;
 const bool FRT_RGT_BLACK_SENSOR_INV         = true;
 const bool BAK_LFT_BLACK_SENSOR_INV         = false;
 const bool BAK_RGT_BLACK_SENSOR_INV         = false;
@@ -230,6 +228,11 @@ const bool BAK_RGT_BLACK_SENSOR_PCF         = true;
 
 // ====================
 // General
+
+// I2C
+const int I2C_SCL                           = D6;
+const int I2C_SDA                           = D7;
+const int I2C_CLOCK                         = 100000L;
 
 // PWM
 const int PWM_FREQUENCY                     = 1; // In range 1-1000 KHz

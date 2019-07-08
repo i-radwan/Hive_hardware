@@ -16,13 +16,15 @@ public:
                                        RIGHT_SPED, RIGHT_DIR1, RIGHT_DIR2) {
     }
 
-    void setup(PCF857x* pcf1, Encoder* len, Encoder* ren, String* logsPtr) {
+    void setup(PCF857x* pcf1, Encoder* len, Encoder* ren, bool* blockedPtr, String* logsPtr) {
         // Configure motors controllers
         leftMotorController.en = len;
         rightMotorController.en = ren;
 
         leftMotorController.pcf = pcf1;
         rightMotorController.pcf = pcf1;
+
+        blocked = blockedPtr;
 
         // Logs
         logs = logsPtr;
@@ -38,7 +40,7 @@ public:
         } else if (action == ACTION::ROTATE_RIGHT || action == ACTION::ROTATE_LEFT) {
             rotate(angle, blackSensors);
         } else if (action == ACTION::RETREAT) {
-            retreat(angle, blackSensors);
+            retreat(obstacleDistance, angle, blackSensors);
         }
 
         execState.state = executionState.state;
@@ -274,6 +276,7 @@ private:
     bool stopRightMotor = false;
 
     bool reachedNode = false;
+    bool* blocked;
 
     double straightAnglesCos = 0;
     double straightAnglesSin = 0;
@@ -298,8 +301,7 @@ private:
     void init() {
         executionState.state = EXECUTION_STATE::IDLE;
 
-        leftMotorController.brake();
-        rightMotorController.brake();
+        hold();
 
         logs->concat("Init\n");
     }
@@ -307,8 +309,7 @@ private:
     void pause() {
         executionState.state = EXECUTION_STATE::PAUSE;
 
-        leftMotorController.brake();
-        rightMotorController.brake();
+        hold();
 
         logs->concat("Pausing\n");
     }
@@ -316,8 +317,7 @@ private:
     void done() {
         executionState.state = EXECUTION_STATE::FINISHED;
 
-        leftMotorController.brake();
-        rightMotorController.brake();
+        hold();
 
         logs->concat("Done\n");
     }
@@ -326,10 +326,16 @@ private:
         executionState.state = EXECUTION_STATE::ERROR;
         executionState.error = error;
 
+        hold();
+
+        logs->concat("Halting due: " + String((int) error) + "\n");
+    }
+
+    void hold() {
         leftMotorController.brake();
         rightMotorController.brake();
 
-        logs->concat("Halting due: " + String((int) error) + "\n");
+        logs->concat("Holding motors\n");
     }
 
     // ====================
@@ -345,6 +351,8 @@ private:
     void move(double obstacleDistance, double angle, bool blackSensors[]) {
         // Emergency braking
         if (obstacleDistance < MIN_DISTANCE) {
+            *blocked = true;
+
             pause();
 
             return;
@@ -371,8 +379,7 @@ private:
 
         // Store angles to prepare for moving using angles when reaching the next node,
         // where all sensors see black
-        if (moveState == MOVE_STATE::STRAIGHT_LEFT || moveState == MOVE_STATE::STRAIGHT_RIGHT ||
-            moveState == MOVE_STATE::STRAIGHT) {
+        if (moveState == MOVE_STATE::STRAIGHT) {
             addStraightAngle(angle, moveState != MOVE_STATE::STRAIGHT ? 0.5 : 1);
         }
 
@@ -426,15 +433,17 @@ private:
             logs->concat("RefA: " + String(getStraightAngle()) + "\n");
             logs->concat("lspd: " + String(leftMotorController.getSpeed()) + "\n");
             logs->concat("rspd: " + String(rightMotorController.getSpeed()) + "\n");
+            logs->concat("lspeed: " + String(leftSpeed) + "\n");
+            logs->concat("rspeed: " + String(rightSpeed) + "\n");
             logs->concat("rd: " + String(remainingDistance) + "\n");
             logs->concat("lp: " + String(leftMotorController.p) + "\n");
             logs->concat("li: " + String(leftMotorController.i) + "\n");
-            logs->concat("lpwm: " + String(leftMotorController.pwm) + "\n");
+            logs->concat("lpwm: " + String(leftMotorController.PWM) + "\n");
             logs->concat("rp: " + String(rightMotorController.p) + "\n");
             logs->concat("ri: " + String(rightMotorController.i) + "\n");
-            logs->concat("rpwm: " + String(rightMotorController.pwm) + "\n");
-            logs->concat("lrpm: " + String(leftMotorController.rpm) + "\n");
-            logs->concat("rrpm: " + String(rightMotorController.rpm) + "\n");
+            logs->concat("rpwm: " + String(rightMotorController.PWM) + "\n");
+            logs->concat("lrpm: " + String(leftMotorController.RPM) + "\n");
+            logs->concat("rrpm: " + String(rightMotorController.RPM) + "\n");
             logs->concat("leftd: " + String(leftMotorController.getTotalDistance()) + "\n");
             logs->concat("rghtd: " + String(rightMotorController.getTotalDistance()) + "\n");
             // logs->concat("mdtn: " + String(minimumDistanceToNode) + "\n");
@@ -475,6 +484,17 @@ private:
         double straightAngle = getStraightAngle();
         double diff = Utils::mapAngle(angle - straightAngle);
 
+        if (reachedNode && moveState == MOVE_STATE::ALIGNMENT &&
+            (isFrontCenterBlack || isFrontLeftBlack || isFrontRightBlack)) {
+            if (diff < -5) {
+                moveState = MOVE_STATE::DRIFTING_LEFT;
+            } else if (diff > 5) {
+                moveState = MOVE_STATE::DRIFTING_RIGHT;
+            }
+
+            return;
+        }
+
         // FSM transitions
         if (isFrontCenterBlack && isFrontLeftBlack && isFrontRightBlack) {
             moveState = MOVE_STATE::STRAIGHT;
@@ -497,56 +517,26 @@ private:
         } else if (!isFrontCenterBlack && isFrontLeftBlack && isFrontRightBlack) {
             moveState = MOVE_STATE::ALIGNMENT;
         } else if (!isFrontCenterBlack && isFrontLeftBlack && !isFrontRightBlack) {
-            if (reachedNode) { // ToDo: go to alignment if small angle difference
-                if (diff < -10) {
-                    moveState = MOVE_STATE::DRIFTING_LEFT;
-                } else if (diff > 10) {
-                    moveState = MOVE_STATE::DRIFTING_RIGHT;
-                } else {
-                    moveState = MOVE_STATE::ALIGNMENT;
-                }
-            } else {
-                moveState = MOVE_STATE::DRIFTING_RIGHT;
-            }
+            moveState = MOVE_STATE::DRIFTING_RIGHT;
         } else if (!isFrontCenterBlack && !isFrontLeftBlack && isFrontRightBlack) {
-            if (reachedNode) {
-                if (diff < -10) {
-                    moveState = MOVE_STATE::DRIFTING_LEFT;
-                } else if (diff > 10) {
-                    moveState = MOVE_STATE::DRIFTING_RIGHT;
-                } else {
-                    moveState = MOVE_STATE::ALIGNMENT;
-                }
-            } else {
-                moveState = MOVE_STATE::DRIFTING_LEFT;
-            }
+            moveState = MOVE_STATE::DRIFTING_LEFT;
         } else if (!isFrontCenterBlack && !isFrontLeftBlack && !isFrontRightBlack) {
-            if (reachedNode) {
-                if (diff < -10) {
-                    moveState = MOVE_STATE::DRIFTING_LEFT;
-                } else if (diff > 10) {
-                    moveState = MOVE_STATE::DRIFTING_RIGHT;
-                } else {
-                    moveState = MOVE_STATE::ALIGNMENT;
-                }
-            } else {
-                if (moveState == MOVE_STATE::DRIFTING_RIGHT || moveState == MOVE_STATE::STRAIGHT_RIGHT) {
-                    moveState = MOVE_STATE::OFFLINE_RIGHT;
-                } else if (moveState == MOVE_STATE::DRIFTING_LEFT || moveState == MOVE_STATE::STRAIGHT_LEFT) {
-                    moveState = MOVE_STATE::OFFLINE_LEFT;
-                } else if (moveState == MOVE_STATE::STRAIGHT && abs(diff) < EPS) {
-                    logs->concat("ERROR: angle: " + String(angle) + " - straightAngle: " + String(straightAngle) + " - diff: " + String(diff) + "\n");
+            if (moveState == MOVE_STATE::DRIFTING_RIGHT || moveState == MOVE_STATE::STRAIGHT_RIGHT) {
+                moveState = MOVE_STATE::OFFLINE_RIGHT;
+            } else if (moveState == MOVE_STATE::DRIFTING_LEFT || moveState == MOVE_STATE::STRAIGHT_LEFT) {
+                moveState = MOVE_STATE::OFFLINE_LEFT;
+            } else if (moveState == MOVE_STATE::STRAIGHT && abs(diff) < EPS) {
+                logs->concat("ERROR: angle: " + String(angle) + " - straightAngle: " + String(straightAngle) + " - diff: " + String(diff) + "\n");
 
-                    halt(EXECUTION_ERROR::UNKNOWN);
-                }
+                halt(EXECUTION_ERROR::UNKNOWN);
             }
         }
 
         double leftDiff = Utils::anglesSmallDifference(angle, int(straightAngle - 90 + 360) % 360);
-        double rightDiff = Utils::anglesSmallDifference(angle, int(straightAngle +90) % 360);
+        double rightDiff = Utils::anglesSmallDifference(angle, int(straightAngle + 90) % 360);
 
         if (moveState == MOVE_STATE::OFFLINE_LEFT && diff > 30) {
-            logs->concat("Error: 1\n");
+            logs->concat("Error: 1 - ld: " + String(leftDiff) + " 0 rd: " + String(rightDiff) + " !\n");
 
             if (leftDiff > rightDiff) {
                 logs->concat("S\n");
@@ -554,7 +544,7 @@ private:
                 moveState = MOVE_STATE::OFFLINE_RIGHT;
             }
         } else if (moveState == MOVE_STATE::OFFLINE_RIGHT && diff > 40) {
-            logs->concat("Error: 2!\n");
+            logs->concat("Error: 2 - ld: " + String(leftDiff) + " 0 rd: " + String(rightDiff) + " !\n");
 
             if (leftDiff < rightDiff) {
                 logs->concat("S\n");
@@ -657,18 +647,14 @@ private:
         remainingAngle -= Utils::anglesSmallDifference(angle, previousAngle);
         previousAngle = angle;
 
-        // logs->concat("rem an: " + String(remainingAngle) + "\n");
-
         if (postRotateHold) {
-            if (millis() - postRotateHoldStartTime > 1000) {
+            if (millis() - postRotateHoldStartTime > 500) {
                 logs->concat("Last angle: " + String(angle) + "\n");
 
                 done();
 
                 updateRotateFinalState(remainingAngle, blackSensors);
             }
-
-            return;
         }
 
         // FSM transitions
@@ -689,12 +675,11 @@ private:
         // Here the moveState will indicate the current situation,
         // this info is helpful for the next action if it's a move action.
         // It will know that the rotation went wrong.
-        if (isRotationDone(remainingAngle, blackSensors)) {
+        if (!postRotateHold && isRotationDone(remainingAngle, blackSensors)) {
             postRotateHoldStartTime = millis();
             postRotateHold = true;
 
-            leftMotorController.brake();
-            rightMotorController.brake();
+            hold();
 
             logs->concat("Post rotation hold started\n");
         }
@@ -743,11 +728,14 @@ private:
         double leftDistance = leftMotorController.getTotalDistance();
         double rightDistance = rightMotorController.getTotalDistance();
 
-        if (!isBackLeftBlack && leftDistance > 40) {
+        double leftRPM = leftMotorController.getRPM();
+        double rightRPM = rightMotorController.getRPM();
+
+        if (!isBackLeftBlack && leftDistance > 20 && leftRPM > 0) {
             blackLeftWasNotBlack = true;
         }
 
-        if (!isBackRightBlack && rightDistance > 40) {
+        if (!isBackRightBlack && rightDistance > 20 && rightRPM > 0) {
             blackRightWasNotBlack = true;
         }
 
@@ -916,7 +904,18 @@ private:
 
     // ====================
     // Retreat handling functions
-    void retreat(double angle, bool blackSensors[]) {
+    void retreat(double obstacleDistance, double angle, bool blackSensors[]) {
+        // Emergency braking
+        if ((retreatState == RETREAT_STATE::POST_RETREAT_MOVE ||
+            retreatState == RETREAT_STATE::POST_RETREAT_ALIGNMENT) &&
+            obstacleDistance < MIN_DISTANCE) {
+            *blocked = true;
+
+            pause();
+
+            return;
+        }
+
         // Update the remaining angle
         remainingAngle -= Utils::anglesSmallDifference(angle, previousAngle);
         previousAngle = angle;

@@ -10,7 +10,7 @@ class MPUSensor {
 
 public:
 
-    void setup(String* logsPtr) {
+    void setup(String* logsPtr, bool& failure) {
         logs = logsPtr;
 
         // Serial.println("Initializing MPU...");
@@ -18,6 +18,8 @@ public:
 
         // Serial.println("Testing device connections...");
         // Serial.println(mpu.testConnection() ? "MPU6050 connection successful" : "MPU6050 connection failed");
+
+        dmpReady = mpu.testConnection();
 
         // Serial.println(F("Initializing DMP..."));
         devStatus = mpu.dmpInitialize();
@@ -38,10 +40,13 @@ public:
             mpuIntStatus = mpu.getIntStatus();
             packetSize = mpu.dmpGetFIFOPacketSize();
 
-            dmpReady = true;
+            dmpReady &= true;
         } else {
             // Serial.println("DMP Initialization failed (code " + String(devStatus) + ")");
         }
+
+        if (!dmpReady)
+            failure = true;
     }
 
     bool read(double& y, double& p, double& r) {
