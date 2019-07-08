@@ -163,94 +163,112 @@ void loop() {
 void receive(SERVER_TASKS task) {
     switch (task) {
         case SERVER_TASKS::CONFIG:
+            logs.concat("Config!\n");
+
             failure = false;
             nav.config();
-            logs.concat("Config!\n");
         break;
 
         case SERVER_TASKS::STOP:
-            nav.stop();
             logs.concat("Stop!\n");
+
+            nav.stop();
         break;
 
         case SERVER_TASKS::MOVE:
-            nav.move(yaw);
             logs.concat("Forward!\n");
+
+            nav.move(yaw);
         break;
 
         case SERVER_TASKS::ROTATE_RIGHT:
-            nav.rotateRight(yaw);
             logs.concat("Right!\n");
+
+            nav.rotateRight(yaw);
         break;
 
         case SERVER_TASKS::ROTATE_LEFT:
-            nav.rotateLeft(yaw);
             logs.concat("Left!\n");
+
+            nav.rotateLeft(yaw);
         break;
 
         case SERVER_TASKS::RETREAT:
-            nav.retreat(yaw);
             logs.concat("Retreat!\n");
+
+            nav.retreat(yaw);
         break;
 
         case SERVER_TASKS::RECOVER_MOVE:
-            nav.move(yaw, true);
             logs.concat("Recover forward!\n");
+
+            nav.move(yaw, true);
         break;
 
         case SERVER_TASKS::RECOVER_ROTATE_RIGHT:
-            nav.rotateRight(yaw, true);
             logs.concat("Recover right!\n");
+
+            nav.rotateRight(yaw, true);
         break;
 
         case SERVER_TASKS::RECOVER_ROTATE_LEFT:
-            nav.rotateLeft(yaw, true);
             logs.concat("Recover left!\n");
+
+            nav.rotateLeft(yaw, true);
         break;
 
         case SERVER_TASKS::RECOVER_RETREAT:
-            nav.retreat(yaw, true);
             logs.concat("Recover retreat!\n");
+
+            nav.retreat(yaw, true);
         break;
 
         case SERVER_TASKS::LOAD:
-            com.sendDone();
             logs.concat("Load!\n");
+
+            com.sendDone();
         break;
 
         case SERVER_TASKS::OFFLOAD:
-            com.sendDone();
             logs.concat("Offload!\n");
+
+            com.sendDone();
         break;
 
         case SERVER_TASKS::RED_LED_OFF:
-            redLed = LIGHT_MODE::OFF;
             logs.concat("Red LED off!\n");
+
+            redLed = LIGHT_MODE::OFF;
         break;
 
         case SERVER_TASKS::RED_LED_ON:
-            redLed = LIGHT_MODE::ON;
             logs.concat("Red LED on!\n");
+
+            redLed = LIGHT_MODE::ON;
         break;
 
         case SERVER_TASKS::RED_LED_FLASH:
-            redLed = LIGHT_MODE::FLASH;
             logs.concat("Red LED flash!\n");
+
+            redLed = LIGHT_MODE::FLASH;
         break;
 
         case SERVER_TASKS::BLUE_LED_OFF:
-            blueLed = LIGHT_MODE::OFF;
             logs.concat("Blue LED off!\n");
+
+            blueLed = LIGHT_MODE::OFF;
         break;
 
         case SERVER_TASKS::BLUE_LED_ON:
-            blueLed = LIGHT_MODE::ON;
             logs.concat("Blue LED on!\n");
+
+            blueLed = LIGHT_MODE::ON;
         break;
 
         case SERVER_TASKS::BLUE_LED_FLASH:
-            blueLed = LIGHT_MODE::FLASH;
             logs.concat("Blue LED flash!\n");
+
+            blueLed = LIGHT_MODE::FLASH;
         break;
     }
 }

@@ -226,6 +226,8 @@ public:
 
             clearStraightAngle();
 
+            addStraightAngle(postRetreatAngle);
+
             if (moveState == MOVE_STATE::STRAIGHT || moveState == MOVE_STATE::ALIGNMENT) {
                 remainingAngle = Utils::anglesAverageDifference(angle, postRetreatAngle);
             } else if (moveState == MOVE_STATE::STRAIGHT_RIGHT ||
@@ -351,6 +353,8 @@ private:
     void move(double obstacleDistance, double angle, bool blackSensors[]) {
         // Emergency braking
         if (obstacleDistance < MIN_DISTANCE) {
+            logs->concat("Error: obstacle at: " + String(obstacleDistance) + "\n");
+
             *blocked = true;
 
             pause();

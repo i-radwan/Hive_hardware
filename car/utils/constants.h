@@ -1,8 +1,8 @@
 #pragma once
 
 // #define CAR1
-// #define CAR2
-#define CAR3
+#define CAR2
+// #define CAR3
 
 
 // ====================
@@ -59,7 +59,7 @@ const double HOLD_STATE_PERIOD              = 1000; // ms, time to wait before c
 #ifdef CAR1
 const double MOTORS_ADJUST_DELTA            = 100; // ms
 const double MOTORS_SPEED                   = 50; // rpm
-const double MOTORS_ROTATION_SPEED          = 70; // rpm
+const double MOTORS_ROTATION_SPEED          = 60; // rpm
 const double MOTORS_MOVE_SPEED_INCREMENT    = 7; // rpm
 const double MOTORS_ROTATE_SPEED_INCREMENT  = 10; // rpm
 const double LEFT_INIT_THROTTLE             = PWMRANGE / 6; // pwm
@@ -81,11 +81,11 @@ const double C4                             = 0.4;
 #ifdef CAR2
 const double MOTORS_ADJUST_DELTA            = 100; // ms
 const double MOTORS_SPEED                   = 50; // rpm
-const double MOTORS_ROTATION_SPEED          = 80; // rpm
-const double MOTORS_ROTATE_SPEED_INCREMENT  = 20; // rpm
-const double MOTORS_MOVE_SPEED_INCREMENT    = 10; // rpm
-const double LEFT_INIT_THROTTLE             = PWMRANGE / 3.8; // pwm
-const double RIGHT_INIT_THROTTLE            = PWMRANGE / 3.8; // pwm
+const double MOTORS_ROTATION_SPEED          = 50; // rpm
+const double MOTORS_MOVE_SPEED_INCREMENT    = 7; // rpm
+const double MOTORS_ROTATE_SPEED_INCREMENT  = 7; // rpm
+const double LEFT_INIT_THROTTLE             = PWMRANGE / 4.1; // pwm
+const double RIGHT_INIT_THROTTLE            = PWMRANGE / 4.1; // pwm
 
 const double LEFT_KP                        = 1.8;
 const double LEFT_KI                        = 0.07;
@@ -104,10 +104,10 @@ const double C4                             = 0.2;
 const double MOTORS_ADJUST_DELTA            = 100; // ms
 const double MOTORS_SPEED                   = 50; // rpm
 const double MOTORS_ROTATION_SPEED          = 70; // rpm
-const double MOTORS_MOVE_SPEED_INCREMENT    = 16; // rpm
+const double MOTORS_MOVE_SPEED_INCREMENT    = 7; // rpm
 const double MOTORS_ROTATE_SPEED_INCREMENT  = 10; // rpm
-const double LEFT_INIT_THROTTLE             = PWMRANGE / 3.8; // pwm
-const double RIGHT_INIT_THROTTLE            = PWMRANGE / 3.8; // pwm
+const double LEFT_INIT_THROTTLE             = PWMRANGE / 4.1; // pwm
+const double RIGHT_INIT_THROTTLE            = PWMRANGE / 4.1; // pwm
 
 const double LEFT_KP                        = 1.8;
 const double LEFT_KI                        = 0.07;
@@ -171,9 +171,9 @@ const double OPTICAL_DPI_TO_MM              = 1 / 39.0;
 // Ultrasonic
 const int ULTRA_SONIC_TRIGGER_PIN           = D9;
 const int ULTRA_SONIC_ECHO_PIN              = D5;
-const int ULTRA_SONIC_REFRESH_TIME          = 50; // ms
-const int ULTRA_SONIC_TIMEOUT               = 2000; // us ... 2cm * 2     = 40cm     = ~0.5m takes the sound 300 m/s -> 0.001666666667 seconds to travel     = 1666.667us
-const int MIN_DISTANCE                      = 15; // cm. Min distance ahead of the robot
+const int ULTRA_SONIC_REFRESH_TIME          = 0; // ms
+const int ULTRA_SONIC_TIMEOUT               = 2000; // us ... 20cm * 2     = 40cm     = ~0.5m takes the sound 300 m/s -> 0.001666666667 seconds to travel     = 1666.667us
+const int MIN_DISTANCE                      = 11; // cm. Min distance ahead of the robot
 
 // Battery
 const int BATTERY_SENSOR_PIN                = A0;

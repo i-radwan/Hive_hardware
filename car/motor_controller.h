@@ -113,7 +113,7 @@ private:
     // ====================
     // Members
 
-    double kp, ki, kd, initThrottle;
+    const double kp, ki, kd, initThrottle;
     const int speedPin, dir1Pin, dir2Pin;
 
     double speedIncrementStep = MOTORS_MOVE_SPEED_INCREMENT;
