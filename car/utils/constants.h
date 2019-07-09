@@ -1,8 +1,8 @@
 #pragma once
 
 // #define CAR1
-#define CAR2
-// #define CAR3
+// #define CAR2
+#define CAR3
 
 
 // ====================
@@ -228,6 +228,8 @@ const bool BAK_RGT_BLACK_SENSOR_PCF         = true;
 
 // ====================
 // General
+
+const double CONFIG_PERIOD                  = 5000; // ms
 
 // I2C
 const int I2C_SCL                           = D6;
