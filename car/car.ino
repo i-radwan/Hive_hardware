@@ -49,6 +49,8 @@ bool setupState = false;
 bool blocked = false;
 bool failure = false;
 
+double ongoingTimer = 0;
+
 // Sensor readings
 double yaw, pitch, roll;
 double obstacleDistance;
@@ -65,6 +67,7 @@ String logs = "";
 void receive(SERVER_TASKS task);
 void serverConnected();
 void serverDisconnected();
+bool obtainReferenceAngle();
 void readSensors();
 void ICACHE_RAM_ATTR leftEncoderISR();
 void ICACHE_RAM_ATTR rightEncoderISR();
@@ -78,6 +81,7 @@ void setup() {
 
     // Initialize connection
     setupState = com.setup(&receive, &serverConnected, &serverDisconnected);
+    com.loop();
 
     // Initialize PCFs
     pcf1.begin(PCF1_CONFIGS); // P0-P3 output, P4-P7 input
@@ -86,7 +90,7 @@ void setup() {
     ota.setup();
 
     // Initialize sensors
-    mpu.setup(&logs, failure);
+    mpu.setup(failure);
     uls.setup();
     bat.setup(BATTERY_SENSOR_PIN);
 
@@ -116,6 +120,9 @@ void setup() {
     wifi_set_sleep_type(NONE_SLEEP_T);
 
     failure |= !setupState;
+
+    // Set navigator reference angle
+    failure |= !obtainReferenceAngle();
 }
 
 void loop() {
@@ -151,9 +158,15 @@ void loop() {
         com.sendError(executionState.error);
 
         failure = true;
+    } else if (executionState.state == EXECUTION_STATE::ONGOING) {
+        if (millis() - ongoingTimer > ONGOING_TIMEOUT) {
+            nav.terminate();
+        }
     }
 
     if (executionState.state != EXECUTION_STATE::ONGOING) {
+        ongoingTimer = millis();
+
         debug();
     }
 
@@ -282,6 +295,27 @@ void serverDisconnected() {
     nav.stop();
 }
 
+bool obtainReferenceAngle() {
+    int j = 0;
+
+    while(j++ < MPI_INIT_READINGS) {
+        int i = 0;
+
+        while(!mpu.read(yaw, pitch, roll) && i++ < 10) {
+            delay(200);
+        }
+
+        if (i == 10)
+            return false;
+
+        delay(1000);
+    }
+
+    nav.setReferenceAngle(yaw);
+
+    return true;
+}
+
 void readSensors() {
     // MPU
     mpu.read(yaw, pitch, roll);
@@ -392,6 +426,7 @@ void debug() {
 
         logs.concat(
            "DEBUG:\nAngle: " + String(yaw) +
+            "\nRefAngle: " + String(nav.getReferenceAngle()) +
             "\nSensors: " + String(blackSensors[0]) +
             " " + String(blackSensors[1]) +
             " " + String(blackSensors[2]) +

@@ -1,8 +1,8 @@
 #pragma once
 
-// #define CAR1
+#define CAR1
 // #define CAR2
-#define CAR3
+// #define CAR3
 
 
 // ====================
@@ -14,7 +14,7 @@ const char* SERVER                          = "169.254.97.178";
 const int PORT                              = 12344;
 const int RECONNECT_INTERVAL                = 5000; // ms
 const int PING_INTERVAL                     = 100; // ms
-const int PONG_TIMEOUT                      = 3000; // ms
+const int PONG_TIMEOUT                      = 10000; // ms
 const int RETRIES_COUNT                     = 2;
 const int DONE_DELAY                        = 1000; // ms
 
@@ -52,7 +52,7 @@ enum class DIRECTION {
 // Configs
 const double STEP                           = 300; // mm
 const double EXCESS_DISTANCE_LIMIT          = STEP; // mm, the distance the robot can go beyond the black line before reporting to the server.
-const double EXCESS_ANGLES_LIMIT            = 0; // degrees, the angles the robot can rotate beyond the 90 degrees.
+const double EXCESS_ANGLES_LIMIT            = 10; // degrees, the angles the robot can rotate beyond the 90 degrees.
 const double HOLD_STATE_PERIOD              = 1000; // ms, time to wait before changing states
 
 // PID
@@ -61,7 +61,7 @@ const double MOTORS_ADJUST_DELTA            = 100; // ms
 const double MOTORS_SPEED                   = 50; // rpm
 const double MOTORS_ROTATION_SPEED          = 60; // rpm
 const double MOTORS_MOVE_SPEED_INCREMENT    = 7; // rpm
-const double MOTORS_ROTATE_SPEED_INCREMENT  = 10; // rpm
+const double MOTORS_ROTATE_SPEED_INCREMENT  = 7; // rpm
 const double LEFT_INIT_THROTTLE             = PWMRANGE / 6; // pwm
 const double RIGHT_INIT_THROTTLE            = PWMRANGE / 6; // pwm
 
@@ -134,7 +134,9 @@ const int DEBOUNCE_DELTA                    = 1000; // us
 // MPU
 const int MPU_ADDRESS                       = 0x68;
 const int MPU_INTR                          = D8;
+const int MPI_INIT_READINGS                 = 25;
 const double MPU_REFRESH_RATE               = 0; // ms
+
 
 #ifdef CAR1
 const double MPU_ACCEL_X_OFF                = -24280 / 8.8;
@@ -230,7 +232,7 @@ const bool BAK_RGT_BLACK_SENSOR_PCF         = true;
 // General
 
 const double CONFIG_PERIOD                  = 5000; // ms
-
+const double ONGOING_TIMEOUT                = 7500; // ms
 // I2C
 const int I2C_SCL                           = D6;
 const int I2C_SDA                           = D7;
@@ -264,8 +266,10 @@ enum class EXECUTION_STATE {
 enum class EXECUTION_ERROR {
     NONE                                    = -1,
     EXCEEDED_ALLOWED_DISTANCE               = 0,
-    UNKNOWN_ROTATION                        = 1,
-    UNKNOWN                                 = 2
+    EXCEEDED_ACTION_PERIOD                  = 1,
+    EXCESSIVE_ANGLES                        = 2,
+    UNKNOWN_ROTATION                        = 3,
+    UNKNOWN                                 = 4
 };
 
 enum class MOVE_STATE {

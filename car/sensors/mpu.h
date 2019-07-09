@@ -9,10 +9,7 @@
 class MPUSensor {
 
 public:
-
-    void setup(String* logsPtr, bool& failure) {
-        logs = logsPtr;
-
+    void setup(bool& failure) {
         // Serial.println("Initializing MPU...");
         mpu.initialize();
 
@@ -85,6 +82,9 @@ public:
             p = int((ypr[1] * 180 / M_PI) + 360) % 360;
             r = int((ypr[2] * 180 / M_PI) + 360) % 360;
 
+            // Empty the buffer
+            mpu.resetFIFO();
+
             return true;
         }
 
@@ -92,8 +92,6 @@ public:
     }
 
 private:
-
-    String* logs;
 
     MPU6050 mpu;
 

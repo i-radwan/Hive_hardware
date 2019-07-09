@@ -92,6 +92,12 @@ public:
         logs->concat("Stopped\n");
     }
 
+    void terminate() {
+        halt(EXECUTION_ERROR::EXCEEDED_ACTION_PERIOD);
+
+        logs->concat("Terminated\n");
+    }
+
     void move(double angle, bool recover = false) {
         if (executionState.state == EXECUTION_STATE::IDLE && !recover) {
             prepare();
@@ -122,7 +128,7 @@ public:
             rightMotorController.setSpeedIncrementStep(MOTORS_MOVE_SPEED_INCREMENT);
 
             logs->concat("Start moving\n");
-            logs->concat("angle: " + String(angle) + " - straightAngle: " + String(getStraightAngle()) + " \n");
+            logs->concat("angle: " + String(angle) + " - referenceAngle: " + String(referenceAngle) + " \n");
         } else if (executionState.state == EXECUTION_STATE::PAUSE && action == ACTION::MOVE && recover) {
             executionState.state = EXECUTION_STATE::ONGOING;
 
@@ -134,22 +140,24 @@ public:
         if (executionState.state == EXECUTION_STATE::IDLE && !recover) {
             prepare();
 
-            if (action == ACTION::ROTATE_RIGHT) {
-                remainingAngle += 90;
-            } else if (action == ACTION::ROTATE_LEFT) {
-                remainingAngle = 90 + abs(remainingAngle);
-            } else {
-                remainingAngle = 90;
+            rotateState = ROTATE_STATE::PREPARE_ROTATE_RIGHT;
+            previousAngle = angle;
+            referenceAngle = int(referenceAngle + 90) % 360;
+            remainingAngle = Utils::anglesSmallDifference(angle, referenceAngle);
+
+            if (action == ACTION::MOVE) {
+                if (moveState == MOVE_STATE::OFFLINE_RIGHT) {
+                    rotateState = ROTATE_STATE::ROTATE_RIGHT;
+                }
+            } else if (action == ACTION::RETREAT) {
+                if (retreatState == RETREAT_STATE::POST_RETREAT_MOVE &&
+                    moveState == MOVE_STATE::OFFLINE_RIGHT) {
+                    rotateState = ROTATE_STATE::ROTATE_RIGHT;
+                }
             }
 
             action = ACTION::ROTATE_RIGHT;
-            rotateState = ROTATE_STATE::PREPARE_ROTATE_RIGHT;
             executionState.state = EXECUTION_STATE::ONGOING;
-
-            previousAngle = angle;
-
-            double newStraightAngle = int(getStraightAngle() + 90) % 360;
-            setStraightAngle(newStraightAngle);
 
             leftMotorController.setSpeedIncrementStep(MOTORS_ROTATE_SPEED_INCREMENT);
             rightMotorController.setSpeedIncrementStep(MOTORS_ROTATE_SPEED_INCREMENT);
@@ -167,22 +175,24 @@ public:
         if (executionState.state == EXECUTION_STATE::IDLE && !recover) {
             prepare();
 
-            if (action == ACTION::ROTATE_LEFT) {
-                remainingAngle += 90;
-            } else if (action == ACTION::ROTATE_RIGHT) {
-                remainingAngle = 90 + abs(remainingAngle);
-            } else {
-                remainingAngle = 90;
+            rotateState = ROTATE_STATE::PREPARE_ROTATE_LEFT;
+            previousAngle = angle;
+            referenceAngle = int(referenceAngle - 90 + 360) % 360;
+            remainingAngle = Utils::anglesSmallDifference(angle, referenceAngle);
+
+            if (action == ACTION::MOVE) {
+                if (moveState == MOVE_STATE::OFFLINE_LEFT) {
+                    rotateState = ROTATE_STATE::ROTATE_LEFT;
+                }
+            } else if (action == ACTION::RETREAT) {
+                if (retreatState == RETREAT_STATE::POST_RETREAT_MOVE &&
+                    moveState == MOVE_STATE::OFFLINE_LEFT) {
+                    rotateState = ROTATE_STATE::ROTATE_LEFT;
+                }
             }
 
             action = ACTION::ROTATE_LEFT;
-            rotateState = ROTATE_STATE::PREPARE_ROTATE_LEFT;
             executionState.state = EXECUTION_STATE::ONGOING;
-
-            previousAngle = angle;
-
-            double newStraightAngle = int(getStraightAngle() - 90 + 360) % 360;
-            setStraightAngle(newStraightAngle);
 
             leftMotorController.setSpeedIncrementStep(MOTORS_ROTATE_SPEED_INCREMENT);
             rightMotorController.setSpeedIncrementStep(MOTORS_ROTATE_SPEED_INCREMENT);
@@ -216,19 +226,18 @@ public:
             // Angle that the robot should rotate to first
             // We will always rotate right
             previousAngle = angle;
-            postRetreatAngle = (getStraightAngle() + 180) % 360;
-            setStraightAngle(postRetreatAngle);
+            referenceAngle = int(referenceAngle + 180) % 360;
 
             if (moveState == MOVE_STATE::STRAIGHT || moveState == MOVE_STATE::ALIGNMENT) {
-                remainingAngle = Utils::anglesAverageDifference(angle, postRetreatAngle);
+                remainingAngle = Utils::anglesAverageDifference(angle, referenceAngle);
             } else if (moveState == MOVE_STATE::STRAIGHT_RIGHT ||
                        moveState == MOVE_STATE::DRIFTING_RIGHT ||
                        moveState == MOVE_STATE::OFFLINE_RIGHT) {
-                remainingAngle = Utils::anglesSmallDifference(angle, postRetreatAngle);
+                remainingAngle = Utils::anglesSmallDifference(angle, referenceAngle);
             } else if (moveState == MOVE_STATE::STRAIGHT_LEFT ||
                        moveState == MOVE_STATE::DRIFTING_LEFT ||
                        moveState == MOVE_STATE::OFFLINE_LEFT) {
-                remainingAngle = Utils::anglesLargeDifference(angle, postRetreatAngle);
+                remainingAngle = Utils::anglesLargeDifference(angle, referenceAngle);
             }
 
             postRetreatDistance = movedDistance;
@@ -237,12 +246,22 @@ public:
             rightMotorController.setSpeedIncrementStep(MOTORS_MOVE_SPEED_INCREMENT / 2);
 
             logs->concat("Start retreating\n");
-            logs->concat("MS: " + String((int) moveState) + " Current angle: " + String(angle) + " pra: " + postRetreatAngle + " ra: " + String(remainingAngle) + "\n");
+            logs->concat("MS: " + String((int) moveState) + " Current angle: " + String(angle) + " refA: " + referenceAngle + " ra: " + String(remainingAngle) + "\n");
         } else if (executionState.state == EXECUTION_STATE::PAUSE && action == ACTION::RETREAT && recover) {
             executionState.state = EXECUTION_STATE::ONGOING;
 
             logs->concat("Resume reterating\n");
         }
+    }
+
+    void setReferenceAngle(double angle) {
+        referenceAngle = angle;
+
+        logs->concat("Setting referenceAngle: " + String(angle) + "\n");
+    }
+
+    double getReferenceAngle() {
+        return referenceAngle;
     }
 
 private:
@@ -271,14 +290,11 @@ private:
     bool reachedNode = false;
     bool* blocked;
 
-    double straightAnglesCos = 0;
-    double straightAnglesSin = 0;
-    int straightAnglesCnt = 0;
+    double referenceAngle;
 
     double remainingAngle;
     double previousAngle;
 
-    double postRetreatAngle;
     double postRetreatDistance;
 
     double time = millis();
@@ -385,15 +401,9 @@ private:
         // FSM transitions
         updateMoveState(angle, blackSensors, remainingDistance, minimumDistanceToNode);
 
-        // Store angles to prepare for moving using angles when reaching the next node,
-        // where all sensors see black
-        if (moveState == MOVE_STATE::STRAIGHT) {
-            addStraightAngle(angle, moveState != MOVE_STATE::STRAIGHT ? 0.5 : 1);
-        }
-
         // Get motors new speeds
         double leftSpeed, rightSpeed;
-        getMotorsMoveSpeeds(angle, getStraightAngle(), leftSpeed, rightSpeed);
+        getMotorsMoveSpeeds(angle, leftSpeed, rightSpeed);
 
         // Update motors controllers
         leftMotorController.setSpeed(leftSpeed);
@@ -403,7 +413,7 @@ private:
         rightMotorController.update();
 
         // Compensate back black sensors errors
-        // double diff = Utils::mapAngle(angle - getStraightAngle());
+        // double diff = Utils::mapAngle(angle - referenceAngle);
 
         // if (stopLeftMotor && !stopRightMotor && diff < -10 && remainingDistance < STEP / 5) {
         //     stopRightMotor = true;
@@ -438,25 +448,25 @@ private:
             logs->concat("MS: " + String((int) moveState) + "\n");
             logs->concat("a: " + String(angle) + "\n");
             logs->concat("rn: " + String(reachedNode) + "\n");
-            logs->concat("RefA: " + String(getStraightAngle()) + "\n");
-            logs->concat("lspd: " + String(leftMotorController.getSpeed()) + "\n");
-            logs->concat("rspd: " + String(rightMotorController.getSpeed()) + "\n");
-            logs->concat("lspeed: " + String(leftSpeed) + "\n");
-            logs->concat("rspeed: " + String(rightSpeed) + "\n");
-            logs->concat("rd: " + String(remainingDistance) + "\n");
-            logs->concat("lp: " + String(leftMotorController.p) + "\n");
-            logs->concat("li: " + String(leftMotorController.i) + "\n");
-            logs->concat("lpwm: " + String(leftMotorController.PWM) + "\n");
-            logs->concat("rp: " + String(rightMotorController.p) + "\n");
-            logs->concat("ri: " + String(rightMotorController.i) + "\n");
-            logs->concat("rpwm: " + String(rightMotorController.PWM) + "\n");
-            logs->concat("lrpm: " + String(leftMotorController.RPM) + "\n");
-            logs->concat("rrpm: " + String(rightMotorController.RPM) + "\n");
-            logs->concat("leftd: " + String(leftMotorController.getTotalDistance()) + "\n");
-            logs->concat("rghtd: " + String(rightMotorController.getTotalDistance()) + "\n");
+            logs->concat("RefA: " + String(referenceAngle) + "\n");
+            // logs->concat("lspd: " + String(leftMotorController.getSpeed()) + "\n");
+            // logs->concat("rspd: " + String(rightMotorController.getSpeed()) + "\n");
+            // logs->concat("lspeed: " + String(leftSpeed) + "\n");
+            // logs->concat("rspeed: " + String(rightSpeed) + "\n");
+            // logs->concat("rd: " + String(remainingDistance) + "\n");
+            // logs->concat("lp: " + String(leftMotorController.p) + "\n");
+            // logs->concat("li: " + String(leftMotorController.i) + "\n");
+            // logs->concat("lpwm: " + String(leftMotorController.PWM) + "\n");
+            // logs->concat("rp: " + String(rightMotorController.p) + "\n");
+            // logs->concat("ri: " + String(rightMotorController.i) + "\n");
+            // logs->concat("rpwm: " + String(rightMotorController.PWM) + "\n");
+            // logs->concat("lrpm: " + String(leftMotorController.RPM) + "\n");
+            // logs->concat("rrpm: " + String(rightMotorController.RPM) + "\n");
+            // logs->concat("leftd: " + String(leftMotorController.getTotalDistance()) + "\n");
+            // logs->concat("rghtd: " + String(rightMotorController.getTotalDistance()) + "\n");
             // logs->concat("mdtn: " + String(minimumDistanceToNode) + "\n");
-            logs->concat("blnb: " + String(blackLeftWasNotBlack) + "\n");
-            logs->concat("brnb: " + String(blackRightWasNotBlack) + "\n");
+            // logs->concat("blnb: " + String(blackLeftWasNotBlack) + "\n");
+            // logs->concat("brnb: " + String(blackRightWasNotBlack) + "\n");
             logs->concat("slm: " + String(stopLeftMotor) + "\n");
             logs->concat("srm: " + String(stopRightMotor) + "\n");
             logs->concat("blks: " + String(blackSensors[0]) + " " +
@@ -489,21 +499,18 @@ private:
             stopRightMotor |= (blackRightWasNotBlack && isBackRightBlack);
         }
 
-        double straightAngle = getStraightAngle();
-        double diff = Utils::mapAngle(angle - straightAngle);
+        double diff = Utils::mapAngle(angle - referenceAngle);
 
-        if (straightAngle != -1) {
-            if (reachedNode && moveState == MOVE_STATE::ALIGNMENT &&
-                (isFrontCenterBlack || isFrontLeftBlack || isFrontRightBlack)) {
-                if (diff < -5) {
-                    moveState = MOVE_STATE::DRIFTING_LEFT;
-                } else if (diff > 5) {
-                    moveState = MOVE_STATE::DRIFTING_RIGHT;
-                }
+        // if (reachedNode && moveState == MOVE_STATE::ALIGNMENT &&
+        //     (isFrontCenterBlack || isFrontLeftBlack || isFrontRightBlack)) {
+        //     if (diff < -5) {
+        //         moveState = MOVE_STATE::DRIFTING_LEFT;
+        //     } else if (diff > 5) {
+        //         moveState = MOVE_STATE::DRIFTING_RIGHT;
+        //     }
 
-                return;
-            }
-        }
+        //     return;
+        // }
 
         // ToDo: when we come back again, the state will change and overrides
         // the above code.
@@ -512,135 +519,127 @@ private:
         if (isFrontCenterBlack && isFrontLeftBlack && isFrontRightBlack) {
             moveState = MOVE_STATE::STRAIGHT;
 
-            if (remainingDistance <= STEP / 4) {
+            if (remainingDistance <= STEP / 3) {
                 moveState = MOVE_STATE::ALIGNMENT;
 
                 reachedNode = true;
-            }
-
-            if (remainingDistance > STEP * 0.75) {
+            } else if (remainingDistance > STEP * 0.75) {
                 moveState = MOVE_STATE::ALIGNMENT;
             }
         } else if (isFrontCenterBlack && isFrontLeftBlack && !isFrontRightBlack) {
-            if (reachedNode && diff > 5) {
-                moveState = MOVE_STATE::STRAIGHT_RIGHT;
-            }
+            moveState = MOVE_STATE::STRAIGHT_RIGHT;
         } else if (isFrontCenterBlack && !isFrontLeftBlack && isFrontRightBlack) {
-            if (reachedNode && diff < -5) {
-                moveState = MOVE_STATE::STRAIGHT_LEFT;
-            }
+            moveState = MOVE_STATE::STRAIGHT_LEFT;
         } else if (isFrontCenterBlack && !isFrontLeftBlack && !isFrontRightBlack) {
             moveState = MOVE_STATE::STRAIGHT;
         } else if (!isFrontCenterBlack && isFrontLeftBlack && isFrontRightBlack) {
             moveState = MOVE_STATE::ALIGNMENT;
         } else if (!isFrontCenterBlack && isFrontLeftBlack && !isFrontRightBlack) {
-            if (reachedNode && diff > 5) {
-                moveState = MOVE_STATE::DRIFTING_RIGHT;
-            }
+            moveState = MOVE_STATE::DRIFTING_RIGHT;
         } else if (!isFrontCenterBlack && !isFrontLeftBlack && isFrontRightBlack) {
-            if (reachedNode && diff < -5) {
-                moveState = MOVE_STATE::DRIFTING_LEFT;
-            }
+            moveState = MOVE_STATE::DRIFTING_LEFT;
         } else if (!isFrontCenterBlack && !isFrontLeftBlack && !isFrontRightBlack) {
             if (moveState == MOVE_STATE::DRIFTING_RIGHT || moveState == MOVE_STATE::STRAIGHT_RIGHT) {
                 moveState = MOVE_STATE::OFFLINE_RIGHT;
             } else if (moveState == MOVE_STATE::DRIFTING_LEFT || moveState == MOVE_STATE::STRAIGHT_LEFT) {
                 moveState = MOVE_STATE::OFFLINE_LEFT;
             } else if (moveState == MOVE_STATE::STRAIGHT && abs(diff) < EPS) {
-                logs->concat("ERROR: angle: " + String(angle) + " - straightAngle: " + String(straightAngle) + " - diff: " + String(diff) + "\n");
+                logs->concat("ERROR: angle: " + String(angle) + " - referenceAngle: " + String(referenceAngle) + " - diff: " + String(diff) + "\n");
 
                 halt(EXECUTION_ERROR::UNKNOWN);
             }
         }
 
-        if (straightAngle != -1) {
-            double leftDiff = Utils::anglesSmallDifference(angle, int(straightAngle - 90 + 360) % 360);
-            double rightDiff = Utils::anglesSmallDifference(angle, int(straightAngle + 90) % 360);
+        double leftDiff = Utils::anglesSmallDifference(angle, int(referenceAngle - 90 + 360) % 360);
+        double rightDiff = Utils::anglesSmallDifference(angle, int(referenceAngle + 90) % 360);
 
-            if (moveState == MOVE_STATE::OFFLINE_LEFT && diff > 30) {
-                logs->concat("Error: 1 - ld: " + String(leftDiff) + " 0 rd: " + String(rightDiff) + " !\n");
+        if (moveState == MOVE_STATE::OFFLINE_LEFT && diff > 30) {
+            logs->concat("Error: 1 - ld: " + String(leftDiff) + " 0 rd: " + String(rightDiff) + " !\n");
 
-                if (leftDiff > rightDiff) {
-                    logs->concat("S\n");
+            if (leftDiff > rightDiff) {
+                logs->concat("S\n");
 
-                    moveState = MOVE_STATE::OFFLINE_RIGHT;
-                }
-            } else if (moveState == MOVE_STATE::OFFLINE_RIGHT && diff > 40) {
-                logs->concat("Error: 2 - ld: " + String(leftDiff) + " 0 rd: " + String(rightDiff) + " !\n");
+                halt(EXECUTION_ERROR::UNKNOWN);
 
-                if (leftDiff < rightDiff) {
-                    logs->concat("S\n");
+                // moveState = MOVE_STATE::OFFLINE_RIGHT;
+            }
+        } else if (moveState == MOVE_STATE::OFFLINE_RIGHT && diff > 40) {
+            logs->concat("Error: 2 - ld: " + String(leftDiff) + " 0 rd: " + String(rightDiff) + " !\n");
 
-                    moveState = MOVE_STATE::OFFLINE_LEFT;
-                }
+            if (leftDiff < rightDiff) {
+                logs->concat("S\n");
+
+                halt(EXECUTION_ERROR::UNKNOWN);
+
+                // moveState = MOVE_STATE::OFFLINE_LEFT;
             }
         }
     }
 
-    void getMotorsMoveSpeeds(double angle, double referenceAngle, double& leftSpeed, double& rightSpeed) {
-        switch (moveState) {
-            case MOVE_STATE::HOLD:
-                leftSpeed = 0;
-                rightSpeed = 0;
-            break;
+    void getMotorsMoveSpeeds(double angle, double& leftSpeed, double& rightSpeed) {
+        if (!reachedNode) {
+            switch (moveState) {
+                case MOVE_STATE::HOLD:
+                    leftSpeed = 0;
+                    rightSpeed = 0;
+                break;
 
-            case MOVE_STATE::STRAIGHT:
-                leftSpeed = MOTORS_SPEED;
-                rightSpeed = MOTORS_SPEED;
-            break;
+                case MOVE_STATE::STRAIGHT:
+                    leftSpeed = MOTORS_SPEED;
+                    rightSpeed = MOTORS_SPEED;
+                break;
 
-            case MOVE_STATE::STRAIGHT_LEFT:
-                leftSpeed = MOTORS_SPEED;
-                rightSpeed = MOTORS_SPEED * C2;
-            break;
+                case MOVE_STATE::STRAIGHT_LEFT:
+                    leftSpeed = MOTORS_SPEED;
+                    rightSpeed = MOTORS_SPEED * C2;
+                break;
 
-            case MOVE_STATE::STRAIGHT_RIGHT:
-                leftSpeed = MOTORS_SPEED * C2;
-                rightSpeed = MOTORS_SPEED;
-            break;
+                case MOVE_STATE::STRAIGHT_RIGHT:
+                    leftSpeed = MOTORS_SPEED * C2;
+                    rightSpeed = MOTORS_SPEED;
+                break;
 
-            case MOVE_STATE::DRIFTING_LEFT:
-                leftSpeed = MOTORS_SPEED * C1;
-                rightSpeed = MOTORS_SPEED * C4;
-            break;
+                case MOVE_STATE::DRIFTING_LEFT:
+                    leftSpeed = MOTORS_SPEED * C1;
+                    rightSpeed = MOTORS_SPEED * C4;
+                break;
 
-            case MOVE_STATE::DRIFTING_RIGHT:
-                leftSpeed = MOTORS_SPEED * C4;
-                rightSpeed = MOTORS_SPEED * C1;
-            break;
+                case MOVE_STATE::DRIFTING_RIGHT:
+                    leftSpeed = MOTORS_SPEED * C4;
+                    rightSpeed = MOTORS_SPEED * C1;
+                break;
 
-            case MOVE_STATE::OFFLINE_LEFT:
-                leftSpeed = MOTORS_SPEED * C3;
-                rightSpeed = 0;
-            break;
+                case MOVE_STATE::OFFLINE_LEFT:
+                    leftSpeed = MOTORS_SPEED * C3;
+                    rightSpeed = 0;
+                break;
 
-            case MOVE_STATE::OFFLINE_RIGHT:
-                leftSpeed = 0;
-                rightSpeed = MOTORS_SPEED * C3;
-            break;
+                case MOVE_STATE::OFFLINE_RIGHT:
+                    leftSpeed = 0;
+                    rightSpeed = MOTORS_SPEED * C3;
+                break;
 
-            case MOVE_STATE::ALIGNMENT:
-                if (referenceAngle == -1) {
-                    logs->concat("Error 3");
-                }
-
-                getMotorsAlignmentSpeeds(angle, referenceAngle, leftSpeed, rightSpeed);
-            break;
+                case MOVE_STATE::ALIGNMENT:
+                    getMotorsAlignmentSpeeds(angle, leftSpeed, rightSpeed);
+                break;
+            }
+        } else {
+            getMotorsAlignmentSpeeds(angle, leftSpeed, rightSpeed);
         }
 
         // Stopping at nodes
         if (stopLeftMotor && moveState != MOVE_STATE::OFFLINE_LEFT &&
-            !(moveState == MOVE_STATE::ALIGNMENT && rightSpeed < EPS)) {
+            !((moveState == MOVE_STATE::ALIGNMENT || reachedNode) && rightSpeed < EPS)) {
             leftSpeed = 0;
         }
 
         if (stopRightMotor && moveState != MOVE_STATE::OFFLINE_RIGHT &&
-            !(moveState == MOVE_STATE::ALIGNMENT && leftSpeed < EPS)) {
+            !((moveState == MOVE_STATE::ALIGNMENT || reachedNode) && leftSpeed < EPS)) {
             rightSpeed = 0;
         }
     }
 
-    void getMotorsAlignmentSpeeds(double angle, double referenceAngle, double& leftSpeed, double& rightSpeed) {
+    void getMotorsAlignmentSpeeds(double angle, double& leftSpeed, double& rightSpeed) {
         double diff = Utils::mapAngle(angle - referenceAngle);
 
         if (diff < -10) { // (-oo, -10)
@@ -668,6 +667,8 @@ private:
         if (Utils::anglesSmallDifference(angle, previousAngle) > 30) {
             logs->concat("Excessive angles: " + String(angle) +
                          " - previousAngle:" + String(previousAngle) + "\n");
+
+            halt(EXECUTION_ERROR::EXCESSIVE_ANGLES);
         }
 
         // Update the remaining angle
@@ -729,10 +730,18 @@ private:
             logs->concat("RS: " + String((int) rotateState) + "\n");
             logs->concat("a: " + String(angle) + "\n");
             logs->concat("ra: " + String(remainingAngle) + "\n");
-            logs->concat("ld: " + String(leftMotorController.getTotalDistance()) + "\n");
-            logs->concat("rd: " + String(rightMotorController.getTotalDistance()) + "\n");
-            logs->concat("blnb: " + String(blackLeftWasNotBlack) + "\n");
-            logs->concat("brnb: " + String(blackRightWasNotBlack) + "\n");
+            // logs->concat("lspeed: " + String(leftSpeed) + "\n");
+            // logs->concat("rspeed: " + String(rightSpeed) + "\n");
+            // logs->concat("lspd: " + String(leftMotorController.getSpeed()) + "\n");
+            // logs->concat("rspd: " + String(rightMotorController.getSpeed()) + "\n");
+            // logs->concat("ld: " + String(leftMotorController.getTotalDistance()) + "\n");
+            // logs->concat("rd: " + String(rightMotorController.getTotalDistance()) + "\n");
+            // logs->concat("lrpm: " + String(leftMotorController.getRPM()) + "\n");
+            // logs->concat("rrpm: " + String(rightMotorController.getRPM()) + "\n");;
+            // logs->concat("lpwm: " + String(leftMotorController.getPWM()) + "\n");
+            // logs->concat("rpwm: " + String(rightMotorController.getPWM()) + "\n");
+            // logs->concat("blnb: " + String(blackLeftWasNotBlack) + "\n");
+            // logs->concat("brnb: " + String(blackRightWasNotBlack) + "\n");
             logs->concat("slm: " + String(stopLeftMotor) + "\n");
             logs->concat("srm: " + String(stopRightMotor) + "\n");
             logs->concat("blks: " + String(blackSensors[0]) + " " +
@@ -771,9 +780,14 @@ private:
         stopLeftMotor |= blackLeftWasNotBlack && isBackLeftBlack;
         stopRightMotor |= blackRightWasNotBlack && isBackRightBlack;
 
+        if (postRotateHold) {
+            stopLeftMotor = true;
+            stopRightMotor = true;
+        }
+
         switch (rotateState) {
             case ROTATE_STATE::PREPARE_ROTATE_RIGHT:
-                if (!isFrontRightBlack) {
+                if (!isFrontRightBlack && remainingAngle <= 90) {
                     rotateState = ROTATE_STATE::PRE_ROTATE_RIGHT;
                 }
             break;
@@ -903,11 +917,6 @@ private:
         if (stopRightMotor && !(rightDistance < leftDistance && stopLeftMotor && remainingAngle >= 25)) {
             rightSpeed = 0;
         }
-
-        if (postRotateHold) {
-            leftSpeed = 0;
-            rightSpeed = 0;
-        }
     }
 
     bool isRotationDone(double remainingAngle, bool blackSensors[]) {
@@ -916,15 +925,8 @@ private:
 
         bool result = false;
 
-        result |= (remainingAngle <= -EXCESS_ANGLES_LIMIT);
+        result |= (remainingAngle <= EXCESS_ANGLES_LIMIT);
         result |= (stopLeftMotor && stopRightMotor && remainingAngle < 25);
-
-        if (result) {
-            logs->concat("\nResult::\n");
-            logs->concat("rA" + String(remainingAngle) + "\n");
-            logs->concat("slm" + String(stopLeftMotor) + "\n");
-            logs->concat("srm" + String(stopRightMotor) + "\n");
-        }
 
         return result;
     }
@@ -969,7 +971,7 @@ private:
 
         // Get motors new speeds
         double leftSpeed, rightSpeed;
-        getMotorsRetreatSpeeds(angle, postRetreatAngle, remainingAngle, leftSpeed, rightSpeed);
+        getMotorsRetreatSpeeds(angle, remainingAngle, leftSpeed, rightSpeed);
 
         // Update motors controllers
         leftMotorController.setSpeed(leftSpeed);
@@ -979,7 +981,7 @@ private:
         rightMotorController.update();
 
         // Compensate back black sensors errors
-        double diff = Utils::mapAngle(angle - postRetreatAngle);
+        double diff = Utils::mapAngle(angle - referenceAngle);
 
         // if (stopLeftMotor && !stopRightMotor && diff < -10 && remainingDistance < STEP / 5) {
         //     stopRightMotor = true;
@@ -1018,9 +1020,9 @@ private:
             logs->concat("Rs: " + String((int) retreatState) + "\n");
             logs->concat("Ms: " + String((int) moveState) + "\n");
             logs->concat("angle: " + String(angle) + "\n");
-            logs->concat("diff: " + String(Utils::mapAngle(angle - postRetreatAngle)) + "\n");
+            logs->concat("diff: " + String(Utils::mapAngle(angle - referenceAngle)) + "\n");
             logs->concat("prd: " + String(postRetreatDistance) + "\n");
-            logs->concat("pra: " + String(postRetreatAngle) + "\n");
+            logs->concat("refA: " + String(referenceAngle) + "\n");
             logs->concat("red: " + String(remainingDistance) + "\n");
             logs->concat("ld: " + String(leftDistance) + "\n");
             logs->concat("rd: " + String(rightDistance) + "\n");
@@ -1105,7 +1107,7 @@ private:
         }
     }
 
-    void getMotorsRetreatSpeeds(double angle, double referenceAngle, double remainingAngle, double& leftSpeed, double& rightSpeed) {
+    void getMotorsRetreatSpeeds(double angle, double remainingAngle, double& leftSpeed, double& rightSpeed) {
         switch (retreatState) {
             case RETREAT_STATE::RETREAT:
                 rightSpeed = -MOTORS_ROTATION_SPEED;
@@ -1118,19 +1120,11 @@ private:
             break;
 
             case RETREAT_STATE::POST_RETREAT_MOVE:
-                if (referenceAngle == -1) {
-                    logs->concat("Error: 4\n");
-                }
-
-                getMotorsMoveSpeeds(angle, referenceAngle, leftSpeed, rightSpeed);
+                getMotorsMoveSpeeds(angle, leftSpeed, rightSpeed);
             break;
 
             case RETREAT_STATE::POST_RETREAT_ALIGNMENT:
-                if (referenceAngle == -1) {
-                    logs->concat("Error: 5\n");
-                }
-
-                getMotorsAlignmentSpeeds(angle, referenceAngle, leftSpeed, rightSpeed);
+                getMotorsAlignmentSpeeds(angle, leftSpeed, rightSpeed);
             break;
         }
 
@@ -1148,38 +1142,4 @@ private:
 
     // ====================
     // Helper functions
-    void addStraightAngle(double angle, double weight = 1) {
-        double angleSin, angleCos;
-        Utils::angleResolution(Utils::degreesToRad(angle), angleCos, angleSin);
-
-        straightAnglesCos += (weight * angleCos);
-        straightAnglesSin += (weight * angleSin);
-
-        straightAnglesCnt++;
-    }
-
-    void setStraightAngle(double angle) {
-        if (getStraightAngle() == -1)
-            return;
-
-        clearStraightAngle();
-        addStraightAngle(angle);
-    }
-
-    int getStraightAngle() {
-        if (straightAnglesCnt == 0) {
-            return -1;
-        }
-
-        double straightAnglesAvgSin  = straightAnglesSin / straightAnglesCnt;
-        double straightAnglesAvgCos  = straightAnglesCos / straightAnglesCnt;
-
-        return Utils::radToDegrees(Utils::vecToAngle(straightAnglesAvgCos, straightAnglesAvgSin));
-    }
-
-    void clearStraightAngle() {
-        straightAnglesSin = 0;
-        straightAnglesCos = 0;
-        straightAnglesCnt = 0;
-    }
 };
