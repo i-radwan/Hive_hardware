@@ -62,8 +62,8 @@ const double MOTORS_SPEED                   = 50; // rpm
 const double MOTORS_ROTATION_SPEED          = 60; // rpm
 const double MOTORS_MOVE_SPEED_INCREMENT    = 7; // rpm
 const double MOTORS_ROTATE_SPEED_INCREMENT  = 7; // rpm
-const double LEFT_INIT_THROTTLE             = PWMRANGE / 6; // pwm
-const double RIGHT_INIT_THROTTLE            = PWMRANGE / 6; // pwm
+const double LEFT_INIT_THROTTLE             = PWMRANGE / 5.8; // pwm
+const double RIGHT_INIT_THROTTLE            = PWMRANGE / 5.8; // pwm
 
 const double LEFT_KP                        = 1.8;
 const double LEFT_KI                        = 0.07;
@@ -81,11 +81,11 @@ const double C4                             = 0.4;
 #ifdef CAR2
 const double MOTORS_ADJUST_DELTA            = 100; // ms
 const double MOTORS_SPEED                   = 50; // rpm
-const double MOTORS_ROTATION_SPEED          = 50; // rpm
+const double MOTORS_ROTATION_SPEED          = 60; // rpm
 const double MOTORS_MOVE_SPEED_INCREMENT    = 7; // rpm
 const double MOTORS_ROTATE_SPEED_INCREMENT  = 7; // rpm
-const double LEFT_INIT_THROTTLE             = PWMRANGE / 4.1; // pwm
-const double RIGHT_INIT_THROTTLE            = PWMRANGE / 4.1; // pwm
+const double LEFT_INIT_THROTTLE             = PWMRANGE / 5; // pwm
+const double RIGHT_INIT_THROTTLE            = PWMRANGE / 5; // pwm
 
 const double LEFT_KP                        = 1.8;
 const double LEFT_KI                        = 0.07;
@@ -94,10 +94,10 @@ const double RIGHT_KP                       = 1.8;
 const double RIGHT_KI                       = 0.07;
 const double RIGHT_KD                       = 0;
 
-const double C1                             = 0.6;
-const double C2                             = 0.5;
-const double C3                             = 0.4;
-const double C4                             = 0.2;
+const double C1                             = 0.8;
+const double C2                             = 0.7;
+const double C3                             = 0.6;
+const double C4                             = 0.4;
 #endif
 
 #ifdef CAR3
@@ -106,8 +106,8 @@ const double MOTORS_SPEED                   = 50; // rpm
 const double MOTORS_ROTATION_SPEED          = 70; // rpm
 const double MOTORS_MOVE_SPEED_INCREMENT    = 7; // rpm
 const double MOTORS_ROTATE_SPEED_INCREMENT  = 10; // rpm
-const double LEFT_INIT_THROTTLE             = PWMRANGE / 4.1; // pwm
-const double RIGHT_INIT_THROTTLE            = PWMRANGE / 4.1; // pwm
+const double LEFT_INIT_THROTTLE             = PWMRANGE / 5; // pwm
+const double RIGHT_INIT_THROTTLE            = PWMRANGE / 5; // pwm
 
 const double LEFT_KP                        = 1.8;
 const double LEFT_KI                        = 0.07;
